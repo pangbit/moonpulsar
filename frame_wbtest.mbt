@@ -21,10 +21,10 @@ test "command frame roundtrip" {
   cmd.ping = Some(@proto.CommandPing::default())
   let frame = encode_command_frame(cmd)
   // total size field covers everything after itself
-  let total = (((frame[0].to_uint() << 24) |
+  let total = ((frame[0].to_uint() << 24) |
   (frame[1].to_uint() << 16) |
   (frame[2].to_uint() << 8) |
-  frame[3].to_uint())).reinterpret_as_int()
+  frame[3].to_uint()).reinterpret_as_int()
   assert_eq(total, frame.length() - 4)
   let decoded = decode_frame_body(frame[4:].to_owned())
   assert_eq(decoded.cmd.type_, @proto.BaseCommand_Type::PING)

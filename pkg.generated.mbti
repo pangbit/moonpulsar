@@ -1,0 +1,203 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "pangbit/moonpulsar"
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/io",
+  "moonbitlang/core/debug",
+  "pangbit/moonpulsar/proto",
+}
+
+// Values
+pub fn broker_addr_of(String) -> String raise PulsarError
+
+pub fn crc32c(BytesView) -> UInt
+
+pub fn decode_frame_body(Bytes) -> IncomingFrame raise PulsarError
+
+pub fn encode_command_frame(@proto.BaseCommand) -> Bytes raise
+
+pub fn encode_send_frame(@proto.BaseCommand, @proto.MessageMetadata, Bytes) -> Bytes raise
+
+pub async fn get_partition_count(ConnectionManager, String, String) -> Int
+
+pub async fn lookup_topic(ConnectionManager, String, String, authoritative? : Bool) -> Connection
+
+pub async fn[R : @io.Reader] read_frame(R) -> IncomingFrame
+
+pub fn split_host_port(String) -> (String, Int) raise PulsarError
+
+pub async fn[T] with_retry(RetryPolicy, async () -> T) -> T
+
+// Errors
+pub(all) suberror PulsarError {
+  ConnectionClosed
+  ConnectFailed(String)
+  ServerError(code~ : Int, message~ : String)
+  UnexpectedResponse(String)
+  LookupFailed(String)
+  TooManyRedirects
+  ProducerClosed
+  ConsumerClosed
+  ChecksumMismatch
+  InvalidFrame(String)
+  RequestTimeout
+  AuthenticationFailed(String)
+} derive(@debug.Debug)
+
+// Types and methods
+pub(all) struct AuthData {
+  method_name : String
+  data : Bytes
+} derive(@debug.Debug)
+
+pub(all) struct BatchingConfig {
+  max_messages : Int
+  max_bytes : Int
+  max_delay_ms : Int
+} derive(@debug.Debug)
+pub fn BatchingConfig::default() -> Self
+
+pub struct Client {
+  // private fields
+}
+pub fn Client::close(Self) -> Unit
+pub async fn Client::connect(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
+pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int) -> Consumer
+pub async fn Client::create_producer(Self, String, name? : String, batching? : BatchingConfig) -> Producer
+pub async fn Client::partitions_of(Self, String) -> Int
+
+pub struct Connection {
+  // private fields
+}
+pub fn Connection::close(Self) -> Unit
+pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, keepalive_interval_ms? : Int, timeout_ms? : Int) -> Self
+pub fn Connection::is_closed(Self) -> Bool
+pub fn Connection::next_request_id(Self) -> UInt64
+pub fn Connection::on_close(Self, (Error?) -> Unit) -> Unit
+pub fn Connection::remote_protocol_version(Self) -> Int
+pub async fn Connection::request(Self, @proto.BaseCommand, timeout_ms? : Int) -> @proto.BaseCommand
+pub async fn Connection::send_command(Self, @proto.BaseCommand) -> Unit
+pub async fn Connection::send_payload_frame(Self, @proto.BaseCommand, @proto.MessageMetadata, Bytes) -> Unit
+pub fn Connection::server_version(Self) -> String
+
+pub struct ConnectionManager {
+  // private fields
+}
+pub fn ConnectionManager::close(Self) -> Unit
+pub async fn ConnectionManager::get(Self, String) -> Connection
+pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData) -> Self
+
+pub struct Consumer {
+  // private fields
+}
+pub async fn Consumer::ack(Self, MessageId) -> Unit
+pub async fn Consumer::ack_cumulative(Self, MessageId) -> Unit
+pub async fn Consumer::close(Self) -> Unit
+pub async fn Consumer::create(Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int) -> Self
+pub fn Consumer::is_closed(Self) -> Bool
+pub async fn Consumer::nack(Self, MessageId) -> Unit
+pub async fn Consumer::receive(Self) -> Message
+pub fn Consumer::subscription(Self) -> String
+pub fn Consumer::topic(Self) -> String
+pub fn Consumer::try_receive(Self) -> Message? raise
+
+pub(all) struct IncomingFrame {
+  cmd : @proto.BaseCommand
+  metadata : @proto.MessageMetadata?
+  payload : Bytes?
+} derive(@debug.Debug)
+
+pub struct Message {
+  publish_time : UInt64
+  // private fields
+}
+pub async fn Message::ack(Self) -> Unit
+pub fn Message::event_time(Self) -> UInt64?
+pub fn Message::id(Self) -> MessageId
+pub fn Message::key(Self) -> String?
+pub async fn Message::nack(Self) -> Unit
+pub fn Message::payload(Self) -> Bytes
+pub fn Message::producer_name(Self) -> String
+pub fn Message::properties(Self) -> Map[String, String]
+pub fn Message::publish_time(Self) -> UInt64
+pub fn Message::redelivery_count(Self) -> UInt
+pub fn Message::sequence_id(Self) -> UInt64?
+pub fn Message::topic(Self) -> String
+
+pub(all) struct MessageId {
+  ledger_id : UInt64
+  entry_id : UInt64
+  batch_index : Int
+  partition : Int
+} derive(Compare, Eq, Hash, @debug.Debug)
+pub fn MessageId::earliest() -> Self
+pub fn MessageId::latest() -> Self
+
+type PendingRequest
+
+pub struct Producer {
+  // private fields
+}
+pub async fn Producer::close(Self) -> Unit
+pub async fn Producer::create(@async.TaskGroup[Unit], Connection, String, name? : String, batching? : BatchingConfig) -> Self
+pub async fn Producer::flush(Self) -> Unit
+pub fn Producer::name(Self) -> String
+pub async fn Producer::send(Self, ProducerMessage) -> SendReceipt
+pub async fn Producer::send_async(Self, ProducerMessage) -> ReceiptFuture
+pub fn Producer::topic(Self) -> String
+
+pub(all) struct ProducerMessage {
+  payload : Bytes
+  key : String?
+  properties : Map[String, String]
+  event_time : UInt64?
+  sequence_id : UInt64?
+  ordering_key : Bytes?
+}
+pub fn ProducerMessage::new(Bytes, key? : String, properties? : Map[String, String], event_time? : UInt64, sequence_id? : UInt64, ordering_key? : Bytes) -> Self
+
+pub struct ReceiptFuture {
+  // private fields
+}
+pub async fn ReceiptFuture::wait(Self) -> SendReceipt
+
+pub(all) struct RetryPolicy {
+  max_retries : Int
+  initial_backoff_ms : Int
+  max_backoff_ms : Int
+} derive(@debug.Debug)
+pub fn RetryPolicy::default() -> Self
+
+pub(all) struct SendReceipt {
+  message_id : MessageId
+  sequence_id : UInt64
+  producer_id : UInt64
+  producer_name : String
+} derive(@debug.Debug)
+
+pub(all) enum SubscriptionInitialPosition {
+  Latest
+  Earliest
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SubscriptionType {
+  Exclusive
+  Shared
+  Failover
+  KeyShared
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TokenAuth {
+  token : String
+}
+pub fn TokenAuth::new(String) -> Self
+pub impl Authentication for TokenAuth
+
+// Type aliases
+
+// Traits
+pub(open) trait Authentication {
+  fn method_name(Self) -> String
+  fn auth_data(Self) -> Bytes
+}

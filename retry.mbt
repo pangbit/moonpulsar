@@ -15,15 +15,12 @@ pub(all) struct RetryPolicy {
 /// Default policy: unlimited retries, 100ms initial backoff doubling up to
 /// 30 seconds.
 pub fn RetryPolicy::default() -> RetryPolicy {
-  { max_retries: -1, initial_backoff_ms: 100, max_backoff_ms: 30000 }
+  { max_retries: -1, initial_backoff_ms: 100, max_backoff_ms: 30000, }
 }
 
 ///|
 /// Run `f` with the retry policy, retrying any failure.
-pub async fn[T] with_retry(
-  policy : RetryPolicy,
-  f : async () -> T raise,
-) -> T raise {
+pub async fn[T] with_retry(policy : RetryPolicy, f : async () -> T) -> T {
   let method = @async.RetryMethod::ExponentialDelay(
     initial=policy.initial_backoff_ms,
     factor=2.0,

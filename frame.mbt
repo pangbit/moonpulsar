@@ -92,12 +92,12 @@ pub fn encode_send_frame(
 ///|
 /// Read one frame from an async byte stream: 4-byte big-endian total size,
 /// then the frame body.
-pub async fn[R : @io.Reader] read_frame(reader : R) -> IncomingFrame raise {
+pub async fn[R : @io.Reader] read_frame(reader : R) -> IncomingFrame {
   let header = reader.read_exactly(4) catch { _ => raise ConnectionClosed }
-  let total = (((header[0].to_uint() << 24) |
+  let total = ((header[0].to_uint() << 24) |
   (header[1].to_uint() << 16) |
   (header[2].to_uint() << 8) |
-  header[3].to_uint())).reinterpret_as_int()
+  header[3].to_uint()).reinterpret_as_int()
   let body = reader.read_exactly(total) catch { _ => raise ConnectionClosed }
   decode_frame_body(body)
 }
@@ -118,19 +118,17 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
   if 4 + cmd_size > body.length() {
     raise InvalidFrame("command size exceeds frame length")
   }
-  let cmd : @proto.BaseCommand = read_proto(
-    body[4:4 + cmd_size].to_owned(),
-  ) catch {
+  let cmd : @proto.BaseCommand = read_proto(body[4:4 + cmd_size].to_owned()) catch {
     _ => raise InvalidFrame("malformed BaseCommand")
   }
   let rest = body[4 + cmd_size:]
   if rest.length() == 0 {
-    return { cmd, metadata: None, payload: None }
+    return { cmd, metadata: None, payload: None, }
   }
   let mut offset = 0
   // Optional broker entry metadata, protected by a CRC32-C checksum.
   if rest.length() >= 2 &&
-    rest[0].to_int() == (BROKER_ENTRY_METADATA_MAGIC >> 8) &&
+    rest[0].to_int() == BROKER_ENTRY_METADATA_MAGIC >> 8 &&
     rest[1].to_int() == (BROKER_ENTRY_METADATA_MAGIC & 0xff) {
     let checksum = read_be32(rest, 2)
     if crc32c(rest[6:]) != checksum {

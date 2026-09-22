@@ -15,7 +15,7 @@ struct MockPeer {
 async fn MockPeer::send_command(
   self : MockPeer,
   cmd : @proto.BaseCommand,
-) -> Unit raise {
+) -> Unit {
   self.tcp.write(encode_command_frame(cmd))
 }
 
@@ -25,7 +25,7 @@ async fn MockPeer::send_message(
   cmd : @proto.BaseCommand,
   metadata : @proto.MessageMetadata,
   payload : Bytes,
-) -> Unit raise {
+) -> Unit {
   self.tcp.write(encode_send_frame(cmd, metadata, payload))
 }
 
@@ -42,8 +42,8 @@ async fn MockPeer::next(self : MockPeer) -> IncomingFrame {
 /// Returns the "host:port" address to connect to.
 async fn start_mock_broker(
   group : @async.TaskGroup[Unit],
-  on_peer : async (String, MockPeer) -> Unit raise,
-) -> String raise {
+  on_peer : async (String, MockPeer) -> Unit,
+) -> String {
   let server = @socket.TcpServer::TcpServer(@socket.Addr::parse("127.0.0.1:0"))
   let addr = server.addr.to_string()
   group.spawn_bg(

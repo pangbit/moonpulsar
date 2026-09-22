@@ -5,8 +5,8 @@
 /// then hand over to `on_send` for each SEND frame.
 async fn expect_producer(
   peer : MockPeer,
-  producer_name~ : String = "mock-producer",
-) -> Unit raise {
+  producer_name? : String = "mock-producer",
+) -> Unit {
   let frame = peer.next()
   guard frame.cmd.producer is Some(req) else { fail("expected PRODUCER") }
   let reply = @proto.BaseCommand::default()
@@ -23,7 +23,7 @@ async fn send_receipt(
   peer : MockPeer,
   producer_id : UInt64,
   sequence_id : UInt64,
-) -> Unit raise {
+) -> Unit {
   let reply = @proto.BaseCommand::default()
   reply.type_ = @proto.BaseCommand_Type::SEND_RECEIPT
   let receipt = @proto.CommandSendReceipt::default()
@@ -54,11 +54,11 @@ async test "producer send waits for send receipt" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let producer = Producer::create(group, conn, "persistent://public/default/t")
-    assert_eq(producer.name(), "mock-producer")
-    let receipt = producer.send(
-      ProducerMessage::new(b"hello", key="k1"),
+    let producer = Producer::create(
+      group, conn, "persistent://public/default/t",
     )
+    assert_eq(producer.name(), "mock-producer")
+    let receipt = producer.send(ProducerMessage::new(b"hello", key="k1"))
     assert_eq(receipt.message_id.ledger_id, 10)
     assert_eq(receipt.message_id.entry_id, 20)
     producer.close()
@@ -79,10 +79,14 @@ async test "producer send_async resolves independently" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let producer = Producer::create(group, conn, "persistent://public/default/t")
+    let producer = Producer::create(
+      group, conn, "persistent://public/default/t",
+    )
     let futures = []
     for i in 0..<3 {
-      futures.push(producer.send_async(ProducerMessage::new(@utf8.encode("msg\{i}"))))
+      futures.push(
+        producer.send_async(ProducerMessage::new(@utf8.encode("msg\{i}"))),
+      )
     }
     for f in futures {
       let receipt = f.wait()
@@ -157,7 +161,9 @@ async test "send error fails the send" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let producer = Producer::create(group, conn, "persistent://public/default/t")
+    let producer = Producer::create(
+      group, conn, "persistent://public/default/t",
+    )
     let result : Result[SendReceipt, Error] = Ok(
       producer.send(ProducerMessage::new(b"x")),
     ) catch {

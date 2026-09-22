@@ -1,7 +1,7 @@
 import {
   "pangbit/moonpulsar" @pulsar,
   "moonbitlang/async",
-  "moonbitlang/core/encoding/utf8" @utf8,
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 }
 

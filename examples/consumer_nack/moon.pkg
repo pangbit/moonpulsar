@@ -1,7 +1,6 @@
 import {
   "pangbit/moonpulsar" @pulsar,
   "moonbitlang/async",
-  "moonbitlang/core/encoding/utf8" @utf8,
 }
 
 supported_targets = "+native"

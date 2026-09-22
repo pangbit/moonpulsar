@@ -1,0 +1,2116 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "pangbit/moonpulsar/proto"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "moonbitlang/protobuf",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct AuthData {
+  mut auth_method_name : String?
+  mut auth_data : Bytes?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn AuthData::AuthData(auth_method_name? : String, auth_data? : Bytes) -> Self
+pub impl Default for AuthData
+pub impl ToJson for AuthData
+pub impl @json.FromJson for AuthData
+pub impl @protobuf.AsyncRead for AuthData
+pub impl @protobuf.AsyncWrite for AuthData
+pub impl @protobuf.Read for AuthData
+pub impl @protobuf.Sized for AuthData
+pub impl @protobuf.Write for AuthData
+
+pub(all) enum AuthMethod {
+  AuthMethodNone
+  AuthMethodYcaV1
+  AuthMethodAthens
+} derive(Eq, @debug.Debug)
+pub fn AuthMethod::from_enum(@protobuf.Enum) -> Self
+pub fn AuthMethod::to_enum(Self) -> @protobuf.Enum
+pub impl Default for AuthMethod
+pub impl ToJson for AuthMethod
+pub impl @json.FromJson for AuthMethod
+pub impl @protobuf.Sized for AuthMethod
+
+pub(all) struct BaseCommand {
+  mut type_ : BaseCommand_Type
+  mut connect : CommandConnect?
+  mut connected : CommandConnected?
+  mut subscribe : CommandSubscribe?
+  mut producer : CommandProducer?
+  mut send : CommandSend?
+  mut send_receipt : CommandSendReceipt?
+  mut send_error : CommandSendError?
+  mut message : CommandMessage?
+  mut ack : CommandAck?
+  mut flow : CommandFlow?
+  mut unsubscribe : CommandUnsubscribe?
+  mut success : CommandSuccess?
+  mut error : CommandError?
+  mut close_producer : CommandCloseProducer?
+  mut close_consumer : CommandCloseConsumer?
+  mut producer_success : CommandProducerSuccess?
+  mut ping : CommandPing?
+  mut pong : CommandPong?
+  mut redeliver_unacknowledged_messages : CommandRedeliverUnacknowledgedMessages?
+  mut partition_metadata : CommandPartitionedTopicMetadata?
+  mut partition_metadata_response : CommandPartitionedTopicMetadataResponse?
+  mut lookup_topic : CommandLookupTopic?
+  mut lookup_topic_response : CommandLookupTopicResponse?
+  mut consumer_stats : CommandConsumerStats?
+  mut consumer_stats_response : CommandConsumerStatsResponse?
+  mut reached_end_of_topic : CommandReachedEndOfTopic?
+  mut seek : CommandSeek?
+  mut get_last_message_id : CommandGetLastMessageId?
+  mut get_last_message_id_response : CommandGetLastMessageIdResponse?
+  mut active_consumer_change : CommandActiveConsumerChange?
+  mut get_topics_of_namespace : CommandGetTopicsOfNamespace?
+  mut get_topics_of_namespace_response : CommandGetTopicsOfNamespaceResponse?
+  mut get_schema : CommandGetSchema?
+  mut get_schema_response : CommandGetSchemaResponse?
+  mut auth_challenge : CommandAuthChallenge?
+  mut auth_response : CommandAuthResponse?
+  mut ack_response : CommandAckResponse?
+  mut get_or_create_schema : CommandGetOrCreateSchema?
+  mut get_or_create_schema_response : CommandGetOrCreateSchemaResponse?
+  mut new_txn : CommandNewTxn?
+  mut new_txn_response : CommandNewTxnResponse?
+  mut add_partition_to_txn : CommandAddPartitionToTxn?
+  mut add_partition_to_txn_response : CommandAddPartitionToTxnResponse?
+  mut add_subscription_to_txn : CommandAddSubscriptionToTxn?
+  mut add_subscription_to_txn_response : CommandAddSubscriptionToTxnResponse?
+  mut end_txn : CommandEndTxn?
+  mut end_txn_response : CommandEndTxnResponse?
+  mut end_txn_on_partition : CommandEndTxnOnPartition?
+  mut end_txn_on_partition_response : CommandEndTxnOnPartitionResponse?
+  mut end_txn_on_subscription : CommandEndTxnOnSubscription?
+  mut end_txn_on_subscription_response : CommandEndTxnOnSubscriptionResponse?
+  mut tc_client_connect_request : CommandTcClientConnectRequest?
+  mut tc_client_connect_response : CommandTcClientConnectResponse?
+  mut watch_topic_list : CommandWatchTopicList?
+  mut watch_topic_list_success : CommandWatchTopicListSuccess?
+  mut watch_topic_update : CommandWatchTopicUpdate?
+  mut watch_topic_list_close : CommandWatchTopicListClose?
+  mut topic_migrated : CommandTopicMigrated?
+  mut scalable_topic_lookup : CommandScalableTopicLookup?
+  mut scalable_topic_update : CommandScalableTopicUpdate?
+  mut scalable_topic_close : CommandScalableTopicClose?
+  mut scalable_topic_subscribe : CommandScalableTopicSubscribe?
+  mut scalable_topic_subscribe_response : CommandScalableTopicSubscribeResponse?
+  mut scalable_topic_assignment_update : CommandScalableTopicAssignmentUpdate?
+  mut watch_scalable_topics : CommandWatchScalableTopics?
+  mut watch_scalable_topics_update : CommandWatchScalableTopicsUpdate?
+  mut watch_scalable_topics_close : CommandWatchScalableTopicsClose?
+  mut watch_tc_assignments : CommandWatchTcAssignments?
+  mut watch_tc_assignments_update : CommandWatchTcAssignmentsUpdate?
+  mut watch_tc_assignments_close : CommandWatchTcAssignmentsClose?
+  mut scalable_topic_unsubscribe : CommandScalableTopicUnsubscribe?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn BaseCommand::BaseCommand(BaseCommand_Type, connect? : CommandConnect, connected? : CommandConnected, subscribe? : CommandSubscribe, producer? : CommandProducer, send? : CommandSend, send_receipt? : CommandSendReceipt, send_error? : CommandSendError, message? : CommandMessage, ack? : CommandAck, flow? : CommandFlow, unsubscribe? : CommandUnsubscribe, success? : CommandSuccess, error? : CommandError, close_producer? : CommandCloseProducer, close_consumer? : CommandCloseConsumer, producer_success? : CommandProducerSuccess, ping? : CommandPing, pong? : CommandPong, redeliver_unacknowledged_messages? : CommandRedeliverUnacknowledgedMessages, partition_metadata? : CommandPartitionedTopicMetadata, partition_metadata_response? : CommandPartitionedTopicMetadataResponse, lookup_topic? : CommandLookupTopic, lookup_topic_response? : CommandLookupTopicResponse, consumer_stats? : CommandConsumerStats, consumer_stats_response? : CommandConsumerStatsResponse, reached_end_of_topic? : CommandReachedEndOfTopic, seek? : CommandSeek, get_last_message_id? : CommandGetLastMessageId, get_last_message_id_response? : CommandGetLastMessageIdResponse, active_consumer_change? : CommandActiveConsumerChange, get_topics_of_namespace? : CommandGetTopicsOfNamespace, get_topics_of_namespace_response? : CommandGetTopicsOfNamespaceResponse, get_schema? : CommandGetSchema, get_schema_response? : CommandGetSchemaResponse, auth_challenge? : CommandAuthChallenge, auth_response? : CommandAuthResponse, ack_response? : CommandAckResponse, get_or_create_schema? : CommandGetOrCreateSchema, get_or_create_schema_response? : CommandGetOrCreateSchemaResponse, new_txn? : CommandNewTxn, new_txn_response? : CommandNewTxnResponse, add_partition_to_txn? : CommandAddPartitionToTxn, add_partition_to_txn_response? : CommandAddPartitionToTxnResponse, add_subscription_to_txn? : CommandAddSubscriptionToTxn, add_subscription_to_txn_response? : CommandAddSubscriptionToTxnResponse, end_txn? : CommandEndTxn, end_txn_response? : CommandEndTxnResponse, end_txn_on_partition? : CommandEndTxnOnPartition, end_txn_on_partition_response? : CommandEndTxnOnPartitionResponse, end_txn_on_subscription? : CommandEndTxnOnSubscription, end_txn_on_subscription_response? : CommandEndTxnOnSubscriptionResponse, tc_client_connect_request? : CommandTcClientConnectRequest, tc_client_connect_response? : CommandTcClientConnectResponse, watch_topic_list? : CommandWatchTopicList, watch_topic_list_success? : CommandWatchTopicListSuccess, watch_topic_update? : CommandWatchTopicUpdate, watch_topic_list_close? : CommandWatchTopicListClose, topic_migrated? : CommandTopicMigrated, scalable_topic_lookup? : CommandScalableTopicLookup, scalable_topic_update? : CommandScalableTopicUpdate, scalable_topic_close? : CommandScalableTopicClose, scalable_topic_subscribe? : CommandScalableTopicSubscribe, scalable_topic_subscribe_response? : CommandScalableTopicSubscribeResponse, scalable_topic_assignment_update? : CommandScalableTopicAssignmentUpdate, watch_scalable_topics? : CommandWatchScalableTopics, watch_scalable_topics_update? : CommandWatchScalableTopicsUpdate, watch_scalable_topics_close? : CommandWatchScalableTopicsClose, watch_tc_assignments? : CommandWatchTcAssignments, watch_tc_assignments_update? : CommandWatchTcAssignmentsUpdate, watch_tc_assignments_close? : CommandWatchTcAssignmentsClose, scalable_topic_unsubscribe? : CommandScalableTopicUnsubscribe) -> Self
+pub impl Default for BaseCommand
+pub impl ToJson for BaseCommand
+pub impl @json.FromJson for BaseCommand
+pub impl @protobuf.AsyncRead for BaseCommand
+pub impl @protobuf.AsyncWrite for BaseCommand
+pub impl @protobuf.Read for BaseCommand
+pub impl @protobuf.Sized for BaseCommand
+pub impl @protobuf.Write for BaseCommand
+
+pub(all) enum BaseCommand_Type {
+  CONNECT
+  CONNECTED
+  SUBSCRIBE
+  PRODUCER
+  SEND
+  SEND_RECEIPT
+  SEND_ERROR
+  MESSAGE
+  ACK
+  FLOW
+  UNSUBSCRIBE
+  SUCCESS
+  ERROR
+  CLOSE_PRODUCER
+  CLOSE_CONSUMER
+  PRODUCER_SUCCESS
+  PING
+  PONG
+  REDELIVER_UNACKNOWLEDGED_MESSAGES
+  PARTITIONED_METADATA
+  PARTITIONED_METADATA_RESPONSE
+  LOOKUP
+  LOOKUP_RESPONSE
+  CONSUMER_STATS
+  CONSUMER_STATS_RESPONSE
+  REACHED_END_OF_TOPIC
+  SEEK
+  GET_LAST_MESSAGE_ID
+  GET_LAST_MESSAGE_ID_RESPONSE
+  ACTIVE_CONSUMER_CHANGE
+  GET_TOPICS_OF_NAMESPACE
+  GET_TOPICS_OF_NAMESPACE_RESPONSE
+  GET_SCHEMA
+  GET_SCHEMA_RESPONSE
+  AUTH_CHALLENGE
+  AUTH_RESPONSE
+  ACK_RESPONSE
+  GET_OR_CREATE_SCHEMA
+  GET_OR_CREATE_SCHEMA_RESPONSE
+  NEW_TXN
+  NEW_TXN_RESPONSE
+  ADD_PARTITION_TO_TXN
+  ADD_PARTITION_TO_TXN_RESPONSE
+  ADD_SUBSCRIPTION_TO_TXN
+  ADD_SUBSCRIPTION_TO_TXN_RESPONSE
+  END_TXN
+  END_TXN_RESPONSE
+  END_TXN_ON_PARTITION
+  END_TXN_ON_PARTITION_RESPONSE
+  END_TXN_ON_SUBSCRIPTION
+  END_TXN_ON_SUBSCRIPTION_RESPONSE
+  TC_CLIENT_CONNECT_REQUEST
+  TC_CLIENT_CONNECT_RESPONSE
+  WATCH_TOPIC_LIST
+  WATCH_TOPIC_LIST_SUCCESS
+  WATCH_TOPIC_UPDATE
+  WATCH_TOPIC_LIST_CLOSE
+  TOPIC_MIGRATED
+  SCALABLE_TOPIC_LOOKUP
+  SCALABLE_TOPIC_UPDATE
+  SCALABLE_TOPIC_CLOSE
+  SCALABLE_TOPIC_SUBSCRIBE
+  SCALABLE_TOPIC_SUBSCRIBE_RESPONSE
+  SCALABLE_TOPIC_ASSIGNMENT_UPDATE
+  WATCH_SCALABLE_TOPICS
+  WATCH_SCALABLE_TOPICS_UPDATE
+  WATCH_SCALABLE_TOPICS_CLOSE
+  WATCH_TC_ASSIGNMENTS
+  WATCH_TC_ASSIGNMENTS_UPDATE
+  WATCH_TC_ASSIGNMENTS_CLOSE
+  SCALABLE_TOPIC_UNSUBSCRIBE
+} derive(Eq, @debug.Debug)
+pub fn BaseCommand_Type::from_enum(@protobuf.Enum) -> Self
+pub fn BaseCommand_Type::to_enum(Self) -> @protobuf.Enum
+pub impl Default for BaseCommand_Type
+pub impl ToJson for BaseCommand_Type
+pub impl @json.FromJson for BaseCommand_Type
+pub impl @protobuf.Sized for BaseCommand_Type
+
+pub(all) struct BrokerEntryMetadata {
+  mut broker_timestamp : UInt64?
+  mut index : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn BrokerEntryMetadata::BrokerEntryMetadata(broker_timestamp? : UInt64, index? : UInt64) -> Self
+pub impl Default for BrokerEntryMetadata
+pub impl ToJson for BrokerEntryMetadata
+pub impl @json.FromJson for BrokerEntryMetadata
+pub impl @protobuf.AsyncRead for BrokerEntryMetadata
+pub impl @protobuf.AsyncWrite for BrokerEntryMetadata
+pub impl @protobuf.Read for BrokerEntryMetadata
+pub impl @protobuf.Sized for BrokerEntryMetadata
+pub impl @protobuf.Write for BrokerEntryMetadata
+
+pub(all) struct CommandAck {
+  mut consumer_id : UInt64
+  mut ack_type : CommandAck_AckType
+  mut message_id : Array[MessageIdData]
+  mut validation_error : CommandAck_ValidationError?
+  mut properties : Array[KeyLongValue]
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut request_id : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandAck::CommandAck(UInt64, CommandAck_AckType, Array[MessageIdData], validation_error? : CommandAck_ValidationError, Array[KeyLongValue], txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, request_id? : UInt64) -> Self
+pub impl Default for CommandAck
+pub impl ToJson for CommandAck
+pub impl @json.FromJson for CommandAck
+pub impl @protobuf.AsyncRead for CommandAck
+pub impl @protobuf.AsyncWrite for CommandAck
+pub impl @protobuf.Read for CommandAck
+pub impl @protobuf.Sized for CommandAck
+pub impl @protobuf.Write for CommandAck
+
+pub(all) struct CommandAckResponse {
+  mut consumer_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut error : ServerError?
+  mut message : String?
+  mut request_id : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandAckResponse::CommandAckResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String, request_id? : UInt64) -> Self
+pub impl Default for CommandAckResponse
+pub impl ToJson for CommandAckResponse
+pub impl @json.FromJson for CommandAckResponse
+pub impl @protobuf.AsyncRead for CommandAckResponse
+pub impl @protobuf.AsyncWrite for CommandAckResponse
+pub impl @protobuf.Read for CommandAckResponse
+pub impl @protobuf.Sized for CommandAckResponse
+pub impl @protobuf.Write for CommandAckResponse
+
+pub(all) enum CommandAck_AckType {
+  Individual
+  Cumulative
+} derive(Eq, @debug.Debug)
+pub fn CommandAck_AckType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandAck_AckType::to_enum(Self) -> @protobuf.Enum
+pub impl Default for CommandAck_AckType
+pub impl ToJson for CommandAck_AckType
+pub impl @json.FromJson for CommandAck_AckType
+pub impl @protobuf.Sized for CommandAck_AckType
+
+pub(all) enum CommandAck_ValidationError {
+  UncompressedSizeCorruption
+  DecompressionError
+  ChecksumMismatch
+  BatchDeSerializeError
+  DecryptionError
+} derive(Eq, @debug.Debug)
+pub fn CommandAck_ValidationError::from_enum(@protobuf.Enum) -> Self
+pub fn CommandAck_ValidationError::to_enum(Self) -> @protobuf.Enum
+pub impl Default for CommandAck_ValidationError
+pub impl ToJson for CommandAck_ValidationError
+pub impl @json.FromJson for CommandAck_ValidationError
+pub impl @protobuf.Sized for CommandAck_ValidationError
+
+pub(all) struct CommandActiveConsumerChange {
+  mut consumer_id : UInt64
+  mut is_active : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandActiveConsumerChange::CommandActiveConsumerChange(UInt64, is_active? : Bool) -> Self
+pub impl Default for CommandActiveConsumerChange
+pub impl ToJson for CommandActiveConsumerChange
+pub impl @json.FromJson for CommandActiveConsumerChange
+pub impl @protobuf.AsyncRead for CommandActiveConsumerChange
+pub impl @protobuf.AsyncWrite for CommandActiveConsumerChange
+pub impl @protobuf.Read for CommandActiveConsumerChange
+pub impl @protobuf.Sized for CommandActiveConsumerChange
+pub impl @protobuf.Write for CommandActiveConsumerChange
+
+pub(all) struct CommandAddPartitionToTxn {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut partitions : Array[String]
+  mut scalable : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandAddPartitionToTxn::CommandAddPartitionToTxn(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, Array[String], scalable? : Bool) -> Self
+pub impl Default for CommandAddPartitionToTxn
+pub impl ToJson for CommandAddPartitionToTxn
+pub impl @json.FromJson for CommandAddPartitionToTxn
+pub impl @protobuf.AsyncRead for CommandAddPartitionToTxn
+pub impl @protobuf.AsyncWrite for CommandAddPartitionToTxn
+pub impl @protobuf.Read for CommandAddPartitionToTxn
+pub impl @protobuf.Sized for CommandAddPartitionToTxn
+pub impl @protobuf.Write for CommandAddPartitionToTxn
+
+pub(all) struct CommandAddPartitionToTxnResponse {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut error : ServerError?
+  mut message : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandAddPartitionToTxnResponse::CommandAddPartitionToTxnResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub impl Default for CommandAddPartitionToTxnResponse
+pub impl ToJson for CommandAddPartitionToTxnResponse
+pub impl @json.FromJson for CommandAddPartitionToTxnResponse
+pub impl @protobuf.AsyncRead for CommandAddPartitionToTxnResponse
+pub impl @protobuf.AsyncWrite for CommandAddPartitionToTxnResponse
+pub impl @protobuf.Read for CommandAddPartitionToTxnResponse
+pub impl @protobuf.Sized for CommandAddPartitionToTxnResponse
+pub impl @protobuf.Write for CommandAddPartitionToTxnResponse
+
+pub(all) struct CommandAddSubscriptionToTxn {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut subscription : Array[Subscription]
+  mut scalable : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandAddSubscriptionToTxn::CommandAddSubscriptionToTxn(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, Array[Subscription], scalable? : Bool) -> Self
+pub impl Default for CommandAddSubscriptionToTxn
+pub impl ToJson for CommandAddSubscriptionToTxn
+pub impl @json.FromJson for CommandAddSubscriptionToTxn
+pub impl @protobuf.AsyncRead for CommandAddSubscriptionToTxn
+pub impl @protobuf.AsyncWrite for CommandAddSubscriptionToTxn
+pub impl @protobuf.Read for CommandAddSubscriptionToTxn
+pub impl @protobuf.Sized for CommandAddSubscriptionToTxn
+pub impl @protobuf.Write for CommandAddSubscriptionToTxn
+
+pub(all) struct CommandAddSubscriptionToTxnResponse {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut error : ServerError?
+  mut message : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandAddSubscriptionToTxnResponse::CommandAddSubscriptionToTxnResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub impl Default for CommandAddSubscriptionToTxnResponse
+pub impl ToJson for CommandAddSubscriptionToTxnResponse
+pub impl @json.FromJson for CommandAddSubscriptionToTxnResponse
+pub impl @protobuf.AsyncRead for CommandAddSubscriptionToTxnResponse
+pub impl @protobuf.AsyncWrite for CommandAddSubscriptionToTxnResponse
+pub impl @protobuf.Read for CommandAddSubscriptionToTxnResponse
+pub impl @protobuf.Sized for CommandAddSubscriptionToTxnResponse
+pub impl @protobuf.Write for CommandAddSubscriptionToTxnResponse
+
+pub(all) struct CommandAuthChallenge {
+  mut server_version : String?
+  mut challenge : AuthData?
+  mut protocol_version : Int?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandAuthChallenge::CommandAuthChallenge(server_version? : String, challenge? : AuthData, protocol_version? : Int) -> Self
+pub impl Default for CommandAuthChallenge
+pub impl ToJson for CommandAuthChallenge
+pub impl @json.FromJson for CommandAuthChallenge
+pub impl @protobuf.AsyncRead for CommandAuthChallenge
+pub impl @protobuf.AsyncWrite for CommandAuthChallenge
+pub impl @protobuf.Read for CommandAuthChallenge
+pub impl @protobuf.Sized for CommandAuthChallenge
+pub impl @protobuf.Write for CommandAuthChallenge
+
+pub(all) struct CommandAuthResponse {
+  mut client_version : String?
+  mut response : AuthData?
+  mut protocol_version : Int?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandAuthResponse::CommandAuthResponse(client_version? : String, response? : AuthData, protocol_version? : Int) -> Self
+pub impl Default for CommandAuthResponse
+pub impl ToJson for CommandAuthResponse
+pub impl @json.FromJson for CommandAuthResponse
+pub impl @protobuf.AsyncRead for CommandAuthResponse
+pub impl @protobuf.AsyncWrite for CommandAuthResponse
+pub impl @protobuf.Read for CommandAuthResponse
+pub impl @protobuf.Sized for CommandAuthResponse
+pub impl @protobuf.Write for CommandAuthResponse
+
+pub(all) struct CommandCloseConsumer {
+  mut consumer_id : UInt64
+  mut request_id : UInt64
+  mut assigned_broker_service_url : String?
+  mut assigned_broker_service_url_tls : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandCloseConsumer::CommandCloseConsumer(UInt64, UInt64, assigned_broker_service_url? : String, assigned_broker_service_url_tls? : String) -> Self
+pub impl Default for CommandCloseConsumer
+pub impl ToJson for CommandCloseConsumer
+pub impl @json.FromJson for CommandCloseConsumer
+pub impl @protobuf.AsyncRead for CommandCloseConsumer
+pub impl @protobuf.AsyncWrite for CommandCloseConsumer
+pub impl @protobuf.Read for CommandCloseConsumer
+pub impl @protobuf.Sized for CommandCloseConsumer
+pub impl @protobuf.Write for CommandCloseConsumer
+
+pub(all) struct CommandCloseProducer {
+  mut producer_id : UInt64
+  mut request_id : UInt64
+  mut assigned_broker_service_url : String?
+  mut assigned_broker_service_url_tls : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandCloseProducer::CommandCloseProducer(UInt64, UInt64, assigned_broker_service_url? : String, assigned_broker_service_url_tls? : String) -> Self
+pub impl Default for CommandCloseProducer
+pub impl ToJson for CommandCloseProducer
+pub impl @json.FromJson for CommandCloseProducer
+pub impl @protobuf.AsyncRead for CommandCloseProducer
+pub impl @protobuf.AsyncWrite for CommandCloseProducer
+pub impl @protobuf.Read for CommandCloseProducer
+pub impl @protobuf.Sized for CommandCloseProducer
+pub impl @protobuf.Write for CommandCloseProducer
+
+pub(all) struct CommandConnect {
+  mut client_version : String
+  mut auth_method : AuthMethod?
+  mut auth_method_name : String?
+  mut auth_data : Bytes?
+  mut protocol_version : Int?
+  mut proxy_to_broker_url : String?
+  mut original_principal : String?
+  mut original_auth_data : String?
+  mut original_auth_method : String?
+  mut feature_flags : FeatureFlags?
+  mut proxy_version : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandConnect::CommandConnect(String, auth_method? : AuthMethod, auth_method_name? : String, auth_data? : Bytes, protocol_version? : Int, proxy_to_broker_url? : String, original_principal? : String, original_auth_data? : String, original_auth_method? : String, feature_flags? : FeatureFlags, proxy_version? : String) -> Self
+pub impl Default for CommandConnect
+pub impl ToJson for CommandConnect
+pub impl @json.FromJson for CommandConnect
+pub impl @protobuf.AsyncRead for CommandConnect
+pub impl @protobuf.AsyncWrite for CommandConnect
+pub impl @protobuf.Read for CommandConnect
+pub impl @protobuf.Sized for CommandConnect
+pub impl @protobuf.Write for CommandConnect
+
+pub(all) struct CommandConnected {
+  mut server_version : String
+  mut protocol_version : Int?
+  mut max_message_size : Int?
+  mut feature_flags : FeatureFlags?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandConnected::CommandConnected(String, protocol_version? : Int, max_message_size? : Int, feature_flags? : FeatureFlags) -> Self
+pub impl Default for CommandConnected
+pub impl ToJson for CommandConnected
+pub impl @json.FromJson for CommandConnected
+pub impl @protobuf.AsyncRead for CommandConnected
+pub impl @protobuf.AsyncWrite for CommandConnected
+pub impl @protobuf.Read for CommandConnected
+pub impl @protobuf.Sized for CommandConnected
+pub impl @protobuf.Write for CommandConnected
+
+pub(all) struct CommandConsumerStats {
+  mut request_id : UInt64
+  mut consumer_id : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandConsumerStats::CommandConsumerStats(UInt64, UInt64) -> Self
+pub impl Default for CommandConsumerStats
+pub impl ToJson for CommandConsumerStats
+pub impl @json.FromJson for CommandConsumerStats
+pub impl @protobuf.AsyncRead for CommandConsumerStats
+pub impl @protobuf.AsyncWrite for CommandConsumerStats
+pub impl @protobuf.Read for CommandConsumerStats
+pub impl @protobuf.Sized for CommandConsumerStats
+pub impl @protobuf.Write for CommandConsumerStats
+
+pub(all) struct CommandConsumerStatsResponse {
+  mut request_id : UInt64
+  mut error_code : ServerError?
+  mut error_message : String?
+  mut msg_rate_out : Double?
+  mut msg_throughput_out : Double?
+  mut msg_rate_redeliver : Double?
+  mut consumer_name : String?
+  mut available_permits : UInt64?
+  mut unacked_messages : UInt64?
+  mut blocked_consumer_on_unacked_msgs : Bool?
+  mut address : String?
+  mut connected_since : String?
+  mut type_ : String?
+  mut msg_rate_expired : Double?
+  mut msg_backlog : UInt64?
+  mut message_ack_rate : Double?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandConsumerStatsResponse::CommandConsumerStatsResponse(UInt64, error_code? : ServerError, error_message? : String, msg_rate_out? : Double, msg_throughput_out? : Double, msg_rate_redeliver? : Double, consumer_name? : String, available_permits? : UInt64, unacked_messages? : UInt64, blocked_consumer_on_unacked_msgs? : Bool, address? : String, connected_since? : String, type_? : String, msg_rate_expired? : Double, msg_backlog? : UInt64, message_ack_rate? : Double) -> Self
+pub impl Default for CommandConsumerStatsResponse
+pub impl ToJson for CommandConsumerStatsResponse
+pub impl @json.FromJson for CommandConsumerStatsResponse
+pub impl @protobuf.AsyncRead for CommandConsumerStatsResponse
+pub impl @protobuf.AsyncWrite for CommandConsumerStatsResponse
+pub impl @protobuf.Read for CommandConsumerStatsResponse
+pub impl @protobuf.Sized for CommandConsumerStatsResponse
+pub impl @protobuf.Write for CommandConsumerStatsResponse
+
+pub(all) struct CommandEndTxn {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut txn_action : TxnAction?
+  mut scalable : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandEndTxn::CommandEndTxn(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, txn_action? : TxnAction, scalable? : Bool) -> Self
+pub impl Default for CommandEndTxn
+pub impl ToJson for CommandEndTxn
+pub impl @json.FromJson for CommandEndTxn
+pub impl @protobuf.AsyncRead for CommandEndTxn
+pub impl @protobuf.AsyncWrite for CommandEndTxn
+pub impl @protobuf.Read for CommandEndTxn
+pub impl @protobuf.Sized for CommandEndTxn
+pub impl @protobuf.Write for CommandEndTxn
+
+pub(all) struct CommandEndTxnOnPartition {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut topic : String?
+  mut txn_action : TxnAction?
+  mut txnid_least_bits_of_low_watermark : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandEndTxnOnPartition::CommandEndTxnOnPartition(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, topic? : String, txn_action? : TxnAction, txnid_least_bits_of_low_watermark? : UInt64) -> Self
+pub impl Default for CommandEndTxnOnPartition
+pub impl ToJson for CommandEndTxnOnPartition
+pub impl @json.FromJson for CommandEndTxnOnPartition
+pub impl @protobuf.AsyncRead for CommandEndTxnOnPartition
+pub impl @protobuf.AsyncWrite for CommandEndTxnOnPartition
+pub impl @protobuf.Read for CommandEndTxnOnPartition
+pub impl @protobuf.Sized for CommandEndTxnOnPartition
+pub impl @protobuf.Write for CommandEndTxnOnPartition
+
+pub(all) struct CommandEndTxnOnPartitionResponse {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut error : ServerError?
+  mut message : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandEndTxnOnPartitionResponse::CommandEndTxnOnPartitionResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub impl Default for CommandEndTxnOnPartitionResponse
+pub impl ToJson for CommandEndTxnOnPartitionResponse
+pub impl @json.FromJson for CommandEndTxnOnPartitionResponse
+pub impl @protobuf.AsyncRead for CommandEndTxnOnPartitionResponse
+pub impl @protobuf.AsyncWrite for CommandEndTxnOnPartitionResponse
+pub impl @protobuf.Read for CommandEndTxnOnPartitionResponse
+pub impl @protobuf.Sized for CommandEndTxnOnPartitionResponse
+pub impl @protobuf.Write for CommandEndTxnOnPartitionResponse
+
+pub(all) struct CommandEndTxnOnSubscription {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut subscription : Subscription?
+  mut txn_action : TxnAction?
+  mut txnid_least_bits_of_low_watermark : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandEndTxnOnSubscription::CommandEndTxnOnSubscription(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, subscription? : Subscription, txn_action? : TxnAction, txnid_least_bits_of_low_watermark? : UInt64) -> Self
+pub impl Default for CommandEndTxnOnSubscription
+pub impl ToJson for CommandEndTxnOnSubscription
+pub impl @json.FromJson for CommandEndTxnOnSubscription
+pub impl @protobuf.AsyncRead for CommandEndTxnOnSubscription
+pub impl @protobuf.AsyncWrite for CommandEndTxnOnSubscription
+pub impl @protobuf.Read for CommandEndTxnOnSubscription
+pub impl @protobuf.Sized for CommandEndTxnOnSubscription
+pub impl @protobuf.Write for CommandEndTxnOnSubscription
+
+pub(all) struct CommandEndTxnOnSubscriptionResponse {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut error : ServerError?
+  mut message : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandEndTxnOnSubscriptionResponse::CommandEndTxnOnSubscriptionResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub impl Default for CommandEndTxnOnSubscriptionResponse
+pub impl ToJson for CommandEndTxnOnSubscriptionResponse
+pub impl @json.FromJson for CommandEndTxnOnSubscriptionResponse
+pub impl @protobuf.AsyncRead for CommandEndTxnOnSubscriptionResponse
+pub impl @protobuf.AsyncWrite for CommandEndTxnOnSubscriptionResponse
+pub impl @protobuf.Read for CommandEndTxnOnSubscriptionResponse
+pub impl @protobuf.Sized for CommandEndTxnOnSubscriptionResponse
+pub impl @protobuf.Write for CommandEndTxnOnSubscriptionResponse
+
+pub(all) struct CommandEndTxnResponse {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut error : ServerError?
+  mut message : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandEndTxnResponse::CommandEndTxnResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub impl Default for CommandEndTxnResponse
+pub impl ToJson for CommandEndTxnResponse
+pub impl @json.FromJson for CommandEndTxnResponse
+pub impl @protobuf.AsyncRead for CommandEndTxnResponse
+pub impl @protobuf.AsyncWrite for CommandEndTxnResponse
+pub impl @protobuf.Read for CommandEndTxnResponse
+pub impl @protobuf.Sized for CommandEndTxnResponse
+pub impl @protobuf.Write for CommandEndTxnResponse
+
+pub(all) struct CommandError {
+  mut request_id : UInt64
+  mut error : ServerError
+  mut message : String
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandError::CommandError(UInt64, ServerError, String) -> Self
+pub impl Default for CommandError
+pub impl ToJson for CommandError
+pub impl @json.FromJson for CommandError
+pub impl @protobuf.AsyncRead for CommandError
+pub impl @protobuf.AsyncWrite for CommandError
+pub impl @protobuf.Read for CommandError
+pub impl @protobuf.Sized for CommandError
+pub impl @protobuf.Write for CommandError
+
+pub(all) struct CommandFlow {
+  mut consumer_id : UInt64
+  mut message_permits : UInt
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandFlow::CommandFlow(UInt64, UInt) -> Self
+pub impl Default for CommandFlow
+pub impl ToJson for CommandFlow
+pub impl @json.FromJson for CommandFlow
+pub impl @protobuf.AsyncRead for CommandFlow
+pub impl @protobuf.AsyncWrite for CommandFlow
+pub impl @protobuf.Read for CommandFlow
+pub impl @protobuf.Sized for CommandFlow
+pub impl @protobuf.Write for CommandFlow
+
+pub(all) struct CommandGetLastMessageId {
+  mut consumer_id : UInt64
+  mut request_id : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandGetLastMessageId::CommandGetLastMessageId(UInt64, UInt64) -> Self
+pub impl Default for CommandGetLastMessageId
+pub impl ToJson for CommandGetLastMessageId
+pub impl @json.FromJson for CommandGetLastMessageId
+pub impl @protobuf.AsyncRead for CommandGetLastMessageId
+pub impl @protobuf.AsyncWrite for CommandGetLastMessageId
+pub impl @protobuf.Read for CommandGetLastMessageId
+pub impl @protobuf.Sized for CommandGetLastMessageId
+pub impl @protobuf.Write for CommandGetLastMessageId
+
+pub(all) struct CommandGetLastMessageIdResponse {
+  mut last_message_id : MessageIdData
+  mut request_id : UInt64
+  mut consumer_mark_delete_position : MessageIdData?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandGetLastMessageIdResponse::CommandGetLastMessageIdResponse(MessageIdData, UInt64, consumer_mark_delete_position? : MessageIdData) -> Self
+pub impl Default for CommandGetLastMessageIdResponse
+pub impl ToJson for CommandGetLastMessageIdResponse
+pub impl @json.FromJson for CommandGetLastMessageIdResponse
+pub impl @protobuf.AsyncRead for CommandGetLastMessageIdResponse
+pub impl @protobuf.AsyncWrite for CommandGetLastMessageIdResponse
+pub impl @protobuf.Read for CommandGetLastMessageIdResponse
+pub impl @protobuf.Sized for CommandGetLastMessageIdResponse
+pub impl @protobuf.Write for CommandGetLastMessageIdResponse
+
+pub(all) struct CommandGetOrCreateSchema {
+  mut request_id : UInt64
+  mut topic : String
+  mut schema : Schema
+  mut producer_name : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandGetOrCreateSchema::CommandGetOrCreateSchema(UInt64, String, Schema, producer_name? : String) -> Self
+pub impl Default for CommandGetOrCreateSchema
+pub impl ToJson for CommandGetOrCreateSchema
+pub impl @json.FromJson for CommandGetOrCreateSchema
+pub impl @protobuf.AsyncRead for CommandGetOrCreateSchema
+pub impl @protobuf.AsyncWrite for CommandGetOrCreateSchema
+pub impl @protobuf.Read for CommandGetOrCreateSchema
+pub impl @protobuf.Sized for CommandGetOrCreateSchema
+pub impl @protobuf.Write for CommandGetOrCreateSchema
+
+pub(all) struct CommandGetOrCreateSchemaResponse {
+  mut request_id : UInt64
+  mut error_code : ServerError?
+  mut error_message : String?
+  mut schema_version : Bytes?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandGetOrCreateSchemaResponse::CommandGetOrCreateSchemaResponse(UInt64, error_code? : ServerError, error_message? : String, schema_version? : Bytes) -> Self
+pub impl Default for CommandGetOrCreateSchemaResponse
+pub impl ToJson for CommandGetOrCreateSchemaResponse
+pub impl @json.FromJson for CommandGetOrCreateSchemaResponse
+pub impl @protobuf.AsyncRead for CommandGetOrCreateSchemaResponse
+pub impl @protobuf.AsyncWrite for CommandGetOrCreateSchemaResponse
+pub impl @protobuf.Read for CommandGetOrCreateSchemaResponse
+pub impl @protobuf.Sized for CommandGetOrCreateSchemaResponse
+pub impl @protobuf.Write for CommandGetOrCreateSchemaResponse
+
+pub(all) struct CommandGetSchema {
+  mut request_id : UInt64
+  mut topic : String
+  mut schema_version : Bytes?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandGetSchema::CommandGetSchema(UInt64, String, schema_version? : Bytes) -> Self
+pub impl Default for CommandGetSchema
+pub impl ToJson for CommandGetSchema
+pub impl @json.FromJson for CommandGetSchema
+pub impl @protobuf.AsyncRead for CommandGetSchema
+pub impl @protobuf.AsyncWrite for CommandGetSchema
+pub impl @protobuf.Read for CommandGetSchema
+pub impl @protobuf.Sized for CommandGetSchema
+pub impl @protobuf.Write for CommandGetSchema
+
+pub(all) struct CommandGetSchemaResponse {
+  mut request_id : UInt64
+  mut error_code : ServerError?
+  mut error_message : String?
+  mut schema : Schema?
+  mut schema_version : Bytes?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandGetSchemaResponse::CommandGetSchemaResponse(UInt64, error_code? : ServerError, error_message? : String, schema? : Schema, schema_version? : Bytes) -> Self
+pub impl Default for CommandGetSchemaResponse
+pub impl ToJson for CommandGetSchemaResponse
+pub impl @json.FromJson for CommandGetSchemaResponse
+pub impl @protobuf.AsyncRead for CommandGetSchemaResponse
+pub impl @protobuf.AsyncWrite for CommandGetSchemaResponse
+pub impl @protobuf.Read for CommandGetSchemaResponse
+pub impl @protobuf.Sized for CommandGetSchemaResponse
+pub impl @protobuf.Write for CommandGetSchemaResponse
+
+pub(all) struct CommandGetTopicsOfNamespace {
+  mut request_id : UInt64
+  mut namespace_ : String
+  mut mode : CommandGetTopicsOfNamespace_Mode?
+  mut topics_pattern : String?
+  mut topics_hash : String?
+  mut properties : Array[KeyValue]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandGetTopicsOfNamespace::CommandGetTopicsOfNamespace(UInt64, String, mode? : CommandGetTopicsOfNamespace_Mode, topics_pattern? : String, topics_hash? : String, Array[KeyValue]) -> Self
+pub impl Default for CommandGetTopicsOfNamespace
+pub impl ToJson for CommandGetTopicsOfNamespace
+pub impl @json.FromJson for CommandGetTopicsOfNamespace
+pub impl @protobuf.AsyncRead for CommandGetTopicsOfNamespace
+pub impl @protobuf.AsyncWrite for CommandGetTopicsOfNamespace
+pub impl @protobuf.Read for CommandGetTopicsOfNamespace
+pub impl @protobuf.Sized for CommandGetTopicsOfNamespace
+pub impl @protobuf.Write for CommandGetTopicsOfNamespace
+
+pub(all) struct CommandGetTopicsOfNamespaceResponse {
+  mut request_id : UInt64
+  mut topics : Array[String]
+  mut filtered : Bool?
+  mut topics_hash : String?
+  mut changed : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandGetTopicsOfNamespaceResponse::CommandGetTopicsOfNamespaceResponse(UInt64, Array[String], filtered? : Bool, topics_hash? : String, changed? : Bool) -> Self
+pub impl Default for CommandGetTopicsOfNamespaceResponse
+pub impl ToJson for CommandGetTopicsOfNamespaceResponse
+pub impl @json.FromJson for CommandGetTopicsOfNamespaceResponse
+pub impl @protobuf.AsyncRead for CommandGetTopicsOfNamespaceResponse
+pub impl @protobuf.AsyncWrite for CommandGetTopicsOfNamespaceResponse
+pub impl @protobuf.Read for CommandGetTopicsOfNamespaceResponse
+pub impl @protobuf.Sized for CommandGetTopicsOfNamespaceResponse
+pub impl @protobuf.Write for CommandGetTopicsOfNamespaceResponse
+
+pub(all) enum CommandGetTopicsOfNamespace_Mode {
+  PERSISTENT
+  NON_PERSISTENT
+  ALL
+} derive(Eq, @debug.Debug)
+pub fn CommandGetTopicsOfNamespace_Mode::from_enum(@protobuf.Enum) -> Self
+pub fn CommandGetTopicsOfNamespace_Mode::to_enum(Self) -> @protobuf.Enum
+pub impl Default for CommandGetTopicsOfNamespace_Mode
+pub impl ToJson for CommandGetTopicsOfNamespace_Mode
+pub impl @json.FromJson for CommandGetTopicsOfNamespace_Mode
+pub impl @protobuf.Sized for CommandGetTopicsOfNamespace_Mode
+
+pub(all) struct CommandLookupTopic {
+  mut topic : String
+  mut request_id : UInt64
+  mut authoritative : Bool?
+  mut original_principal : String?
+  mut original_auth_data : String?
+  mut original_auth_method : String?
+  mut advertised_listener_name : String?
+  mut properties : Array[KeyValue]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandLookupTopic::CommandLookupTopic(String, UInt64, authoritative? : Bool, original_principal? : String, original_auth_data? : String, original_auth_method? : String, advertised_listener_name? : String, Array[KeyValue]) -> Self
+pub impl Default for CommandLookupTopic
+pub impl ToJson for CommandLookupTopic
+pub impl @json.FromJson for CommandLookupTopic
+pub impl @protobuf.AsyncRead for CommandLookupTopic
+pub impl @protobuf.AsyncWrite for CommandLookupTopic
+pub impl @protobuf.Read for CommandLookupTopic
+pub impl @protobuf.Sized for CommandLookupTopic
+pub impl @protobuf.Write for CommandLookupTopic
+
+pub(all) struct CommandLookupTopicResponse {
+  mut broker_service_url : String?
+  mut broker_service_url_tls : String?
+  mut response : CommandLookupTopicResponse_LookupType?
+  mut request_id : UInt64
+  mut authoritative : Bool?
+  mut error : ServerError?
+  mut message : String?
+  mut proxy_through_service_url : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandLookupTopicResponse::CommandLookupTopicResponse(broker_service_url? : String, broker_service_url_tls? : String, response? : CommandLookupTopicResponse_LookupType, UInt64, authoritative? : Bool, error? : ServerError, message? : String, proxy_through_service_url? : Bool) -> Self
+pub impl Default for CommandLookupTopicResponse
+pub impl ToJson for CommandLookupTopicResponse
+pub impl @json.FromJson for CommandLookupTopicResponse
+pub impl @protobuf.AsyncRead for CommandLookupTopicResponse
+pub impl @protobuf.AsyncWrite for CommandLookupTopicResponse
+pub impl @protobuf.Read for CommandLookupTopicResponse
+pub impl @protobuf.Sized for CommandLookupTopicResponse
+pub impl @protobuf.Write for CommandLookupTopicResponse
+
+pub(all) enum CommandLookupTopicResponse_LookupType {
+  Redirect
+  Connect
+  Failed
+} derive(Eq, @debug.Debug)
+pub fn CommandLookupTopicResponse_LookupType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandLookupTopicResponse_LookupType::to_enum(Self) -> @protobuf.Enum
+pub impl Default for CommandLookupTopicResponse_LookupType
+pub impl ToJson for CommandLookupTopicResponse_LookupType
+pub impl @json.FromJson for CommandLookupTopicResponse_LookupType
+pub impl @protobuf.Sized for CommandLookupTopicResponse_LookupType
+
+pub(all) struct CommandMessage {
+  mut consumer_id : UInt64
+  mut message_id : MessageIdData
+  mut redelivery_count : UInt?
+  mut ack_set : Array[Int64]
+  mut consumer_epoch : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandMessage::CommandMessage(UInt64, MessageIdData, redelivery_count? : UInt, Array[Int64], consumer_epoch? : UInt64) -> Self
+pub impl Default for CommandMessage
+pub impl ToJson for CommandMessage
+pub impl @json.FromJson for CommandMessage
+pub impl @protobuf.AsyncRead for CommandMessage
+pub impl @protobuf.AsyncWrite for CommandMessage
+pub impl @protobuf.Read for CommandMessage
+pub impl @protobuf.Sized for CommandMessage
+pub impl @protobuf.Write for CommandMessage
+
+pub(all) struct CommandNewTxn {
+  mut request_id : UInt64
+  mut txn_ttl_millis : UInt64?
+  mut tc_id : UInt64?
+  mut scalable : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandNewTxn::CommandNewTxn(UInt64, txn_ttl_millis? : UInt64, tc_id? : UInt64, scalable? : Bool) -> Self
+pub impl Default for CommandNewTxn
+pub impl ToJson for CommandNewTxn
+pub impl @json.FromJson for CommandNewTxn
+pub impl @protobuf.AsyncRead for CommandNewTxn
+pub impl @protobuf.AsyncWrite for CommandNewTxn
+pub impl @protobuf.Read for CommandNewTxn
+pub impl @protobuf.Sized for CommandNewTxn
+pub impl @protobuf.Write for CommandNewTxn
+
+pub(all) struct CommandNewTxnResponse {
+  mut request_id : UInt64
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut error : ServerError?
+  mut message : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandNewTxnResponse::CommandNewTxnResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub impl Default for CommandNewTxnResponse
+pub impl ToJson for CommandNewTxnResponse
+pub impl @json.FromJson for CommandNewTxnResponse
+pub impl @protobuf.AsyncRead for CommandNewTxnResponse
+pub impl @protobuf.AsyncWrite for CommandNewTxnResponse
+pub impl @protobuf.Read for CommandNewTxnResponse
+pub impl @protobuf.Sized for CommandNewTxnResponse
+pub impl @protobuf.Write for CommandNewTxnResponse
+
+pub(all) struct CommandPartitionedTopicMetadata {
+  mut topic : String
+  mut request_id : UInt64
+  mut original_principal : String?
+  mut original_auth_data : String?
+  mut original_auth_method : String?
+  mut metadata_auto_creation_enabled : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandPartitionedTopicMetadata::CommandPartitionedTopicMetadata(String, UInt64, original_principal? : String, original_auth_data? : String, original_auth_method? : String, metadata_auto_creation_enabled? : Bool) -> Self
+pub impl Default for CommandPartitionedTopicMetadata
+pub impl ToJson for CommandPartitionedTopicMetadata
+pub impl @json.FromJson for CommandPartitionedTopicMetadata
+pub impl @protobuf.AsyncRead for CommandPartitionedTopicMetadata
+pub impl @protobuf.AsyncWrite for CommandPartitionedTopicMetadata
+pub impl @protobuf.Read for CommandPartitionedTopicMetadata
+pub impl @protobuf.Sized for CommandPartitionedTopicMetadata
+pub impl @protobuf.Write for CommandPartitionedTopicMetadata
+
+pub(all) struct CommandPartitionedTopicMetadataResponse {
+  mut partitions : UInt?
+  mut request_id : UInt64
+  mut response : CommandPartitionedTopicMetadataResponse_LookupType?
+  mut error : ServerError?
+  mut message : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandPartitionedTopicMetadataResponse::CommandPartitionedTopicMetadataResponse(partitions? : UInt, UInt64, response? : CommandPartitionedTopicMetadataResponse_LookupType, error? : ServerError, message? : String) -> Self
+pub impl Default for CommandPartitionedTopicMetadataResponse
+pub impl ToJson for CommandPartitionedTopicMetadataResponse
+pub impl @json.FromJson for CommandPartitionedTopicMetadataResponse
+pub impl @protobuf.AsyncRead for CommandPartitionedTopicMetadataResponse
+pub impl @protobuf.AsyncWrite for CommandPartitionedTopicMetadataResponse
+pub impl @protobuf.Read for CommandPartitionedTopicMetadataResponse
+pub impl @protobuf.Sized for CommandPartitionedTopicMetadataResponse
+pub impl @protobuf.Write for CommandPartitionedTopicMetadataResponse
+
+pub(all) enum CommandPartitionedTopicMetadataResponse_LookupType {
+  Success
+  Failed
+} derive(Eq, @debug.Debug)
+pub fn CommandPartitionedTopicMetadataResponse_LookupType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandPartitionedTopicMetadataResponse_LookupType::to_enum(Self) -> @protobuf.Enum
+pub impl Default for CommandPartitionedTopicMetadataResponse_LookupType
+pub impl ToJson for CommandPartitionedTopicMetadataResponse_LookupType
+pub impl @json.FromJson for CommandPartitionedTopicMetadataResponse_LookupType
+pub impl @protobuf.Sized for CommandPartitionedTopicMetadataResponse_LookupType
+
+pub(all) struct CommandPing {
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandPing::CommandPing() -> Self
+pub impl Default for CommandPing
+pub impl ToJson for CommandPing
+pub impl @json.FromJson for CommandPing
+pub impl @protobuf.AsyncRead for CommandPing
+pub impl @protobuf.AsyncWrite for CommandPing
+pub impl @protobuf.Read for CommandPing
+pub impl @protobuf.Sized for CommandPing
+pub impl @protobuf.Write for CommandPing
+
+pub(all) struct CommandPong {
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandPong::CommandPong() -> Self
+pub impl Default for CommandPong
+pub impl ToJson for CommandPong
+pub impl @json.FromJson for CommandPong
+pub impl @protobuf.AsyncRead for CommandPong
+pub impl @protobuf.AsyncWrite for CommandPong
+pub impl @protobuf.Read for CommandPong
+pub impl @protobuf.Sized for CommandPong
+pub impl @protobuf.Write for CommandPong
+
+pub(all) struct CommandProducer {
+  mut topic : String
+  mut producer_id : UInt64
+  mut request_id : UInt64
+  mut producer_name : String?
+  mut encrypted : Bool?
+  mut metadata : Array[KeyValue]
+  mut schema : Schema?
+  mut epoch : UInt64?
+  mut user_provided_producer_name : Bool?
+  mut producer_access_mode : ProducerAccessMode?
+  mut topic_epoch : UInt64?
+  mut txn_enabled : Bool?
+  mut initial_subscription_name : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandProducer::CommandProducer(String, UInt64, UInt64, producer_name? : String, encrypted? : Bool, Array[KeyValue], schema? : Schema, epoch? : UInt64, user_provided_producer_name? : Bool, producer_access_mode? : ProducerAccessMode, topic_epoch? : UInt64, txn_enabled? : Bool, initial_subscription_name? : String) -> Self
+pub impl Default for CommandProducer
+pub impl ToJson for CommandProducer
+pub impl @json.FromJson for CommandProducer
+pub impl @protobuf.AsyncRead for CommandProducer
+pub impl @protobuf.AsyncWrite for CommandProducer
+pub impl @protobuf.Read for CommandProducer
+pub impl @protobuf.Sized for CommandProducer
+pub impl @protobuf.Write for CommandProducer
+
+pub(all) struct CommandProducerSuccess {
+  mut request_id : UInt64
+  mut producer_name : String
+  mut last_sequence_id : Int64?
+  mut schema_version : Bytes?
+  mut topic_epoch : UInt64?
+  mut producer_ready : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandProducerSuccess::CommandProducerSuccess(UInt64, String, last_sequence_id? : Int64, schema_version? : Bytes, topic_epoch? : UInt64, producer_ready? : Bool) -> Self
+pub impl Default for CommandProducerSuccess
+pub impl ToJson for CommandProducerSuccess
+pub impl @json.FromJson for CommandProducerSuccess
+pub impl @protobuf.AsyncRead for CommandProducerSuccess
+pub impl @protobuf.AsyncWrite for CommandProducerSuccess
+pub impl @protobuf.Read for CommandProducerSuccess
+pub impl @protobuf.Sized for CommandProducerSuccess
+pub impl @protobuf.Write for CommandProducerSuccess
+
+pub(all) struct CommandReachedEndOfTopic {
+  mut consumer_id : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandReachedEndOfTopic::CommandReachedEndOfTopic(UInt64) -> Self
+pub impl Default for CommandReachedEndOfTopic
+pub impl ToJson for CommandReachedEndOfTopic
+pub impl @json.FromJson for CommandReachedEndOfTopic
+pub impl @protobuf.AsyncRead for CommandReachedEndOfTopic
+pub impl @protobuf.AsyncWrite for CommandReachedEndOfTopic
+pub impl @protobuf.Read for CommandReachedEndOfTopic
+pub impl @protobuf.Sized for CommandReachedEndOfTopic
+pub impl @protobuf.Write for CommandReachedEndOfTopic
+
+pub(all) struct CommandRedeliverUnacknowledgedMessages {
+  mut consumer_id : UInt64
+  mut message_ids : Array[MessageIdData]
+  mut consumer_epoch : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandRedeliverUnacknowledgedMessages::CommandRedeliverUnacknowledgedMessages(UInt64, Array[MessageIdData], consumer_epoch? : UInt64) -> Self
+pub impl Default for CommandRedeliverUnacknowledgedMessages
+pub impl ToJson for CommandRedeliverUnacknowledgedMessages
+pub impl @json.FromJson for CommandRedeliverUnacknowledgedMessages
+pub impl @protobuf.AsyncRead for CommandRedeliverUnacknowledgedMessages
+pub impl @protobuf.AsyncWrite for CommandRedeliverUnacknowledgedMessages
+pub impl @protobuf.Read for CommandRedeliverUnacknowledgedMessages
+pub impl @protobuf.Sized for CommandRedeliverUnacknowledgedMessages
+pub impl @protobuf.Write for CommandRedeliverUnacknowledgedMessages
+
+pub(all) struct CommandScalableTopicAssignmentUpdate {
+  mut consumer_id : UInt64
+  mut assignment : ScalableConsumerAssignment
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandScalableTopicAssignmentUpdate::CommandScalableTopicAssignmentUpdate(UInt64, ScalableConsumerAssignment) -> Self
+pub impl Default for CommandScalableTopicAssignmentUpdate
+pub impl ToJson for CommandScalableTopicAssignmentUpdate
+pub impl @json.FromJson for CommandScalableTopicAssignmentUpdate
+pub impl @protobuf.AsyncRead for CommandScalableTopicAssignmentUpdate
+pub impl @protobuf.AsyncWrite for CommandScalableTopicAssignmentUpdate
+pub impl @protobuf.Read for CommandScalableTopicAssignmentUpdate
+pub impl @protobuf.Sized for CommandScalableTopicAssignmentUpdate
+pub impl @protobuf.Write for CommandScalableTopicAssignmentUpdate
+
+pub(all) struct CommandScalableTopicClose {
+  mut session_id : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandScalableTopicClose::CommandScalableTopicClose(UInt64) -> Self
+pub impl Default for CommandScalableTopicClose
+pub impl ToJson for CommandScalableTopicClose
+pub impl @json.FromJson for CommandScalableTopicClose
+pub impl @protobuf.AsyncRead for CommandScalableTopicClose
+pub impl @protobuf.AsyncWrite for CommandScalableTopicClose
+pub impl @protobuf.Read for CommandScalableTopicClose
+pub impl @protobuf.Sized for CommandScalableTopicClose
+pub impl @protobuf.Write for CommandScalableTopicClose
+
+pub(all) struct CommandScalableTopicLookup {
+  mut session_id : UInt64
+  mut topic : String
+  mut create_if_missing : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandScalableTopicLookup::CommandScalableTopicLookup(UInt64, String, create_if_missing? : Bool) -> Self
+pub impl Default for CommandScalableTopicLookup
+pub impl ToJson for CommandScalableTopicLookup
+pub impl @json.FromJson for CommandScalableTopicLookup
+pub impl @protobuf.AsyncRead for CommandScalableTopicLookup
+pub impl @protobuf.AsyncWrite for CommandScalableTopicLookup
+pub impl @protobuf.Read for CommandScalableTopicLookup
+pub impl @protobuf.Sized for CommandScalableTopicLookup
+pub impl @protobuf.Write for CommandScalableTopicLookup
+
+pub(all) struct CommandScalableTopicSubscribe {
+  mut request_id : UInt64
+  mut topic : String
+  mut subscription : String
+  mut consumer_name : String
+  mut consumer_id : UInt64
+  mut consumer_type : ScalableConsumerType
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandScalableTopicSubscribe::CommandScalableTopicSubscribe(UInt64, String, String, String, UInt64, ScalableConsumerType) -> Self
+pub impl Default for CommandScalableTopicSubscribe
+pub impl ToJson for CommandScalableTopicSubscribe
+pub impl @json.FromJson for CommandScalableTopicSubscribe
+pub impl @protobuf.AsyncRead for CommandScalableTopicSubscribe
+pub impl @protobuf.AsyncWrite for CommandScalableTopicSubscribe
+pub impl @protobuf.Read for CommandScalableTopicSubscribe
+pub impl @protobuf.Sized for CommandScalableTopicSubscribe
+pub impl @protobuf.Write for CommandScalableTopicSubscribe
+
+pub(all) struct CommandScalableTopicSubscribeResponse {
+  mut request_id : UInt64
+  mut error : ServerError?
+  mut message : String?
+  mut assignment : ScalableConsumerAssignment?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandScalableTopicSubscribeResponse::CommandScalableTopicSubscribeResponse(UInt64, error? : ServerError, message? : String, assignment? : ScalableConsumerAssignment) -> Self
+pub impl Default for CommandScalableTopicSubscribeResponse
+pub impl ToJson for CommandScalableTopicSubscribeResponse
+pub impl @json.FromJson for CommandScalableTopicSubscribeResponse
+pub impl @protobuf.AsyncRead for CommandScalableTopicSubscribeResponse
+pub impl @protobuf.AsyncWrite for CommandScalableTopicSubscribeResponse
+pub impl @protobuf.Read for CommandScalableTopicSubscribeResponse
+pub impl @protobuf.Sized for CommandScalableTopicSubscribeResponse
+pub impl @protobuf.Write for CommandScalableTopicSubscribeResponse
+
+pub(all) struct CommandScalableTopicUnsubscribe {
+  mut request_id : UInt64
+  mut consumer_id : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandScalableTopicUnsubscribe::CommandScalableTopicUnsubscribe(UInt64, UInt64) -> Self
+pub impl Default for CommandScalableTopicUnsubscribe
+pub impl ToJson for CommandScalableTopicUnsubscribe
+pub impl @json.FromJson for CommandScalableTopicUnsubscribe
+pub impl @protobuf.AsyncRead for CommandScalableTopicUnsubscribe
+pub impl @protobuf.AsyncWrite for CommandScalableTopicUnsubscribe
+pub impl @protobuf.Read for CommandScalableTopicUnsubscribe
+pub impl @protobuf.Sized for CommandScalableTopicUnsubscribe
+pub impl @protobuf.Write for CommandScalableTopicUnsubscribe
+
+pub(all) struct CommandScalableTopicUpdate {
+  mut session_id : UInt64
+  mut dag : ScalableTopicDAG?
+  mut error : ServerError?
+  mut message : String?
+  mut resolved_topic_name : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandScalableTopicUpdate::CommandScalableTopicUpdate(UInt64, dag? : ScalableTopicDAG, error? : ServerError, message? : String, resolved_topic_name? : String) -> Self
+pub impl Default for CommandScalableTopicUpdate
+pub impl ToJson for CommandScalableTopicUpdate
+pub impl @json.FromJson for CommandScalableTopicUpdate
+pub impl @protobuf.AsyncRead for CommandScalableTopicUpdate
+pub impl @protobuf.AsyncWrite for CommandScalableTopicUpdate
+pub impl @protobuf.Read for CommandScalableTopicUpdate
+pub impl @protobuf.Sized for CommandScalableTopicUpdate
+pub impl @protobuf.Write for CommandScalableTopicUpdate
+
+pub(all) struct CommandSeek {
+  mut consumer_id : UInt64
+  mut request_id : UInt64
+  mut message_id : MessageIdData?
+  mut message_publish_time : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandSeek::CommandSeek(UInt64, UInt64, message_id? : MessageIdData, message_publish_time? : UInt64) -> Self
+pub impl Default for CommandSeek
+pub impl ToJson for CommandSeek
+pub impl @json.FromJson for CommandSeek
+pub impl @protobuf.AsyncRead for CommandSeek
+pub impl @protobuf.AsyncWrite for CommandSeek
+pub impl @protobuf.Read for CommandSeek
+pub impl @protobuf.Sized for CommandSeek
+pub impl @protobuf.Write for CommandSeek
+
+pub(all) struct CommandSend {
+  mut producer_id : UInt64
+  mut sequence_id : UInt64
+  mut num_messages : Int?
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut highest_sequence_id : UInt64?
+  mut is_chunk : Bool?
+  mut marker : Bool?
+  mut message_id : MessageIdData?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandSend::CommandSend(UInt64, UInt64, num_messages? : Int, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, highest_sequence_id? : UInt64, is_chunk? : Bool, marker? : Bool, message_id? : MessageIdData) -> Self
+pub impl Default for CommandSend
+pub impl ToJson for CommandSend
+pub impl @json.FromJson for CommandSend
+pub impl @protobuf.AsyncRead for CommandSend
+pub impl @protobuf.AsyncWrite for CommandSend
+pub impl @protobuf.Read for CommandSend
+pub impl @protobuf.Sized for CommandSend
+pub impl @protobuf.Write for CommandSend
+
+pub(all) struct CommandSendError {
+  mut producer_id : UInt64
+  mut sequence_id : UInt64
+  mut error : ServerError
+  mut message : String
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandSendError::CommandSendError(UInt64, UInt64, ServerError, String) -> Self
+pub impl Default for CommandSendError
+pub impl ToJson for CommandSendError
+pub impl @json.FromJson for CommandSendError
+pub impl @protobuf.AsyncRead for CommandSendError
+pub impl @protobuf.AsyncWrite for CommandSendError
+pub impl @protobuf.Read for CommandSendError
+pub impl @protobuf.Sized for CommandSendError
+pub impl @protobuf.Write for CommandSendError
+
+pub(all) struct CommandSendReceipt {
+  mut producer_id : UInt64
+  mut sequence_id : UInt64
+  mut message_id : MessageIdData?
+  mut highest_sequence_id : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandSendReceipt::CommandSendReceipt(UInt64, UInt64, message_id? : MessageIdData, highest_sequence_id? : UInt64) -> Self
+pub impl Default for CommandSendReceipt
+pub impl ToJson for CommandSendReceipt
+pub impl @json.FromJson for CommandSendReceipt
+pub impl @protobuf.AsyncRead for CommandSendReceipt
+pub impl @protobuf.AsyncWrite for CommandSendReceipt
+pub impl @protobuf.Read for CommandSendReceipt
+pub impl @protobuf.Sized for CommandSendReceipt
+pub impl @protobuf.Write for CommandSendReceipt
+
+pub(all) struct CommandSubscribe {
+  mut topic : String
+  mut subscription : String
+  mut sub_type : CommandSubscribe_SubType
+  mut consumer_id : UInt64
+  mut request_id : UInt64
+  mut consumer_name : String?
+  mut priority_level : Int?
+  mut durable : Bool?
+  mut start_message_id : MessageIdData?
+  mut metadata : Array[KeyValue]
+  mut read_compacted : Bool?
+  mut schema : Schema?
+  mut initial_position : CommandSubscribe_InitialPosition?
+  mut replicate_subscription_state : Bool?
+  mut force_topic_creation : Bool?
+  mut start_message_rollback_duration_sec : UInt64?
+  mut key_shared_meta : KeySharedMeta?
+  mut subscription_properties : Array[KeyValue]
+  mut consumer_epoch : UInt64?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandSubscribe::CommandSubscribe(String, String, CommandSubscribe_SubType, UInt64, UInt64, consumer_name? : String, priority_level? : Int, durable? : Bool, start_message_id? : MessageIdData, Array[KeyValue], read_compacted? : Bool, schema? : Schema, initial_position? : CommandSubscribe_InitialPosition, replicate_subscription_state? : Bool, force_topic_creation? : Bool, start_message_rollback_duration_sec? : UInt64, key_shared_meta? : KeySharedMeta, Array[KeyValue], consumer_epoch? : UInt64) -> Self
+pub impl Default for CommandSubscribe
+pub impl ToJson for CommandSubscribe
+pub impl @json.FromJson for CommandSubscribe
+pub impl @protobuf.AsyncRead for CommandSubscribe
+pub impl @protobuf.AsyncWrite for CommandSubscribe
+pub impl @protobuf.Read for CommandSubscribe
+pub impl @protobuf.Sized for CommandSubscribe
+pub impl @protobuf.Write for CommandSubscribe
+
+pub(all) enum CommandSubscribe_InitialPosition {
+  Latest
+  Earliest
+} derive(Eq, @debug.Debug)
+pub fn CommandSubscribe_InitialPosition::from_enum(@protobuf.Enum) -> Self
+pub fn CommandSubscribe_InitialPosition::to_enum(Self) -> @protobuf.Enum
+pub impl Default for CommandSubscribe_InitialPosition
+pub impl ToJson for CommandSubscribe_InitialPosition
+pub impl @json.FromJson for CommandSubscribe_InitialPosition
+pub impl @protobuf.Sized for CommandSubscribe_InitialPosition
+
+pub(all) enum CommandSubscribe_SubType {
+  Exclusive
+  Shared
+  Failover
+  Key_Shared
+} derive(Eq, @debug.Debug)
+pub fn CommandSubscribe_SubType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandSubscribe_SubType::to_enum(Self) -> @protobuf.Enum
+pub impl Default for CommandSubscribe_SubType
+pub impl ToJson for CommandSubscribe_SubType
+pub impl @json.FromJson for CommandSubscribe_SubType
+pub impl @protobuf.Sized for CommandSubscribe_SubType
+
+pub(all) struct CommandSuccess {
+  mut request_id : UInt64
+  mut schema : Schema?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandSuccess::CommandSuccess(UInt64, schema? : Schema) -> Self
+pub impl Default for CommandSuccess
+pub impl ToJson for CommandSuccess
+pub impl @json.FromJson for CommandSuccess
+pub impl @protobuf.AsyncRead for CommandSuccess
+pub impl @protobuf.AsyncWrite for CommandSuccess
+pub impl @protobuf.Read for CommandSuccess
+pub impl @protobuf.Sized for CommandSuccess
+pub impl @protobuf.Write for CommandSuccess
+
+pub(all) struct CommandTcClientConnectRequest {
+  mut request_id : UInt64
+  mut tc_id : UInt64
+  mut scalable : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandTcClientConnectRequest::CommandTcClientConnectRequest(UInt64, UInt64, scalable? : Bool) -> Self
+pub impl Default for CommandTcClientConnectRequest
+pub impl ToJson for CommandTcClientConnectRequest
+pub impl @json.FromJson for CommandTcClientConnectRequest
+pub impl @protobuf.AsyncRead for CommandTcClientConnectRequest
+pub impl @protobuf.AsyncWrite for CommandTcClientConnectRequest
+pub impl @protobuf.Read for CommandTcClientConnectRequest
+pub impl @protobuf.Sized for CommandTcClientConnectRequest
+pub impl @protobuf.Write for CommandTcClientConnectRequest
+
+pub(all) struct CommandTcClientConnectResponse {
+  mut request_id : UInt64
+  mut error : ServerError?
+  mut message : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandTcClientConnectResponse::CommandTcClientConnectResponse(UInt64, error? : ServerError, message? : String) -> Self
+pub impl Default for CommandTcClientConnectResponse
+pub impl ToJson for CommandTcClientConnectResponse
+pub impl @json.FromJson for CommandTcClientConnectResponse
+pub impl @protobuf.AsyncRead for CommandTcClientConnectResponse
+pub impl @protobuf.AsyncWrite for CommandTcClientConnectResponse
+pub impl @protobuf.Read for CommandTcClientConnectResponse
+pub impl @protobuf.Sized for CommandTcClientConnectResponse
+pub impl @protobuf.Write for CommandTcClientConnectResponse
+
+pub(all) struct CommandTopicMigrated {
+  mut resource_id : UInt64
+  mut resource_type : CommandTopicMigrated_ResourceType
+  mut broker_service_url : String?
+  mut broker_service_url_tls : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandTopicMigrated::CommandTopicMigrated(UInt64, CommandTopicMigrated_ResourceType, broker_service_url? : String, broker_service_url_tls? : String) -> Self
+pub impl Default for CommandTopicMigrated
+pub impl ToJson for CommandTopicMigrated
+pub impl @json.FromJson for CommandTopicMigrated
+pub impl @protobuf.AsyncRead for CommandTopicMigrated
+pub impl @protobuf.AsyncWrite for CommandTopicMigrated
+pub impl @protobuf.Read for CommandTopicMigrated
+pub impl @protobuf.Sized for CommandTopicMigrated
+pub impl @protobuf.Write for CommandTopicMigrated
+
+pub(all) enum CommandTopicMigrated_ResourceType {
+  Producer
+  Consumer
+} derive(Eq, @debug.Debug)
+pub fn CommandTopicMigrated_ResourceType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandTopicMigrated_ResourceType::to_enum(Self) -> @protobuf.Enum
+pub impl Default for CommandTopicMigrated_ResourceType
+pub impl ToJson for CommandTopicMigrated_ResourceType
+pub impl @json.FromJson for CommandTopicMigrated_ResourceType
+pub impl @protobuf.Sized for CommandTopicMigrated_ResourceType
+
+pub(all) struct CommandUnsubscribe {
+  mut consumer_id : UInt64
+  mut request_id : UInt64
+  mut force : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandUnsubscribe::CommandUnsubscribe(UInt64, UInt64, force? : Bool) -> Self
+pub impl Default for CommandUnsubscribe
+pub impl ToJson for CommandUnsubscribe
+pub impl @json.FromJson for CommandUnsubscribe
+pub impl @protobuf.AsyncRead for CommandUnsubscribe
+pub impl @protobuf.AsyncWrite for CommandUnsubscribe
+pub impl @protobuf.Read for CommandUnsubscribe
+pub impl @protobuf.Sized for CommandUnsubscribe
+pub impl @protobuf.Write for CommandUnsubscribe
+
+pub(all) struct CommandWatchScalableTopics {
+  mut watch_id : UInt64
+  mut namespace_ : String
+  mut property_filters : Array[KeyValue]
+  mut current_hash : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchScalableTopics::CommandWatchScalableTopics(UInt64, String, Array[KeyValue], current_hash? : String) -> Self
+pub impl Default for CommandWatchScalableTopics
+pub impl ToJson for CommandWatchScalableTopics
+pub impl @json.FromJson for CommandWatchScalableTopics
+pub impl @protobuf.AsyncRead for CommandWatchScalableTopics
+pub impl @protobuf.AsyncWrite for CommandWatchScalableTopics
+pub impl @protobuf.Read for CommandWatchScalableTopics
+pub impl @protobuf.Sized for CommandWatchScalableTopics
+pub impl @protobuf.Write for CommandWatchScalableTopics
+
+pub(all) struct CommandWatchScalableTopicsClose {
+  mut watch_id : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchScalableTopicsClose::CommandWatchScalableTopicsClose(UInt64) -> Self
+pub impl Default for CommandWatchScalableTopicsClose
+pub impl ToJson for CommandWatchScalableTopicsClose
+pub impl @json.FromJson for CommandWatchScalableTopicsClose
+pub impl @protobuf.AsyncRead for CommandWatchScalableTopicsClose
+pub impl @protobuf.AsyncWrite for CommandWatchScalableTopicsClose
+pub impl @protobuf.Read for CommandWatchScalableTopicsClose
+pub impl @protobuf.Sized for CommandWatchScalableTopicsClose
+pub impl @protobuf.Write for CommandWatchScalableTopicsClose
+
+pub(all) struct CommandWatchScalableTopicsUpdate {
+  mut watch_id : UInt64
+  mut error : ServerError?
+  mut message : String?
+  mut event : CommandWatchScalableTopicsUpdate_Event
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchScalableTopicsUpdate::CommandWatchScalableTopicsUpdate(UInt64, error? : ServerError, message? : String, event? : CommandWatchScalableTopicsUpdate_Event) -> Self
+pub impl Default for CommandWatchScalableTopicsUpdate
+pub impl ToJson for CommandWatchScalableTopicsUpdate
+pub impl @json.FromJson for CommandWatchScalableTopicsUpdate
+pub impl @protobuf.AsyncRead for CommandWatchScalableTopicsUpdate
+pub impl @protobuf.AsyncWrite for CommandWatchScalableTopicsUpdate
+pub impl @protobuf.Read for CommandWatchScalableTopicsUpdate
+pub impl @protobuf.Sized for CommandWatchScalableTopicsUpdate
+pub impl @protobuf.Write for CommandWatchScalableTopicsUpdate
+
+pub(all) enum CommandWatchScalableTopicsUpdate_Event {
+  Snapshot(ScalableTopicsSnapshot)
+  Diff(ScalableTopicsDiff)
+  NotSet
+} derive(Eq, @debug.Debug)
+pub impl Default for CommandWatchScalableTopicsUpdate_Event
+pub impl ToJson for CommandWatchScalableTopicsUpdate_Event
+pub impl @json.FromJson for CommandWatchScalableTopicsUpdate_Event
+
+pub(all) struct CommandWatchTcAssignments {
+  mut watch_id : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchTcAssignments::CommandWatchTcAssignments(UInt64) -> Self
+pub impl Default for CommandWatchTcAssignments
+pub impl ToJson for CommandWatchTcAssignments
+pub impl @json.FromJson for CommandWatchTcAssignments
+pub impl @protobuf.AsyncRead for CommandWatchTcAssignments
+pub impl @protobuf.AsyncWrite for CommandWatchTcAssignments
+pub impl @protobuf.Read for CommandWatchTcAssignments
+pub impl @protobuf.Sized for CommandWatchTcAssignments
+pub impl @protobuf.Write for CommandWatchTcAssignments
+
+pub(all) struct CommandWatchTcAssignmentsClose {
+  mut watch_id : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchTcAssignmentsClose::CommandWatchTcAssignmentsClose(UInt64) -> Self
+pub impl Default for CommandWatchTcAssignmentsClose
+pub impl ToJson for CommandWatchTcAssignmentsClose
+pub impl @json.FromJson for CommandWatchTcAssignmentsClose
+pub impl @protobuf.AsyncRead for CommandWatchTcAssignmentsClose
+pub impl @protobuf.AsyncWrite for CommandWatchTcAssignmentsClose
+pub impl @protobuf.Read for CommandWatchTcAssignmentsClose
+pub impl @protobuf.Sized for CommandWatchTcAssignmentsClose
+pub impl @protobuf.Write for CommandWatchTcAssignmentsClose
+
+pub(all) struct CommandWatchTcAssignmentsUpdate {
+  mut watch_id : UInt64
+  mut snapshot : TcAssignmentsSnapshot?
+  mut error : ServerError?
+  mut message : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchTcAssignmentsUpdate::CommandWatchTcAssignmentsUpdate(UInt64, snapshot? : TcAssignmentsSnapshot, error? : ServerError, message? : String) -> Self
+pub impl Default for CommandWatchTcAssignmentsUpdate
+pub impl ToJson for CommandWatchTcAssignmentsUpdate
+pub impl @json.FromJson for CommandWatchTcAssignmentsUpdate
+pub impl @protobuf.AsyncRead for CommandWatchTcAssignmentsUpdate
+pub impl @protobuf.AsyncWrite for CommandWatchTcAssignmentsUpdate
+pub impl @protobuf.Read for CommandWatchTcAssignmentsUpdate
+pub impl @protobuf.Sized for CommandWatchTcAssignmentsUpdate
+pub impl @protobuf.Write for CommandWatchTcAssignmentsUpdate
+
+pub(all) struct CommandWatchTopicList {
+  mut request_id : UInt64
+  mut watcher_id : UInt64
+  mut namespace_ : String
+  mut topics_pattern : String
+  mut topics_hash : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchTopicList::CommandWatchTopicList(UInt64, UInt64, String, String, topics_hash? : String) -> Self
+pub impl Default for CommandWatchTopicList
+pub impl ToJson for CommandWatchTopicList
+pub impl @json.FromJson for CommandWatchTopicList
+pub impl @protobuf.AsyncRead for CommandWatchTopicList
+pub impl @protobuf.AsyncWrite for CommandWatchTopicList
+pub impl @protobuf.Read for CommandWatchTopicList
+pub impl @protobuf.Sized for CommandWatchTopicList
+pub impl @protobuf.Write for CommandWatchTopicList
+
+pub(all) struct CommandWatchTopicListClose {
+  mut request_id : UInt64
+  mut watcher_id : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchTopicListClose::CommandWatchTopicListClose(UInt64, UInt64) -> Self
+pub impl Default for CommandWatchTopicListClose
+pub impl ToJson for CommandWatchTopicListClose
+pub impl @json.FromJson for CommandWatchTopicListClose
+pub impl @protobuf.AsyncRead for CommandWatchTopicListClose
+pub impl @protobuf.AsyncWrite for CommandWatchTopicListClose
+pub impl @protobuf.Read for CommandWatchTopicListClose
+pub impl @protobuf.Sized for CommandWatchTopicListClose
+pub impl @protobuf.Write for CommandWatchTopicListClose
+
+pub(all) struct CommandWatchTopicListSuccess {
+  mut request_id : UInt64
+  mut watcher_id : UInt64
+  mut topic : Array[String]
+  mut topics_hash : String
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchTopicListSuccess::CommandWatchTopicListSuccess(UInt64, UInt64, Array[String], String) -> Self
+pub impl Default for CommandWatchTopicListSuccess
+pub impl ToJson for CommandWatchTopicListSuccess
+pub impl @json.FromJson for CommandWatchTopicListSuccess
+pub impl @protobuf.AsyncRead for CommandWatchTopicListSuccess
+pub impl @protobuf.AsyncWrite for CommandWatchTopicListSuccess
+pub impl @protobuf.Read for CommandWatchTopicListSuccess
+pub impl @protobuf.Sized for CommandWatchTopicListSuccess
+pub impl @protobuf.Write for CommandWatchTopicListSuccess
+
+pub(all) struct CommandWatchTopicUpdate {
+  mut watcher_id : UInt64
+  mut new_topics : Array[String]
+  mut deleted_topics : Array[String]
+  mut topics_hash : String
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn CommandWatchTopicUpdate::CommandWatchTopicUpdate(UInt64, Array[String], Array[String], String) -> Self
+pub impl Default for CommandWatchTopicUpdate
+pub impl ToJson for CommandWatchTopicUpdate
+pub impl @json.FromJson for CommandWatchTopicUpdate
+pub impl @protobuf.AsyncRead for CommandWatchTopicUpdate
+pub impl @protobuf.AsyncWrite for CommandWatchTopicUpdate
+pub impl @protobuf.Read for CommandWatchTopicUpdate
+pub impl @protobuf.Sized for CommandWatchTopicUpdate
+pub impl @protobuf.Write for CommandWatchTopicUpdate
+
+pub(all) enum CompressionType {
+  NONE
+  LZ4
+  ZLIB
+  ZSTD
+  SNAPPY
+} derive(Eq, @debug.Debug)
+pub fn CompressionType::from_enum(@protobuf.Enum) -> Self
+pub fn CompressionType::to_enum(Self) -> @protobuf.Enum
+pub impl Default for CompressionType
+pub impl ToJson for CompressionType
+pub impl @json.FromJson for CompressionType
+pub impl @protobuf.Sized for CompressionType
+
+pub(all) struct EncryptionKeys {
+  mut key : String
+  mut value : Bytes
+  mut metadata : Array[KeyValue]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn EncryptionKeys::EncryptionKeys(String, Bytes, Array[KeyValue]) -> Self
+pub impl Default for EncryptionKeys
+pub impl ToJson for EncryptionKeys
+pub impl @json.FromJson for EncryptionKeys
+pub impl @protobuf.AsyncRead for EncryptionKeys
+pub impl @protobuf.AsyncWrite for EncryptionKeys
+pub impl @protobuf.Read for EncryptionKeys
+pub impl @protobuf.Sized for EncryptionKeys
+pub impl @protobuf.Write for EncryptionKeys
+
+pub(all) struct FeatureFlags {
+  mut supports_auth_refresh : Bool?
+  mut supports_broker_entry_metadata : Bool?
+  mut supports_partial_producer : Bool?
+  mut supports_topic_watchers : Bool?
+  mut supports_get_partitioned_metadata_without_auto_creation : Bool?
+  mut supports_repl_dedup_by_lid_and_eid : Bool?
+  mut supports_topic_watcher_reconcile : Bool?
+  mut supports_scalable_topics : Bool?
+  mut supports_tc_metadata_discovery : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn FeatureFlags::FeatureFlags(supports_auth_refresh? : Bool, supports_broker_entry_metadata? : Bool, supports_partial_producer? : Bool, supports_topic_watchers? : Bool, supports_get_partitioned_metadata_without_auto_creation? : Bool, supports_repl_dedup_by_lid_and_eid? : Bool, supports_topic_watcher_reconcile? : Bool, supports_scalable_topics? : Bool, supports_tc_metadata_discovery? : Bool) -> Self
+pub impl Default for FeatureFlags
+pub impl ToJson for FeatureFlags
+pub impl @json.FromJson for FeatureFlags
+pub impl @protobuf.AsyncRead for FeatureFlags
+pub impl @protobuf.AsyncWrite for FeatureFlags
+pub impl @protobuf.Read for FeatureFlags
+pub impl @protobuf.Sized for FeatureFlags
+pub impl @protobuf.Write for FeatureFlags
+
+pub(all) struct IntRange {
+  mut start : Int
+  mut end : Int
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn IntRange::IntRange(Int, Int) -> Self
+pub impl Default for IntRange
+pub impl ToJson for IntRange
+pub impl @json.FromJson for IntRange
+pub impl @protobuf.AsyncRead for IntRange
+pub impl @protobuf.AsyncWrite for IntRange
+pub impl @protobuf.Read for IntRange
+pub impl @protobuf.Sized for IntRange
+pub impl @protobuf.Write for IntRange
+
+pub(all) struct KeyLongValue {
+  mut key : String
+  mut value : UInt64
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn KeyLongValue::KeyLongValue(String, UInt64) -> Self
+pub impl Default for KeyLongValue
+pub impl ToJson for KeyLongValue
+pub impl @json.FromJson for KeyLongValue
+pub impl @protobuf.AsyncRead for KeyLongValue
+pub impl @protobuf.AsyncWrite for KeyLongValue
+pub impl @protobuf.Read for KeyLongValue
+pub impl @protobuf.Sized for KeyLongValue
+pub impl @protobuf.Write for KeyLongValue
+
+pub(all) struct KeySharedMeta {
+  mut key_shared_mode : KeySharedMode
+  mut hash_ranges : Array[IntRange]
+  mut allow_out_of_order_delivery : Bool?
+  mut entry_bucket_dispatch : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn KeySharedMeta::KeySharedMeta(KeySharedMode, Array[IntRange], allow_out_of_order_delivery? : Bool, entry_bucket_dispatch? : Bool) -> Self
+pub impl Default for KeySharedMeta
+pub impl ToJson for KeySharedMeta
+pub impl @json.FromJson for KeySharedMeta
+pub impl @protobuf.AsyncRead for KeySharedMeta
+pub impl @protobuf.AsyncWrite for KeySharedMeta
+pub impl @protobuf.Read for KeySharedMeta
+pub impl @protobuf.Sized for KeySharedMeta
+pub impl @protobuf.Write for KeySharedMeta
+
+pub(all) enum KeySharedMode {
+  AUTO_SPLIT
+  STICKY
+} derive(Eq, @debug.Debug)
+pub fn KeySharedMode::from_enum(@protobuf.Enum) -> Self
+pub fn KeySharedMode::to_enum(Self) -> @protobuf.Enum
+pub impl Default for KeySharedMode
+pub impl ToJson for KeySharedMode
+pub impl @json.FromJson for KeySharedMode
+pub impl @protobuf.Sized for KeySharedMode
+
+pub(all) struct KeyValue {
+  mut key : String
+  mut value : String
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn KeyValue::KeyValue(String, String) -> Self
+pub impl Default for KeyValue
+pub impl ToJson for KeyValue
+pub impl @json.FromJson for KeyValue
+pub impl @protobuf.AsyncRead for KeyValue
+pub impl @protobuf.AsyncWrite for KeyValue
+pub impl @protobuf.Read for KeyValue
+pub impl @protobuf.Sized for KeyValue
+pub impl @protobuf.Write for KeyValue
+
+pub(all) struct MessageIdData {
+  mut ledger_id : UInt64
+  mut entry_id : UInt64
+  mut partition : Int?
+  mut batch_index : Int?
+  mut ack_set : Array[Int64]
+  mut batch_size : Int?
+  mut first_chunk_message_id : MessageIdData?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn MessageIdData::MessageIdData(UInt64, UInt64, partition? : Int, batch_index? : Int, Array[Int64], batch_size? : Int, first_chunk_message_id? : Self) -> Self
+pub impl Default for MessageIdData
+pub impl ToJson for MessageIdData
+pub impl @json.FromJson for MessageIdData
+pub impl @protobuf.AsyncRead for MessageIdData
+pub impl @protobuf.AsyncWrite for MessageIdData
+pub impl @protobuf.Read for MessageIdData
+pub impl @protobuf.Sized for MessageIdData
+pub impl @protobuf.Write for MessageIdData
+
+pub(all) struct MessageMetadata {
+  mut producer_name : String
+  mut sequence_id : UInt64
+  mut publish_time : UInt64
+  mut properties : Array[KeyValue]
+  mut replicated_from : String?
+  mut partition_key : String?
+  mut replicate_to : Array[String]
+  mut compression : CompressionType?
+  mut uncompressed_size : UInt?
+  mut num_messages_in_batch : Int?
+  mut event_time : UInt64?
+  mut encryption_keys : Array[EncryptionKeys]
+  mut encryption_algo : String?
+  mut encryption_param : Bytes?
+  mut schema_version : Bytes?
+  mut partition_key_b64_encoded : Bool?
+  mut ordering_key : Bytes?
+  mut deliver_at_time : Int64?
+  mut marker_type : Int?
+  mut txnid_least_bits : UInt64?
+  mut txnid_most_bits : UInt64?
+  mut highest_sequence_id : UInt64?
+  mut null_value : Bool?
+  mut uuid : String?
+  mut num_chunks_from_msg : Int?
+  mut total_chunk_msg_size : Int?
+  mut chunk_id : Int?
+  mut null_partition_key : Bool?
+  mut compacted_batch_indexes : Array[Int]
+  mut schema_id : Bytes?
+  mut entry_hash_min : UInt?
+  mut entry_hash_max : UInt?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn MessageMetadata::MessageMetadata(String, UInt64, UInt64, Array[KeyValue], replicated_from? : String, partition_key? : String, Array[String], compression? : CompressionType, uncompressed_size? : UInt, num_messages_in_batch? : Int, event_time? : UInt64, Array[EncryptionKeys], encryption_algo? : String, encryption_param? : Bytes, schema_version? : Bytes, partition_key_b64_encoded? : Bool, ordering_key? : Bytes, deliver_at_time? : Int64, marker_type? : Int, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, highest_sequence_id? : UInt64, null_value? : Bool, uuid? : String, num_chunks_from_msg? : Int, total_chunk_msg_size? : Int, chunk_id? : Int, null_partition_key? : Bool, Array[Int], schema_id? : Bytes, entry_hash_min? : UInt, entry_hash_max? : UInt) -> Self
+pub impl Default for MessageMetadata
+pub impl ToJson for MessageMetadata
+pub impl @json.FromJson for MessageMetadata
+pub impl @protobuf.AsyncRead for MessageMetadata
+pub impl @protobuf.AsyncWrite for MessageMetadata
+pub impl @protobuf.Read for MessageMetadata
+pub impl @protobuf.Sized for MessageMetadata
+pub impl @protobuf.Write for MessageMetadata
+
+pub(all) enum ProducerAccessMode {
+  Shared
+  Exclusive
+  WaitForExclusive
+  ExclusiveWithFencing
+} derive(Eq, @debug.Debug)
+pub fn ProducerAccessMode::from_enum(@protobuf.Enum) -> Self
+pub fn ProducerAccessMode::to_enum(Self) -> @protobuf.Enum
+pub impl Default for ProducerAccessMode
+pub impl ToJson for ProducerAccessMode
+pub impl @json.FromJson for ProducerAccessMode
+pub impl @protobuf.Sized for ProducerAccessMode
+
+pub(all) enum ProtocolVersion {
+  V0
+  V1
+  V2
+  V3
+  V4
+  V5
+  V6
+  V7
+  V8
+  V9
+  V10
+  V11
+  V12
+  V13
+  V14
+  V15
+  V16
+  V17
+  V18
+  V19
+  V20
+  V21
+} derive(Eq, @debug.Debug)
+pub fn ProtocolVersion::from_enum(@protobuf.Enum) -> Self
+pub fn ProtocolVersion::to_enum(Self) -> @protobuf.Enum
+pub impl Default for ProtocolVersion
+pub impl ToJson for ProtocolVersion
+pub impl @json.FromJson for ProtocolVersion
+pub impl @protobuf.Sized for ProtocolVersion
+
+pub(all) struct ScalableAssignedSegment {
+  mut segment_id : UInt64
+  mut hash_start : UInt
+  mut hash_end : UInt
+  mut segment_topic : String
+  mut bucket_ranges : Array[IntRange]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn ScalableAssignedSegment::ScalableAssignedSegment(UInt64, UInt, UInt, String, Array[IntRange]) -> Self
+pub impl Default for ScalableAssignedSegment
+pub impl ToJson for ScalableAssignedSegment
+pub impl @json.FromJson for ScalableAssignedSegment
+pub impl @protobuf.AsyncRead for ScalableAssignedSegment
+pub impl @protobuf.AsyncWrite for ScalableAssignedSegment
+pub impl @protobuf.Read for ScalableAssignedSegment
+pub impl @protobuf.Sized for ScalableAssignedSegment
+pub impl @protobuf.Write for ScalableAssignedSegment
+
+pub(all) struct ScalableConsumerAssignment {
+  mut layout_epoch : UInt64
+  mut segments : Array[ScalableAssignedSegment]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn ScalableConsumerAssignment::ScalableConsumerAssignment(UInt64, Array[ScalableAssignedSegment]) -> Self
+pub impl Default for ScalableConsumerAssignment
+pub impl ToJson for ScalableConsumerAssignment
+pub impl @json.FromJson for ScalableConsumerAssignment
+pub impl @protobuf.AsyncRead for ScalableConsumerAssignment
+pub impl @protobuf.AsyncWrite for ScalableConsumerAssignment
+pub impl @protobuf.Read for ScalableConsumerAssignment
+pub impl @protobuf.Sized for ScalableConsumerAssignment
+pub impl @protobuf.Write for ScalableConsumerAssignment
+
+pub(all) enum ScalableConsumerType {
+  STREAM
+  CHECKPOINT
+} derive(Eq, @debug.Debug)
+pub fn ScalableConsumerType::from_enum(@protobuf.Enum) -> Self
+pub fn ScalableConsumerType::to_enum(Self) -> @protobuf.Enum
+pub impl Default for ScalableConsumerType
+pub impl ToJson for ScalableConsumerType
+pub impl @json.FromJson for ScalableConsumerType
+pub impl @protobuf.Sized for ScalableConsumerType
+
+pub(all) struct ScalableTopicDAG {
+  mut epoch : UInt64
+  mut segments : Array[SegmentInfoProto]
+  mut segment_brokers : Array[SegmentBrokerAddress]
+  mut controller_broker_url : String?
+  mut controller_broker_url_tls : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn ScalableTopicDAG::ScalableTopicDAG(UInt64, Array[SegmentInfoProto], Array[SegmentBrokerAddress], controller_broker_url? : String, controller_broker_url_tls? : String) -> Self
+pub impl Default for ScalableTopicDAG
+pub impl ToJson for ScalableTopicDAG
+pub impl @json.FromJson for ScalableTopicDAG
+pub impl @protobuf.AsyncRead for ScalableTopicDAG
+pub impl @protobuf.AsyncWrite for ScalableTopicDAG
+pub impl @protobuf.Read for ScalableTopicDAG
+pub impl @protobuf.Sized for ScalableTopicDAG
+pub impl @protobuf.Write for ScalableTopicDAG
+
+pub(all) struct ScalableTopicsDiff {
+  mut added : Array[String]
+  mut removed : Array[String]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn ScalableTopicsDiff::ScalableTopicsDiff(Array[String], Array[String]) -> Self
+pub impl Default for ScalableTopicsDiff
+pub impl ToJson for ScalableTopicsDiff
+pub impl @json.FromJson for ScalableTopicsDiff
+pub impl @protobuf.AsyncRead for ScalableTopicsDiff
+pub impl @protobuf.AsyncWrite for ScalableTopicsDiff
+pub impl @protobuf.Read for ScalableTopicsDiff
+pub impl @protobuf.Sized for ScalableTopicsDiff
+pub impl @protobuf.Write for ScalableTopicsDiff
+
+pub(all) struct ScalableTopicsSnapshot {
+  mut topics : Array[String]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn ScalableTopicsSnapshot::ScalableTopicsSnapshot(Array[String]) -> Self
+pub impl Default for ScalableTopicsSnapshot
+pub impl ToJson for ScalableTopicsSnapshot
+pub impl @json.FromJson for ScalableTopicsSnapshot
+pub impl @protobuf.AsyncRead for ScalableTopicsSnapshot
+pub impl @protobuf.AsyncWrite for ScalableTopicsSnapshot
+pub impl @protobuf.Read for ScalableTopicsSnapshot
+pub impl @protobuf.Sized for ScalableTopicsSnapshot
+pub impl @protobuf.Write for ScalableTopicsSnapshot
+
+pub(all) struct Schema {
+  mut name : String
+  mut schema_data : Bytes
+  mut type_ : Schema_Type
+  mut properties : Array[KeyValue]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn Schema::Schema(String, Bytes, Schema_Type, Array[KeyValue]) -> Self
+pub impl Default for Schema
+pub impl ToJson for Schema
+pub impl @json.FromJson for Schema
+pub impl @protobuf.AsyncRead for Schema
+pub impl @protobuf.AsyncWrite for Schema
+pub impl @protobuf.Read for Schema
+pub impl @protobuf.Sized for Schema
+pub impl @protobuf.Write for Schema
+
+pub(all) enum Schema_Type {
+  None
+  String
+  Json
+  Protobuf
+  Avro
+  Bool
+  Int8
+  Int16
+  Int32
+  Int64
+  Float
+  Double
+  Date
+  Time
+  Timestamp
+  KeyValue
+  Instant
+  LocalDate
+  LocalTime
+  LocalDateTime
+  ProtobufNative
+  AutoConsume
+  External
+} derive(Eq, @debug.Debug)
+pub fn Schema_Type::from_enum(@protobuf.Enum) -> Self
+pub fn Schema_Type::to_enum(Self) -> @protobuf.Enum
+pub impl Default for Schema_Type
+pub impl ToJson for Schema_Type
+pub impl @json.FromJson for Schema_Type
+pub impl @protobuf.Sized for Schema_Type
+
+pub(all) struct SegmentBrokerAddress {
+  mut segment_id : UInt64
+  mut broker_url : String
+  mut broker_url_tls : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn SegmentBrokerAddress::SegmentBrokerAddress(UInt64, String, broker_url_tls? : String) -> Self
+pub impl Default for SegmentBrokerAddress
+pub impl ToJson for SegmentBrokerAddress
+pub impl @json.FromJson for SegmentBrokerAddress
+pub impl @protobuf.AsyncRead for SegmentBrokerAddress
+pub impl @protobuf.AsyncWrite for SegmentBrokerAddress
+pub impl @protobuf.Read for SegmentBrokerAddress
+pub impl @protobuf.Sized for SegmentBrokerAddress
+pub impl @protobuf.Write for SegmentBrokerAddress
+
+pub(all) struct SegmentInfoProto {
+  mut segment_id : UInt64
+  mut hash_start : UInt
+  mut hash_end : UInt
+  mut state : SegmentState
+  mut parent_ids : Array[UInt64]
+  mut child_ids : Array[UInt64]
+  mut created_at_epoch : UInt64
+  mut sealed_at_epoch : UInt64?
+  mut created_at_ms : UInt64
+  mut sealed_at_ms : UInt64?
+  mut legacy_topic_name : String?
+  mut entry_bucket_splits : Array[UInt]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn SegmentInfoProto::SegmentInfoProto(UInt64, UInt, UInt, SegmentState, Array[UInt64], Array[UInt64], UInt64, sealed_at_epoch? : UInt64, UInt64, sealed_at_ms? : UInt64, legacy_topic_name? : String, Array[UInt]) -> Self
+pub impl Default for SegmentInfoProto
+pub impl ToJson for SegmentInfoProto
+pub impl @json.FromJson for SegmentInfoProto
+pub impl @protobuf.AsyncRead for SegmentInfoProto
+pub impl @protobuf.AsyncWrite for SegmentInfoProto
+pub impl @protobuf.Read for SegmentInfoProto
+pub impl @protobuf.Sized for SegmentInfoProto
+pub impl @protobuf.Write for SegmentInfoProto
+
+pub(all) enum SegmentState {
+  ACTIVE
+  SEALED
+} derive(Eq, @debug.Debug)
+pub fn SegmentState::from_enum(@protobuf.Enum) -> Self
+pub fn SegmentState::to_enum(Self) -> @protobuf.Enum
+pub impl Default for SegmentState
+pub impl ToJson for SegmentState
+pub impl @json.FromJson for SegmentState
+pub impl @protobuf.Sized for SegmentState
+
+pub(all) enum ServerError {
+  UnknownError
+  MetadataError
+  PersistenceError
+  AuthenticationError
+  AuthorizationError
+  ConsumerBusy
+  ServiceNotReady
+  ProducerBlockedQuotaExceededError
+  ProducerBlockedQuotaExceededException
+  ChecksumError
+  UnsupportedVersionError
+  TopicNotFound
+  SubscriptionNotFound
+  ConsumerNotFound
+  TooManyRequests
+  TopicTerminatedError
+  ProducerBusy
+  InvalidTopicName
+  IncompatibleSchema
+  ConsumerAssignError
+  TransactionCoordinatorNotFound
+  InvalidTxnStatus
+  NotAllowedError
+  TransactionConflict
+  TransactionNotFound
+  ProducerFenced
+} derive(Eq, @debug.Debug)
+pub fn ServerError::from_enum(@protobuf.Enum) -> Self
+pub fn ServerError::to_enum(Self) -> @protobuf.Enum
+pub impl Default for ServerError
+pub impl ToJson for ServerError
+pub impl @json.FromJson for ServerError
+pub impl @protobuf.Sized for ServerError
+
+pub(all) struct SingleMessageMetadata {
+  mut properties : Array[KeyValue]
+  mut partition_key : String?
+  mut payload_size : Int
+  mut compacted_out : Bool?
+  mut event_time : UInt64?
+  mut partition_key_b64_encoded : Bool?
+  mut ordering_key : Bytes?
+  mut sequence_id : UInt64?
+  mut null_value : Bool?
+  mut null_partition_key : Bool?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn SingleMessageMetadata::SingleMessageMetadata(Array[KeyValue], partition_key? : String, Int, compacted_out? : Bool, event_time? : UInt64, partition_key_b64_encoded? : Bool, ordering_key? : Bytes, sequence_id? : UInt64, null_value? : Bool, null_partition_key? : Bool) -> Self
+pub impl Default for SingleMessageMetadata
+pub impl ToJson for SingleMessageMetadata
+pub impl @json.FromJson for SingleMessageMetadata
+pub impl @protobuf.AsyncRead for SingleMessageMetadata
+pub impl @protobuf.AsyncWrite for SingleMessageMetadata
+pub impl @protobuf.Read for SingleMessageMetadata
+pub impl @protobuf.Sized for SingleMessageMetadata
+pub impl @protobuf.Write for SingleMessageMetadata
+
+pub(all) struct Subscription {
+  mut topic : String
+  mut subscription : String
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn Subscription::Subscription(String, String) -> Self
+pub impl Default for Subscription
+pub impl ToJson for Subscription
+pub impl @json.FromJson for Subscription
+pub impl @protobuf.AsyncRead for Subscription
+pub impl @protobuf.AsyncWrite for Subscription
+pub impl @protobuf.Read for Subscription
+pub impl @protobuf.Sized for Subscription
+pub impl @protobuf.Write for Subscription
+
+pub(all) struct TcAssignment {
+  mut tc_id : UInt64
+  mut broker_service_url : String?
+  mut broker_service_url_tls : String?
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn TcAssignment::TcAssignment(UInt64, broker_service_url? : String, broker_service_url_tls? : String) -> Self
+pub impl Default for TcAssignment
+pub impl ToJson for TcAssignment
+pub impl @json.FromJson for TcAssignment
+pub impl @protobuf.AsyncRead for TcAssignment
+pub impl @protobuf.AsyncWrite for TcAssignment
+pub impl @protobuf.Read for TcAssignment
+pub impl @protobuf.Sized for TcAssignment
+pub impl @protobuf.Write for TcAssignment
+
+pub(all) struct TcAssignmentsSnapshot {
+  mut parallelism : UInt
+  mut assignments : Array[TcAssignment]
+} derive(Eq, @debug.Debug)
+#alias(new, deprecated)
+pub fn TcAssignmentsSnapshot::TcAssignmentsSnapshot(UInt, Array[TcAssignment]) -> Self
+pub impl Default for TcAssignmentsSnapshot
+pub impl ToJson for TcAssignmentsSnapshot
+pub impl @json.FromJson for TcAssignmentsSnapshot
+pub impl @protobuf.AsyncRead for TcAssignmentsSnapshot
+pub impl @protobuf.AsyncWrite for TcAssignmentsSnapshot
+pub impl @protobuf.Read for TcAssignmentsSnapshot
+pub impl @protobuf.Sized for TcAssignmentsSnapshot
+pub impl @protobuf.Write for TcAssignmentsSnapshot
+
+pub(all) enum TxnAction {
+  COMMIT
+  ABORT
+} derive(Eq, @debug.Debug)
+pub fn TxnAction::from_enum(@protobuf.Enum) -> Self
+pub fn TxnAction::to_enum(Self) -> @protobuf.Enum
+pub impl Default for TxnAction
+pub impl ToJson for TxnAction
+pub impl @json.FromJson for TxnAction
+pub impl @protobuf.Sized for TxnAction
+
+// Type aliases
+
+// Traits

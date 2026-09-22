@@ -27,7 +27,7 @@ pub async fn lookup_topic(
   addr : String,
   topic : String,
   authoritative? : Bool = false,
-) -> Connection raise {
+) -> Connection {
   let mut current = addr
   let mut authoritative = authoritative
   for _ in 0..<MAX_LOOKUP_REDIRECTS {
@@ -50,7 +50,8 @@ pub async fn lookup_topic(
         }
         match resp.broker_service_url {
           Some(url) => return manager.get(broker_addr_of(url))
-          None => raise LookupFailed("broker returned no service url for \{topic}")
+          None =>
+            raise LookupFailed("broker returned no service url for \{topic}")
         }
       }
       Some(@proto.CommandLookupTopicResponse_LookupType::Redirect) =>
@@ -59,7 +60,8 @@ pub async fn lookup_topic(
             current = broker_addr_of(url)
             authoritative = resp.authoritative.unwrap_or(false)
           }
-          None => raise LookupFailed("redirect without service url for \{topic}")
+          None =>
+            raise LookupFailed("redirect without service url for \{topic}")
         }
       Some(@proto.CommandLookupTopicResponse_LookupType::Failed) => {
         let msg = resp.message.unwrap_or("lookup failed")
@@ -76,7 +78,7 @@ pub async fn get_partition_count(
   manager : ConnectionManager,
   addr : String,
   topic : String,
-) -> Int raise {
+) -> Int {
   let conn = manager.get(addr)
   let req = @proto.CommandPartitionedTopicMetadata::default()
   req.topic = topic

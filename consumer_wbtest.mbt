@@ -3,7 +3,7 @@
 ///|
 /// Mock broker side: expect SUBSCRIBE, answer SUCCESS, then skip the
 /// initial FLOW command.
-async fn expect_subscribe(peer : MockPeer) -> Unit raise {
+async fn expect_subscribe(peer : MockPeer) -> Unit {
   let frame = peer.next()
   guard frame.cmd.subscribe is Some(req) else { fail("expected SUBSCRIBE") }
   let reply = @proto.BaseCommand::default()
@@ -38,8 +38,8 @@ fn message_frame(
 
 ///|
 fn test_metadata(
-  producer_name~ : String = "mock-producer",
-  sequence_id~ : UInt64 = 0,
+  producer_name? : String = "mock-producer",
+  sequence_id? : UInt64 = 0,
 ) -> @proto.MessageMetadata {
   let metadata = @proto.MessageMetadata::default()
   metadata.producer_name = producer_name
@@ -71,9 +71,7 @@ async test "consumer receives message and acks individually" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn,
-      "persistent://public/default/t",
-      "sub-1",
+      conn, "persistent://public/default/t", "sub-1",
     )
     // consumer id was allocated as second id on the connection
     let message = consumer.receive()
@@ -92,7 +90,13 @@ async test "consumer nack triggers redeliver command" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {
       expect_subscribe(peer)
-      let (cmd, metadata, payload) = message_frame(1UL, 7, 8, b"x", test_metadata())
+      let (cmd, metadata, payload) = message_frame(
+        1UL,
+        7,
+        8,
+        b"x",
+        test_metadata(),
+      )
       peer.send_message(cmd, metadata, payload)
       let nack_frame = peer.next()
       guard nack_frame.cmd.redeliver_unacknowledged_messages is Some(redeliver) else {
@@ -104,9 +108,7 @@ async test "consumer nack triggers redeliver command" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn,
-      "persistent://public/default/t",
-      "sub-1",
+      conn, "persistent://public/default/t", "sub-1",
     )
     let message = consumer.receive()
     message.nack()
@@ -138,9 +140,7 @@ async test "consumer splits batched messages" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn,
-      "persistent://public/default/t",
-      "sub-1",
+      conn, "persistent://public/default/t", "sub-1",
     )
     let m0 = consumer.receive()
     let m1 = consumer.receive()
@@ -161,7 +161,13 @@ async test "cumulative ack sends cumulative ack type" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {
       expect_subscribe(peer)
-      let (cmd, metadata, payload) = message_frame(1UL, 1, 1, b"x", test_metadata())
+      let (cmd, metadata, payload) = message_frame(
+        1UL,
+        1,
+        1,
+        b"x",
+        test_metadata(),
+      )
       peer.send_message(cmd, metadata, payload)
       let ack_frame = peer.next()
       guard ack_frame.cmd.ack is Some(ack) else { fail("expected ACK") }
@@ -170,9 +176,7 @@ async test "cumulative ack sends cumulative ack type" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn,
-      "persistent://public/default/t",
-      "sub-1",
+      conn, "persistent://public/default/t", "sub-1",
     )
     let message = consumer.receive()
     consumer.ack_cumulative(message.id())
@@ -197,9 +201,7 @@ async test "broker close consumer terminates receive" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn,
-      "persistent://public/default/t",
-      "sub-1",
+      conn, "persistent://public/default/t", "sub-1",
     )
     let result : Result[Message, Error] = Ok(consumer.receive()) catch {
       e => Err(e)

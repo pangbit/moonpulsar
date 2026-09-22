@@ -16,7 +16,9 @@ async fn main {
     )
     // first delivery: reject it
     let first = consumer.receive()
-    println("first delivery, redelivered \{first.redelivery_count()} times; nacking")
+    println(
+      "first delivery, redelivered \{first.redelivery_count()} times; nacking",
+    )
     first.nack()
     // the broker redelivers the same message
     let second = consumer.receive()

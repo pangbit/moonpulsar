@@ -6,7 +6,7 @@ async fn consume_loop(
   name : String,
   consumer : @pulsar.Consumer,
   count : Int,
-) -> Unit raise {
+) -> Unit {
   for _ in 0..<count {
     let message = consumer.receive()
     let body = @utf8.decode(message.payload()) catch { _ => "<binary>" }

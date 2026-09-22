@@ -71,7 +71,7 @@ fn key_values_of(properties : Map[String, String]) -> Array[@proto.KeyValue] {
 
 ///|
 fn properties_of(kvs : Array[@proto.KeyValue]) -> Map[String, String] {
-  let result : Map[String, String] = Map::new()
+  let result : Map[String, String] = Map([])
   for kv in kvs {
     result[kv.key] = kv.value
   }
@@ -99,7 +99,7 @@ pub fn ProducerMessage::new(
   sequence_id? : UInt64,
   ordering_key? : Bytes,
 ) -> ProducerMessage {
-  { payload, key, properties, event_time, sequence_id, ordering_key }
+  { payload, key, properties, event_time, sequence_id, ordering_key, }
 }
 
 ///|
@@ -116,16 +116,16 @@ pub(all) struct SendReceipt {
 pub struct Message {
   priv conn : Connection
   priv consumer_id : UInt64
-  id : MessageId
-  topic : String
-  payload : Bytes
-  key : String?
-  properties : Map[String, String]
+  priv id : MessageId
+  priv topic : String
+  priv payload : Bytes
+  priv key : String?
+  priv properties : Map[String, String]
   publish_time : UInt64
-  event_time : UInt64?
-  producer_name : String
-  sequence_id : UInt64?
-  redelivery_count : UInt
+  priv event_time : UInt64?
+  priv producer_name : String
+  priv sequence_id : UInt64?
+  priv redelivery_count : UInt
 }
 
 ///|
@@ -181,7 +181,7 @@ pub fn Message::redelivery_count(self : Message) -> UInt {
 
 ///|
 /// Acknowledge this message individually.
-pub async fn Message::ack(self : Message) -> Unit raise {
+pub async fn Message::ack(self : Message) -> Unit {
   send_ack(self.conn, self.consumer_id, @proto.CommandAck_AckType::Individual, [
     self.id,
   ])
@@ -189,7 +189,7 @@ pub async fn Message::ack(self : Message) -> Unit raise {
 
 ///|
 /// Negatively acknowledge this message, triggering redelivery.
-pub async fn Message::nack(self : Message) -> Unit raise {
+pub async fn Message::nack(self : Message) -> Unit {
   send_redeliver(self.conn, self.consumer_id, [self.id])
 }
 
@@ -199,7 +199,7 @@ async fn send_ack(
   consumer_id : UInt64,
   ack_type : @proto.CommandAck_AckType,
   ids : Array[MessageId],
-) -> Unit raise {
+) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::ACK
   let ack = @proto.CommandAck::default()
@@ -215,7 +215,7 @@ async fn send_redeliver(
   conn : Connection,
   consumer_id : UInt64,
   ids : Array[MessageId],
-) -> Unit raise {
+) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::REDELIVER_UNACKNOWLEDGED_MESSAGES
   let redeliver = @proto.CommandRedeliverUnacknowledgedMessages::default()

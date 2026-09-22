@@ -21,20 +21,20 @@ struct PendingRequest {
 ///|
 /// A single connection to a Pulsar broker speaking the binary protocol.
 pub struct Connection {
-  addr : String
-  tcp : @socket.Tcp
-  mut next_id : UInt64
-  pending : Map[UInt64, PendingRequest]
+  priv addr : String
+  priv tcp : @socket.Tcp
+  priv mut next_id : UInt64
+  priv pending : Map[UInt64, PendingRequest]
   /// consumer_id -> handler for MESSAGE / ACK_RESPONSE / CLOSE_CONSUMER
-  message_handlers : Map[UInt64, (IncomingFrame) -> Unit]
+  priv message_handlers : Map[UInt64, (IncomingFrame) -> Unit]
   /// producer_id -> handler for SEND_RECEIPT / SEND_ERROR / CLOSE_PRODUCER
-  producer_handlers : Map[UInt64, (@proto.BaseCommand) -> Unit]
+  priv producer_handlers : Map[UInt64, (@proto.BaseCommand) -> Unit]
   /// notified once when the connection breaks
-  close_handlers : Array[(Error?) -> Unit]
-  mut closed : Bool
+  priv close_handlers : Array[(Error?) -> Unit]
+  priv mut closed : Bool
   /// signalled on close to interrupt the keepalive timer
-  stop : @aqueue.Queue[Unit]
-  write_mu : @async.Mutex
+  priv stop : @aqueue.Queue[Unit]
+  priv write_mu : @async.Mutex
   priv mut remote_version : String
   priv mut remote_protocol_version : Int
 }
@@ -55,7 +55,7 @@ pub async fn Connection::connect(
   auth? : AuthData,
   keepalive_interval_ms? : Int = KEEPALIVE_INTERVAL_MS,
   timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
-) -> Connection raise {
+) -> Connection {
   let (host, port) = split_host_port(addr)
   let tcp = @socket.Tcp::connect_to_host(host, port~) catch {
     _ => raise ConnectFailed(addr)
@@ -86,9 +86,7 @@ pub async fn Connection::connect(
   cmd.type_ = @proto.BaseCommand_Type::CONNECT
   cmd.connect = Some(connect)
   conn.send_bytes(encode_command_frame(cmd))
-  let reply = @async.with_timeout(timeout_ms, async fn() {
-    conn.read_frame()
-  }) catch {
+  let reply = @async.with_timeout(timeout_ms, async fn() { conn.read_frame() }) catch {
     @async.TimeoutError => raise ConnectFailed("handshake timeout: \{addr}")
     e => raise e
   }
@@ -118,12 +116,12 @@ pub async fn Connection::connect(
 }
 
 ///|
-async fn Connection::read_frame(self : Connection) -> IncomingFrame raise {
+async fn Connection::read_frame(self : Connection) -> IncomingFrame {
   read_frame(self.tcp)
 }
 
 ///|
-async fn Connection::send_bytes(self : Connection, bytes : Bytes) -> Unit raise {
+async fn Connection::send_bytes(self : Connection, bytes : Bytes) -> Unit {
   if self.closed {
     raise ConnectionClosed
   }
@@ -142,7 +140,7 @@ async fn Connection::send_bytes(self : Connection, bytes : Bytes) -> Unit raise 
 pub async fn Connection::send_command(
   self : Connection,
   cmd : @proto.BaseCommand,
-) -> Unit raise {
+) -> Unit {
   self.send_bytes(encode_command_frame(cmd))
 }
 
@@ -153,7 +151,7 @@ pub async fn Connection::send_payload_frame(
   cmd : @proto.BaseCommand,
   metadata : @proto.MessageMetadata,
   payload : Bytes,
-) -> Unit raise {
+) -> Unit {
   self.send_bytes(encode_send_frame(cmd, metadata, payload))
 }
 
@@ -234,7 +232,7 @@ pub async fn Connection::request(
   self : Connection,
   cmd : @proto.BaseCommand,
   timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
-) -> @proto.BaseCommand raise {
+) -> @proto.BaseCommand {
   guard request_id_of(cmd) is Some(id) else {
     raise UnexpectedResponse("command carries no request id")
   }
@@ -252,8 +250,7 @@ pub async fn Connection::request(
     }
     e => raise e
   }
-  if reply.type_ is @proto.BaseCommand_Type::ERROR &&
-    reply.error is Some(err) {
+  if reply.type_ is @proto.BaseCommand_Type::ERROR && reply.error is Some(err) {
     raise ServerError(
       code=err.error.to_enum().0.reinterpret_as_int(),
       message=err.message,
@@ -314,7 +311,7 @@ pub fn Connection::is_closed(self : Connection) -> Bool {
 }
 
 ///|
-async fn Connection::reader_loop(self : Connection) -> Unit raise {
+async fn Connection::reader_loop(self : Connection) -> Unit {
   while true {
     if self.closed {
       return
@@ -330,7 +327,10 @@ async fn Connection::reader_loop(self : Connection) -> Unit raise {
 }
 
 ///|
-async fn Connection::keepalive_loop(self : Connection, interval_ms : Int) -> Unit {
+async fn Connection::keepalive_loop(
+  self : Connection,
+  interval_ms : Int,
+) -> Unit {
   while true {
     // sleep, but wake up immediately when the connection closes
     let stopped = @async.with_timeout_opt(interval_ms, async fn() {
@@ -342,7 +342,9 @@ async fn Connection::keepalive_loop(self : Connection, interval_ms : Int) -> Uni
     let cmd = @proto.BaseCommand::default()
     cmd.type_ = @proto.BaseCommand_Type::PING
     cmd.ping = Some(@proto.CommandPing::default())
-    self.send_command(cmd) catch { _ => return }
+    self.send_command(cmd) catch {
+      _ => return
+    }
   }
 }
 
@@ -351,9 +353,12 @@ async fn Connection::keepalive_loop(self : Connection, interval_ms : Int) -> Uni
 pub fn split_host_port(addr : String) -> (String, Int) raise PulsarError {
   match addr.split(":").collect() {
     [host, port] =>
-      (host.to_owned(), @string.parse_int(port) catch {
-        _ => raise InvalidFrame("invalid port in address: \{addr}")
-      })
+      (
+        host.to_owned(),
+        @string.parse_int(port) catch {
+          _ => raise InvalidFrame("invalid port in address: \{addr}")
+        },
+      )
     [host] => (host.to_owned(), 6650)
     _ => raise InvalidFrame("invalid address: \{addr}")
   }
@@ -367,7 +372,9 @@ async fn Connection::dispatch(self : Connection, frame : IncomingFrame) -> Unit 
       let pong = @proto.BaseCommand::default()
       pong.type_ = @proto.BaseCommand_Type::PONG
       pong.pong = Some(@proto.CommandPong::default())
-      self.send_command(pong) catch { _ => () }
+      self.send_command(pong) catch {
+        _ => ()
+      }
     }
     @proto.BaseCommand_Type::MESSAGE =>
       if cmd.message is Some(message) &&
@@ -405,8 +412,7 @@ async fn Connection::dispatch(self : Connection, frame : IncomingFrame) -> Unit 
         handler(cmd)
       }
     _ =>
-      if request_id_of(cmd) is Some(id) &&
-        self.pending.get(id) is Some(pending) {
+      if request_id_of(cmd) is Some(id) && self.pending.get(id) is Some(pending) {
         self.pending.remove(id)
         ignore(pending.reply.try_put(cmd))
       }

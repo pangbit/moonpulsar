@@ -5,9 +5,9 @@
 /// Pluggable authentication for the CONNECT handshake.
 pub(open) trait Authentication {
   /// Auth method name announced to the broker, e.g. "token".
-  method_name(Self) -> String
+  fn method_name(Self) -> String
   /// Auth data bytes sent with CONNECT, and resent on auth challenges.
-  auth_data(Self) -> Bytes
+  fn auth_data(Self) -> Bytes
 }
 
 ///|
@@ -22,12 +22,12 @@ pub fn TokenAuth::new(token : String) -> TokenAuth {
 }
 
 ///|
-pub impl Authentication for TokenAuth with method_name(_) -> String {
+pub impl Authentication for TokenAuth with fn method_name(_) -> String {
   "token"
 }
 
 ///|
-pub impl Authentication for TokenAuth with auth_data(self) -> Bytes {
+pub impl Authentication for TokenAuth with fn auth_data(self) -> Bytes {
   @utf8.encode(self.token)
 }
 
@@ -35,8 +35,8 @@ pub impl Authentication for TokenAuth with auth_data(self) -> Bytes {
 /// A Pulsar client. Background tasks of every connection it opens run in
 /// the task group passed to `Client::connect`.
 pub struct Client {
-  manager : ConnectionManager
-  service_addr : String
+  priv manager : ConnectionManager
+  priv service_addr : String
 }
 
 ///|
@@ -47,14 +47,14 @@ pub async fn Client::connect(
   group : @async.TaskGroup[Unit],
   service_url : String,
   auth? : &Authentication,
-) -> Client raise {
+) -> Client {
   let auth_data = auth.map(fn(a) {
-    { method_name: a.method_name(), data: a.auth_data() }
+    { method_name: a.method_name(), data: a.auth_data(), }
   })
   let manager = ConnectionManager::new(group, auth?=auth_data)
   let addr = broker_addr_of(service_url)
   ignore(manager.get(addr))
-  { manager, service_addr: addr }
+  { manager, service_addr: addr, }
 }
 
 ///|
@@ -71,7 +71,7 @@ pub async fn Client::create_producer(
   topic : String,
   name? : String,
   batching? : BatchingConfig,
-) -> Producer raise {
+) -> Producer {
   let conn = lookup_topic(self.manager, self.service_addr, topic)
   Producer::create(self.manager.group, conn, topic, name?, batching?)
 }
@@ -86,7 +86,7 @@ pub async fn Client::create_consumer(
   consumer_name? : String,
   initial_position? : SubscriptionInitialPosition = Latest,
   receiver_queue_size? : Int = 1000,
-) -> Consumer raise {
+) -> Consumer {
   let conn = lookup_topic(self.manager, self.service_addr, topic)
   Consumer::create(
     conn,
@@ -101,6 +101,6 @@ pub async fn Client::create_consumer(
 
 ///|
 /// Number of partitions of a topic (0 or 1 for non-partitioned topics).
-pub async fn Client::partitions_of(self : Client, topic : String) -> Int raise {
+pub async fn Client::partitions_of(self : Client, topic : String) -> Int {
   get_partition_count(self.manager, self.service_addr, topic)
 }

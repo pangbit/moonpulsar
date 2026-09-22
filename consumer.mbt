@@ -10,7 +10,9 @@ pub(all) enum SubscriptionType {
 } derive(Eq, Debug)
 
 ///|
-fn SubscriptionType::to_proto(self : SubscriptionType) -> @proto.CommandSubscribe_SubType {
+fn SubscriptionType::to_proto(
+  self : SubscriptionType,
+) -> @proto.CommandSubscribe_SubType {
   match self {
     Exclusive => @proto.CommandSubscribe_SubType::Exclusive
     Shared => @proto.CommandSubscribe_SubType::Shared
@@ -29,14 +31,14 @@ pub(all) enum SubscriptionInitialPosition {
 ///|
 /// A consumer bound to a topic subscription.
 pub struct Consumer {
-  conn : Connection
-  topic : String
-  subscription : String
-  consumer_id : UInt64
-  messages : @aqueue.Queue[Message]
-  receiver_permits : Int
-  mut available_permits : Int
-  closed : Ref[Bool]
+  priv conn : Connection
+  priv topic : String
+  priv subscription : String
+  priv consumer_id : UInt64
+  priv messages : @aqueue.Queue[Message]
+  priv receiver_permits : Int
+  priv mut available_permits : Int
+  priv closed : Ref[Bool]
 }
 
 ///|
@@ -49,7 +51,7 @@ pub async fn Consumer::create(
   consumer_name? : String,
   initial_position? : SubscriptionInitialPosition = Latest,
   receiver_queue_size? : Int = 1000,
-) -> Consumer raise {
+) -> Consumer {
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
   let consumer : Consumer = {
@@ -60,11 +62,9 @@ pub async fn Consumer::create(
     messages: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
     receiver_permits: receiver_queue_size,
     available_permits: 0,
-    closed: { val: false },
+    closed: { val: false, },
   }
-  conn.message_handlers[consumer_id] = fn(frame) {
-    consumer.on_frame(frame)
-  }
+  conn.message_handlers[consumer_id] = fn(frame) { consumer.on_frame(frame) }
   conn.on_close(fn(e) { consumer.on_connection_closed(e) })
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::SUBSCRIBE
@@ -88,12 +88,8 @@ pub async fn Consumer::create(
       )
   }
   cmd.subscribe = Some(subscribe)
-  let reply = conn.request(cmd) catch {
-    e => {
-      conn.message_handlers.remove(consumer_id)
-      raise e
-    }
-  }
+  errdefer conn.message_handlers.remove(consumer_id)
+  let reply = conn.request(cmd)
   guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
     raise UnexpectedResponse("expected SUCCESS for SUBSCRIBE")
   }
@@ -113,7 +109,7 @@ fn Consumer::on_connection_closed(self : Consumer, error : Error?) -> Unit {
 }
 
 ///|
-async fn Consumer::send_flow(self : Consumer, permits : Int) -> Unit raise {
+async fn Consumer::send_flow(self : Consumer, permits : Int) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::FLOW
   let flow = @proto.CommandFlow::default()
@@ -156,7 +152,14 @@ fn Consumer::dispatch_message(
     let singles = split_batch_payload(payload, batch_size)
     for i, single in singles {
       let (meta, body) = single
-      self.push_message(base_id, i, metadata, Some(meta), body, redelivery_count)
+      self.push_message(
+        base_id,
+        i,
+        metadata,
+        Some(meta),
+        body,
+        redelivery_count,
+      )
     }
   } else {
     self.push_message(base_id, -1, metadata, None, payload, redelivery_count)
@@ -176,7 +179,7 @@ fn Consumer::push_message(
   let message : Message = {
     conn: self.conn,
     consumer_id: self.consumer_id,
-    id: { ..base_id, batch_index },
+    id: { ..base_id, batch_index, },
     topic: self.topic,
     payload,
     key: match single {
@@ -249,7 +252,7 @@ fn split_batch_payload(
 
 ///|
 /// Receive the next message, blocking until one is available.
-pub async fn Consumer::receive(self : Consumer) -> Message raise {
+pub async fn Consumer::receive(self : Consumer) -> Message {
   if self.closed.val {
     raise ConsumerClosed
   }
@@ -258,7 +261,9 @@ pub async fn Consumer::receive(self : Consumer) -> Message raise {
   let threshold = self.receiver_permits / 2
   if self.available_permits <= threshold {
     let refill = self.receiver_permits - self.available_permits
-    self.send_flow(refill) catch { _ => () }
+    self.send_flow(refill) catch {
+      _ => ()
+    }
     self.available_permits += refill
   }
   message
@@ -274,7 +279,7 @@ pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
 
 ///|
 /// Acknowledge a message individually.
-pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit raise {
+pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
   send_ack(self.conn, self.consumer_id, @proto.CommandAck_AckType::Individual, [
     id,
   ])
@@ -282,10 +287,7 @@ pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit raise {
 
 ///|
 /// Acknowledge cumulatively: this message and all before it.
-pub async fn Consumer::ack_cumulative(
-  self : Consumer,
-  id : MessageId,
-) -> Unit raise {
+pub async fn Consumer::ack_cumulative(self : Consumer, id : MessageId) -> Unit {
   send_ack(self.conn, self.consumer_id, @proto.CommandAck_AckType::Cumulative, [
     id,
   ])
@@ -293,13 +295,13 @@ pub async fn Consumer::ack_cumulative(
 
 ///|
 /// Negatively acknowledge a message, triggering redelivery.
-pub async fn Consumer::nack(self : Consumer, id : MessageId) -> Unit raise {
+pub async fn Consumer::nack(self : Consumer, id : MessageId) -> Unit {
   send_redeliver(self.conn, self.consumer_id, [id])
 }
 
 ///|
 /// Close the consumer and its subscription cursor is kept (durable).
-pub async fn Consumer::close(self : Consumer) -> Unit raise {
+pub async fn Consumer::close(self : Consumer) -> Unit {
   if self.closed.val {
     return
   }
@@ -310,9 +312,7 @@ pub async fn Consumer::close(self : Consumer) -> Unit raise {
   close.consumer_id = self.consumer_id
   close.request_id = self.conn.next_request_id()
   cmd.close_consumer = Some(close)
-  ignore(
-    self.conn.request(cmd) catch { _ => @proto.BaseCommand::default() },
-  )
+  ignore(self.conn.request(cmd) catch { _ => @proto.BaseCommand::default() })
   self.conn.message_handlers.remove(self.consumer_id)
   self.messages.close(error=ConsumerClosed, clear=true)
 }

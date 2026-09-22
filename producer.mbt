@@ -13,38 +13,38 @@ pub(all) struct BatchingConfig {
 
 ///|
 pub fn BatchingConfig::default() -> BatchingConfig {
-  { max_messages: 1000, max_bytes: 131072, max_delay_ms: 10 }
+  { max_messages: 1000, max_bytes: 131072, max_delay_ms: 10, }
 }
 
 ///|
 /// A future receipt for a message sent with `Producer::send_async`.
 pub struct ReceiptFuture {
-  reply : @aqueue.Queue[SendReceipt]
+  priv reply : @aqueue.Queue[SendReceipt]
 }
 
 ///|
 /// Wait for the broker's send receipt.
-pub async fn ReceiptFuture::wait(self : ReceiptFuture) -> SendReceipt raise {
+pub async fn ReceiptFuture::wait(self : ReceiptFuture) -> SendReceipt {
   self.reply.get()
 }
 
 ///|
 /// A producer bound to a single topic.
 pub struct Producer {
-  group : @async.TaskGroup[Unit]
-  conn : Connection
-  topic : String
-  producer_id : UInt64
-  mut name : String
-  mut sequence_id : UInt64
-  pending : Map[UInt64, @aqueue.Queue[SendReceipt]]
-  batching : BatchingConfig?
-  batch_mu : @async.Mutex
-  mut batch_messages : Array[ProducerMessage]
-  mut batch_waiters : Array[@aqueue.Queue[SendReceipt]]
-  mut batch_bytes : Int
-  mut batch_timer_running : Bool
-  mut closed : Bool
+  priv group : @async.TaskGroup[Unit]
+  priv conn : Connection
+  priv topic : String
+  priv producer_id : UInt64
+  priv mut name : String
+  priv mut sequence_id : UInt64
+  priv pending : Map[UInt64, @aqueue.Queue[SendReceipt]]
+  priv batching : BatchingConfig?
+  priv batch_mu : @async.Mutex
+  priv mut batch_messages : Array[ProducerMessage]
+  priv mut batch_waiters : Array[@aqueue.Queue[SendReceipt]]
+  priv mut batch_bytes : Int
+  priv mut batch_timer_running : Bool
+  priv mut closed : Bool
 }
 
 ///|
@@ -62,7 +62,7 @@ pub async fn Producer::create(
   topic : String,
   name? : String,
   batching? : BatchingConfig,
-) -> Producer raise {
+) -> Producer {
   let request_id = conn.next_request_id()
   let producer_id = conn.next_request_id()
   let cmd = @proto.BaseCommand::default()
@@ -90,15 +90,13 @@ pub async fn Producer::create(
     closed: false,
   }
   conn.producer_handlers[producer_id] = fn(cmd) {
-    producer.on_command(cmd) catch { _ => () }
-  }
-  conn.on_close(fn(e) { producer.on_connection_closed(e) })
-  let reply = conn.request(cmd) catch {
-    e => {
-      conn.producer_handlers.remove(producer_id)
-      raise e
+    producer.on_command(cmd) catch {
+      _ => ()
     }
   }
+  conn.on_close(fn(e) { producer.on_connection_closed(e) })
+  errdefer conn.producer_handlers.remove(producer_id)
+  let reply = conn.request(cmd)
   guard reply.producer_success is Some(success) else {
     raise UnexpectedResponse("expected PRODUCER_SUCCESS")
   }
@@ -110,7 +108,10 @@ pub async fn Producer::create(
 }
 
 ///|
-fn Producer::on_command(self : Producer, cmd : @proto.BaseCommand) -> Unit raise {
+fn Producer::on_command(
+  self : Producer,
+  cmd : @proto.BaseCommand,
+) -> Unit raise {
   if cmd.send_receipt is Some(receipt) {
     if self.pending.get(receipt.sequence_id) is Some(waiter) {
       self.pending.remove(receipt.sequence_id)
@@ -192,7 +193,7 @@ fn Producer::build_metadata(
 pub async fn Producer::send(
   self : Producer,
   msg : ProducerMessage,
-) -> SendReceipt raise {
+) -> SendReceipt {
   self.send_async(msg).wait()
 }
 
@@ -202,7 +203,7 @@ pub async fn Producer::send(
 pub async fn Producer::send_async(
   self : Producer,
   msg : ProducerMessage,
-) -> ReceiptFuture raise {
+) -> ReceiptFuture {
   if self.closed {
     raise ProducerClosed
   }
@@ -210,7 +211,7 @@ pub async fn Producer::send_async(
     return self.enqueue_batch(msg)
   }
   let waiter = self.send_messages([msg])
-  { reply: waiter }
+  { reply: waiter, }
 }
 
 ///|
@@ -219,7 +220,7 @@ pub async fn Producer::send_async(
 async fn Producer::send_messages(
   self : Producer,
   messages : Array[ProducerMessage],
-) -> @aqueue.Queue[SendReceipt] raise {
+) -> @aqueue.Queue[SendReceipt] {
   let sequence_id = self.next_sequence_id()
   let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
     kind=@aqueue.Kind::Blocking(1),
@@ -283,7 +284,7 @@ fn encode_batch_payload(messages : Array[ProducerMessage]) -> Bytes raise {
 async fn Producer::enqueue_batch(
   self : Producer,
   msg : ProducerMessage,
-) -> ReceiptFuture raise {
+) -> ReceiptFuture {
   let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
     kind=@aqueue.Kind::Blocking(1),
   )
@@ -310,18 +311,20 @@ async fn Producer::enqueue_batch(
   if full {
     self.flush()
   }
-  { reply: waiter }
+  { reply: waiter, }
 }
 
 ///|
 async fn Producer::flush_after(self : Producer, delay_ms : Int) -> Unit {
   @async.sleep(delay_ms)
-  self.flush() catch { _ => () }
+  self.flush() catch {
+    _ => ()
+  }
 }
 
 ///|
 /// Flush any buffered batch immediately.
-pub async fn Producer::flush(self : Producer) -> Unit raise {
+pub async fn Producer::flush(self : Producer) -> Unit {
   self.batch_mu.acquire()
   defer self.batch_mu.release()
   self.batch_timer_running = false
@@ -333,34 +336,28 @@ pub async fn Producer::flush(self : Producer) -> Unit raise {
   self.batch_messages = []
   self.batch_waiters = []
   self.batch_bytes = 0
-  let batch_waiter = self.send_messages(messages) catch {
-    e => {
-      for waiter in waiters {
-        waiter.close(error=e, clear=true)
-      }
-      raise e
-    }
-  }
+  errdefer (for waiter in waiters {
+    waiter.close(error=ConnectionClosed, clear=true)
+  })
+  let batch_waiter = self.send_messages(messages)
   // forward the batch receipt to every message waiter
   let n = messages.length()
   self.group.spawn_bg(
     async fn() {
-      let receipt : SendReceipt = batch_waiter.get() catch {
-        e => {
-          for waiter in waiters {
-            waiter.close(error=e, clear=true)
-          }
-          raise e
-        }
-      }
+      errdefer (for waiter in waiters {
+        waiter.close(error=ConnectionClosed, clear=true)
+      })
+      let receipt : SendReceipt = batch_waiter.get()
       for i, waiter in waiters {
         let message_id : MessageId = {
           ..receipt.message_id,
-          batch_index: if n > 1 { i } else { receipt.message_id.batch_index },
+          batch_index: if n > 1 {
+            i
+          } else {
+            receipt.message_id.batch_index
+          },
         }
-        ignore(
-          waiter.try_put({ ..receipt, message_id, }),
-        )
+        ignore(waiter.try_put({ ..receipt, message_id, }))
       }
     },
     no_wait=true,
@@ -370,21 +367,21 @@ pub async fn Producer::flush(self : Producer) -> Unit raise {
 
 ///|
 /// Close the producer, flushing any buffered batch first.
-pub async fn Producer::close(self : Producer) -> Unit raise {
+pub async fn Producer::close(self : Producer) -> Unit {
   if self.closed {
     return
   }
   self.closed = true
-  self.flush() catch { _ => () }
+  self.flush() catch {
+    _ => ()
+  }
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::CLOSE_PRODUCER
   let close = @proto.CommandCloseProducer::default()
   close.producer_id = self.producer_id
   close.request_id = self.conn.next_request_id()
   cmd.close_producer = Some(close)
-  ignore(
-    self.conn.request(cmd) catch { _ => @proto.BaseCommand::default() },
-  )
+  ignore(self.conn.request(cmd) catch { _ => @proto.BaseCommand::default() })
   self.conn.producer_handlers.remove(self.producer_id)
   self.fail_all(ProducerClosed)
 }
