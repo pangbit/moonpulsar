@@ -1,0 +1,14 @@
+name = "pangbit/moonpulsar_examples"
+
+version = "0.1.0"
+
+license = "Apache-2.0"
+
+description = "Examples for `pangbit/moonpulsar`"
+
+preferred_target = "native"
+
+import {
+  "pangbit/moonpulsar@0.0.0",
+  "moonbitlang/async@0.22.1",
+}

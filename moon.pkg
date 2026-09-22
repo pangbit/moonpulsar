@@ -1,0 +1,8 @@
+import {
+  "pangbit/moonpulsar/proto" @proto,
+  "moonbitlang/protobuf" @lib,
+  "moonbitlang/async",
+  "moonbitlang/async/aqueue",
+  "moonbitlang/async/socket" @socket,
+  "moonbitlang/core/buffer",
+}
