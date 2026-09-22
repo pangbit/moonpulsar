@@ -106,3 +106,15 @@ async test "lookup failure raises LookupFailed" {
     assert_true(result is Err(LookupFailed(_)))
   })
 }
+
+///|
+test "broker_addr_of parses schemes" {
+  assert_eq(broker_addr_of("pulsar://host:6650"), ("host:6650", false))
+  assert_eq(broker_addr_of("pulsar+ssl://host:6651"), ("host:6651", true))
+  let result : Result[(String, Bool), Error] = Ok(
+    broker_addr_of("http://host:8080"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(result is Err(LookupFailed(_)))
+}

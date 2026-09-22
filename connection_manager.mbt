@@ -6,6 +6,7 @@ pub struct ConnectionManager {
   priv group : @async.TaskGroup[Unit]
   priv auth : AuthData?
   priv connections : Map[String, Connection]
+  priv default_tls : Bool
   priv mut closed : Bool
 }
 
@@ -13,8 +14,15 @@ pub struct ConnectionManager {
 pub fn ConnectionManager::new(
   group : @async.TaskGroup[Unit],
   auth? : AuthData,
+  tls? : Bool = false,
 ) -> ConnectionManager {
-  { group, auth, connections: {}, closed: false, }
+  { group, auth, connections: {}, default_tls: tls, closed: false }
+}
+
+///|
+/// Whether connections opened by this manager use TLS.
+pub fn ConnectionManager::uses_tls(self : ConnectionManager) -> Bool {
+  self.default_tls
 }
 
 ///|
@@ -27,11 +35,17 @@ pub async fn ConnectionManager::get(
   if self.closed {
     raise ConnectionClosed
   }
-  if self.connections.get(addr) is Some(conn) && !conn.is_closed() {
+  let key = "\{self.default_tls}|\{addr}"
+  if self.connections.get(key) is Some(conn) && !conn.is_closed() {
     return conn
   }
-  let conn = Connection::connect(self.group, addr, auth?=self.auth)
-  self.connections[addr] = conn
+  let conn = Connection::connect(
+    self.group,
+    addr,
+    auth?=self.auth,
+    tls=self.default_tls,
+  )
+  self.connections[key] = conn
   conn
 }
 

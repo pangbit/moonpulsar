@@ -1,4 +1,4 @@
-// Consumer: subscribes to a topic and receives messages with flow control.
+// SingleConsumer: subscribes to a topic and receives messages with flow control.
 
 ///|
 /// Subscription mode, mirroring `CommandSubscribe.SubType`.
@@ -30,7 +30,7 @@ pub(all) enum SubscriptionInitialPosition {
 
 ///|
 /// A consumer bound to a topic subscription.
-pub struct Consumer {
+pub struct SingleConsumer {
   /// current connection; swapped on reconnect (shared with `Message` acks)
   priv conn_ref : Ref[Connection]
   priv topic : String
@@ -50,7 +50,7 @@ pub struct Consumer {
 
 ///|
 /// Create a consumer on `topic` through an already-resolved connection.
-pub async fn Consumer::create(
+pub async fn SingleConsumer::create(
   group : @async.TaskGroup[Unit],
   conn : Connection,
   topic : String,
@@ -60,10 +60,10 @@ pub async fn Consumer::create(
   initial_position? : SubscriptionInitialPosition = Latest,
   receiver_queue_size? : Int = 1000,
   reconnect_with? : async () -> Connection,
-) -> Consumer {
+) -> SingleConsumer {
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
-  let consumer : Consumer = {
+  let consumer : SingleConsumer = {
     conn_ref: { val: conn, },
     topic,
     subscription,
@@ -92,8 +92,8 @@ pub async fn Consumer::create(
 }
 
 ///|
-fn Consumer::subscribe_command(
-  self : Consumer,
+fn SingleConsumer::subscribe_command(
+  self : SingleConsumer,
   request_id : UInt64,
 ) -> @proto.BaseCommand {
   let cmd = @proto.BaseCommand::default()
@@ -123,14 +123,14 @@ fn Consumer::subscribe_command(
 
 ///|
 /// Wire the message handler and the close hook onto a connection.
-fn Consumer::attach(self : Consumer, conn : Connection) -> Unit {
+fn SingleConsumer::attach(self : SingleConsumer, conn : Connection) -> Unit {
   conn.message_handlers[self.consumer_id] = fn(frame) { self.on_frame(frame) }
   conn.on_close(fn(e) { self.on_connection_closed(e) })
 }
 
 ///|
 /// Re-subscribe on a fresh connection and resume the message flow.
-async fn Consumer::reconnect(self : Consumer) -> Unit {
+async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
   guard self.reconnect_with is Some(provider) else { return }
   let policy = RetryPolicy::default()
   let method = @async.RetryMethod::ExponentialDelay(
@@ -166,7 +166,7 @@ async fn Consumer::reconnect(self : Consumer) -> Unit {
 }
 
 ///|
-fn Consumer::on_connection_closed(self : Consumer, error : Error?) -> Unit {
+fn SingleConsumer::on_connection_closed(self : SingleConsumer, error : Error?) -> Unit {
   ignore(error)
   if self.closed.val || self.reconnect_with is None {
     if !self.closed.val {
@@ -187,7 +187,7 @@ fn Consumer::on_connection_closed(self : Consumer, error : Error?) -> Unit {
 }
 
 ///|
-async fn Consumer::send_flow(self : Consumer, permits : Int) -> Unit {
+async fn SingleConsumer::send_flow(self : SingleConsumer, permits : Int) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::FLOW
   let flow = @proto.CommandFlow::default()
@@ -198,7 +198,7 @@ async fn Consumer::send_flow(self : Consumer, permits : Int) -> Unit {
 }
 
 ///|
-fn Consumer::on_frame(self : Consumer, frame : IncomingFrame) -> Unit {
+fn SingleConsumer::on_frame(self : SingleConsumer, frame : IncomingFrame) -> Unit {
   match frame.cmd.type_ {
     @proto.BaseCommand_Type::MESSAGE =>
       self.dispatch_message(frame) catch {
@@ -214,13 +214,17 @@ fn Consumer::on_frame(self : Consumer, frame : IncomingFrame) -> Unit {
 }
 
 ///|
-fn Consumer::dispatch_message(
-  self : Consumer,
+fn SingleConsumer::dispatch_message(
+  self : SingleConsumer,
   frame : IncomingFrame,
 ) -> Unit raise {
   guard frame.cmd.message is Some(message) else { return }
-  guard frame.metadata is Some(metadata) && frame.payload is Some(payload) else {
+  guard frame.metadata is Some(metadata) && frame.payload is Some(raw_payload) else {
     raise InvalidFrame("MESSAGE without payload")
+  }
+  let payload = match metadata.compression {
+    Some(t) => decompress(CompressionCodec::from_proto(t), raw_payload)
+    None => raw_payload
   }
   let redelivery_count = message.redelivery_count.unwrap_or(0)
   let base_id = MessageId::from_proto(message.message_id)
@@ -245,8 +249,8 @@ fn Consumer::dispatch_message(
 }
 
 ///|
-fn Consumer::push_message(
-  self : Consumer,
+fn SingleConsumer::push_message(
+  self : SingleConsumer,
   base_id : MessageId,
   batch_index : Int,
   metadata : @proto.MessageMetadata,
@@ -254,11 +258,37 @@ fn Consumer::push_message(
   payload : Bytes,
   redelivery_count : UInt,
 ) -> Unit raise {
-  let message : Message = {
-    conn_ref: self.conn_ref,
-    consumer_id: self.consumer_id,
+  let message = build_message(
+    self.conn_ref,
+    self.consumer_id,
+    self.topic,
+    base_id,
+    batch_index,
+    metadata,
+    single,
+    payload,
+    redelivery_count,
+  )
+  ignore(self.messages.try_put(message))
+}
+
+///|
+fn build_message(
+  conn_ref : Ref[Connection],
+  consumer_id : UInt64,
+  topic : String,
+  base_id : MessageId,
+  batch_index : Int,
+  metadata : @proto.MessageMetadata,
+  single : @proto.SingleMessageMetadata?,
+  payload : Bytes,
+  redelivery_count : UInt,
+) -> Message {
+  {
+    conn_ref,
+    consumer_id,
     id: { ..base_id, batch_index, },
-    topic: self.topic,
+    topic,
     payload,
     key: match single {
       Some(s) =>
@@ -295,7 +325,6 @@ fn Consumer::push_message(
     },
     redelivery_count,
   }
-  ignore(self.messages.try_put(message))
 }
 
 ///|
@@ -330,7 +359,7 @@ fn split_batch_payload(
 
 ///|
 /// Receive the next message, blocking until one is available.
-pub async fn Consumer::receive(self : Consumer) -> Message {
+pub async fn SingleConsumer::receive(self : SingleConsumer) -> Message {
   if self.closed.val {
     raise ConsumerClosed
   }
@@ -349,7 +378,7 @@ pub async fn Consumer::receive(self : Consumer) -> Message {
 
 ///|
 /// Non-blocking receive: returns `None` if no message is buffered.
-pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
+pub fn SingleConsumer::try_receive(self : SingleConsumer) -> Message? raise {
   self.messages.try_get() catch {
     _ => raise ConsumerClosed
   }
@@ -357,7 +386,7 @@ pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
 
 ///|
 /// Acknowledge a message individually.
-pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
+pub async fn SingleConsumer::ack(self : SingleConsumer, id : MessageId) -> Unit {
   send_ack(
     self.conn_ref.val,
     self.consumer_id,
@@ -368,7 +397,7 @@ pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
 
 ///|
 /// Acknowledge cumulatively: this message and all before it.
-pub async fn Consumer::ack_cumulative(self : Consumer, id : MessageId) -> Unit {
+pub async fn SingleConsumer::ack_cumulative(self : SingleConsumer, id : MessageId) -> Unit {
   send_ack(
     self.conn_ref.val,
     self.consumer_id,
@@ -379,13 +408,13 @@ pub async fn Consumer::ack_cumulative(self : Consumer, id : MessageId) -> Unit {
 
 ///|
 /// Negatively acknowledge a message, triggering redelivery.
-pub async fn Consumer::nack(self : Consumer, id : MessageId) -> Unit {
+pub async fn SingleConsumer::nack(self : SingleConsumer, id : MessageId) -> Unit {
   send_redeliver(self.conn_ref.val, self.consumer_id, [id])
 }
 
 ///|
 /// Close the consumer and its subscription cursor is kept (durable).
-pub async fn Consumer::close(self : Consumer) -> Unit {
+pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
   if self.closed.val {
     return
   }
@@ -406,16 +435,166 @@ pub async fn Consumer::close(self : Consumer) -> Unit {
 }
 
 ///|
-pub fn Consumer::topic(self : Consumer) -> String {
+pub fn SingleConsumer::topic(self : SingleConsumer) -> String {
   self.topic
 }
 
 ///|
-pub fn Consumer::subscription(self : Consumer) -> String {
+pub fn SingleConsumer::subscription(self : SingleConsumer) -> String {
   self.subscription
 }
 
 ///|
-pub fn Consumer::is_closed(self : Consumer) -> Bool {
+pub fn SingleConsumer::is_closed(self : SingleConsumer) -> Bool {
   self.closed.val
+}
+
+///|
+priv enum ConsumerImpl {
+  Single(SingleConsumer)
+  Partitioned(PartitionedConsumerState)
+}
+
+///|
+priv struct PartitionedConsumerState {
+  consumers : Array[Consumer]
+  queue : @aqueue.Queue[Message]
+  closed : Ref[Bool]
+}
+
+///|
+/// A consumer for a topic, partitioned or not. Partitioned consumers merge
+/// the message streams of every partition.
+pub struct Consumer {
+  priv inner : ConsumerImpl
+}
+
+///|
+fn Consumer::single(c : SingleConsumer) -> Consumer {
+  { inner: ConsumerImpl::Single(c) }
+}
+
+///|
+/// Create a consumer aggregating all partitions of a partitioned topic.
+pub fn Consumer::partitioned(
+  group : @async.TaskGroup[Unit],
+  consumers : Array[Consumer],
+) -> Consumer {
+  let state : PartitionedConsumerState = {
+    consumers,
+    queue: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
+    closed: { val: false },
+  }
+  for sub in consumers {
+    let forward = async fn() -> Unit raise {
+      while true {
+        let msg = sub.receive()
+        state.queue.put(msg)
+      }
+    }
+    group.spawn_bg(
+      async fn() {
+        forward() catch {
+          _ => ()
+        }
+      },
+      no_wait=true,
+      allow_failure=true,
+    )
+  }
+  { inner: ConsumerImpl::Partitioned(state) }
+}
+
+///|
+/// Receive the next message, blocking until one is available.
+pub async fn Consumer::receive(self : Consumer) -> Message {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.receive()
+    ConsumerImpl::Partitioned(state) => state.queue.get()
+  }
+}
+
+///|
+/// Non-blocking receive: returns `None` if no message is buffered.
+pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.try_receive()
+    ConsumerImpl::Partitioned(state) =>
+      state.queue.try_get() catch {
+        _ => raise ConsumerClosed
+      }
+  }
+}
+
+///|
+/// Acknowledge a message individually.
+pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.ack(id)
+    ConsumerImpl::Partitioned(_) =>
+      raise InvalidFrame("ack by id needs the message's own consumer; use message.ack()")
+  }
+}
+
+///|
+/// Acknowledge cumulatively: this message and all before it.
+pub async fn Consumer::ack_cumulative(self : Consumer, id : MessageId) -> Unit {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.ack_cumulative(id)
+    ConsumerImpl::Partitioned(_) =>
+      raise InvalidFrame("cumulative ack needs the message's own consumer; use message.ack()")
+  }
+}
+
+///|
+/// Negatively acknowledge a message, triggering redelivery.
+pub async fn Consumer::nack(self : Consumer, id : MessageId) -> Unit {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.nack(id)
+    ConsumerImpl::Partitioned(_) =>
+      raise InvalidFrame("nack by id needs the message's own consumer; use message.nack()")
+  }
+}
+
+///|
+/// Close the consumer (all partitions).
+pub async fn Consumer::close(self : Consumer) -> Unit {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.close()
+    ConsumerImpl::Partitioned(state) => {
+      state.closed.val = true
+      for c in state.consumers {
+        c.close()
+      }
+      state.queue.close(error=ConsumerClosed, clear=true)
+    }
+  }
+}
+
+///|
+pub fn Consumer::topic(self : Consumer) -> String {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.topic()
+    ConsumerImpl::Partitioned(state) =>
+      match state.consumers[0].topic().rev_find("-partition-") {
+        Some(i) => state.consumers[0].topic()[:i].to_owned()
+        None => state.consumers[0].topic()
+      }
+  }
+}
+
+///|
+pub fn Consumer::subscription(self : Consumer) -> String {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.subscription()
+    ConsumerImpl::Partitioned(state) => state.consumers[0].subscription()
+  }
+}
+
+///|
+pub fn Consumer::is_closed(self : Consumer) -> Bool {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.is_closed()
+    ConsumerImpl::Partitioned(state) => state.closed.val
+  }
 }

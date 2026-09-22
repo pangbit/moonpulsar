@@ -54,7 +54,7 @@ async test "producer send waits for send receipt" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let producer = Producer::create(
+    let producer = SingleProducer::create(
       group, conn, "persistent://public/default/t",
     )
     assert_eq(producer.name(), "mock-producer")
@@ -79,7 +79,7 @@ async test "producer send_async resolves independently" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let producer = Producer::create(
+    let producer = SingleProducer::create(
       group, conn, "persistent://public/default/t",
     )
     let futures = []
@@ -124,7 +124,7 @@ async test "producer batches messages and flushes" {
       max_bytes: 131072,
       max_delay_ms: 60000,
     }
-    let producer = Producer::create(
+    let producer = SingleProducer::create(
       group,
       conn,
       "persistent://public/default/t",
@@ -161,7 +161,7 @@ async test "send error fails the send" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let producer = Producer::create(
+    let producer = SingleProducer::create(
       group, conn, "persistent://public/default/t",
     )
     let result : Result[SendReceipt, Error] = Ok(

@@ -1,4 +1,4 @@
-// Producer: publishes messages to a topic with optional batching.
+// SingleProducer: publishes messages to a topic with optional batching.
 //
 // Reconnection: when the connection breaks and the producer was created
 // with a `reconnect_with` provider (which `Client::create_producer` always
@@ -22,7 +22,7 @@ pub fn BatchingConfig::default() -> BatchingConfig {
 }
 
 ///|
-/// A future receipt for a message sent with `Producer::send_async`.
+/// A future receipt for a message sent with `SingleProducer::send_async`.
 pub struct ReceiptFuture {
   priv reply : @aqueue.Queue[SendReceipt]
 }
@@ -35,7 +35,7 @@ pub async fn ReceiptFuture::wait(self : ReceiptFuture) -> SendReceipt {
 
 ///|
 /// A producer bound to a single topic.
-pub struct Producer {
+pub struct SingleProducer {
   priv group : @async.TaskGroup[Unit]
   priv mut conn : Connection
   priv topic : String
@@ -48,6 +48,7 @@ pub struct Producer {
   priv payloads : Map[UInt64, Bytes]
   priv reconnect_with : (async () -> Connection)?
   priv reconnecting : Ref[Bool]
+  priv compression : CompressionCodec
   priv batching : BatchingConfig?
   priv batch_mu : @async.Mutex
   priv mut batch_messages : Array[ProducerMessage]
@@ -58,7 +59,7 @@ pub struct Producer {
 }
 
 ///|
-fn Producer::next_sequence_id(self : Producer) -> UInt64 {
+fn SingleProducer::next_sequence_id(self : SingleProducer) -> UInt64 {
   let seq = self.sequence_id
   self.sequence_id += 1
   seq
@@ -68,17 +69,18 @@ fn Producer::next_sequence_id(self : Producer) -> UInt64 {
 /// Create a producer on `topic` through an already-resolved connection.
 /// `reconnect_with` should yield a fresh connection to the owning broker;
 /// it enables automatic re-registration and pending message replay.
-pub async fn Producer::create(
+pub async fn SingleProducer::create(
   group : @async.TaskGroup[Unit],
   conn : Connection,
   topic : String,
   name? : String,
   batching? : BatchingConfig,
   reconnect_with? : async () -> Connection,
-) -> Producer {
+  compression? : CompressionCodec = None,
+) -> SingleProducer {
   let request_id = conn.next_request_id()
   let producer_id = conn.next_request_id()
-  let producer : Producer = {
+  let producer : SingleProducer = {
     group,
     conn,
     topic,
@@ -90,6 +92,7 @@ pub async fn Producer::create(
     payloads: {},
     reconnect_with,
     reconnecting: { val: false, },
+    compression,
     batching,
     batch_mu: @async.Mutex::Mutex(),
     batch_messages: [],
@@ -112,8 +115,8 @@ pub async fn Producer::create(
 }
 
 ///|
-fn Producer::producer_command(
-  self : Producer,
+fn SingleProducer::producer_command(
+  self : SingleProducer,
   request_id : UInt64,
 ) -> @proto.BaseCommand {
   let cmd = @proto.BaseCommand::default()
@@ -129,7 +132,7 @@ fn Producer::producer_command(
 
 ///|
 /// Wire dispatch handlers and the close hook onto a connection.
-fn Producer::attach(self : Producer, conn : Connection) -> Unit {
+fn SingleProducer::attach(self : SingleProducer, conn : Connection) -> Unit {
   conn.producer_handlers[self.producer_id] = fn(cmd) {
     self.on_command(cmd) catch {
       _ => ()
@@ -139,8 +142,8 @@ fn Producer::attach(self : Producer, conn : Connection) -> Unit {
 }
 
 ///|
-fn Producer::on_command(
-  self : Producer,
+fn SingleProducer::on_command(
+  self : SingleProducer,
   cmd : @proto.BaseCommand,
 ) -> Unit raise {
   if cmd.send_receipt is Some(receipt) {
@@ -177,7 +180,7 @@ fn Producer::on_command(
 }
 
 ///|
-fn Producer::on_connection_closed(self : Producer, error : Error?) -> Unit {
+fn SingleProducer::on_connection_closed(self : SingleProducer, error : Error?) -> Unit {
   ignore(error)
   if self.closed || self.reconnect_with is None {
     self.fail_all(ConnectionClosed)
@@ -196,7 +199,7 @@ fn Producer::on_connection_closed(self : Producer, error : Error?) -> Unit {
 
 ///|
 /// Re-register on a fresh connection and replay unconfirmed messages.
-async fn Producer::reconnect(self : Producer) -> Unit {
+async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
   guard self.reconnect_with is Some(provider) else { return }
   let policy = RetryPolicy::default()
   let method = @async.RetryMethod::ExponentialDelay(
@@ -232,7 +235,7 @@ async fn Producer::reconnect(self : Producer) -> Unit {
 }
 
 ///|
-fn Producer::fail_all(self : Producer, error : PulsarError) -> Unit {
+fn SingleProducer::fail_all(self : SingleProducer, error : PulsarError) -> Unit {
   for _, waiter in self.pending {
     waiter.close(error~, clear=true)
   }
@@ -246,8 +249,8 @@ fn Producer::fail_all(self : Producer, error : PulsarError) -> Unit {
 }
 
 ///|
-fn Producer::build_metadata(
-  self : Producer,
+fn SingleProducer::build_metadata(
+  self : SingleProducer,
   msg : ProducerMessage,
   sequence_id : UInt64,
 ) -> @proto.MessageMetadata {
@@ -273,8 +276,8 @@ fn Producer::build_metadata(
 
 ///|
 /// Send a message and wait for the broker's receipt.
-pub async fn Producer::send(
-  self : Producer,
+pub async fn SingleProducer::send(
+  self : SingleProducer,
   msg : ProducerMessage,
 ) -> SendReceipt {
   self.send_async(msg).wait()
@@ -283,8 +286,8 @@ pub async fn Producer::send(
 ///|
 /// Send a message without waiting for the receipt; the returned future
 /// resolves once the broker confirms.
-pub async fn Producer::send_async(
-  self : Producer,
+pub async fn SingleProducer::send_async(
+  self : SingleProducer,
   msg : ProducerMessage,
 ) -> ReceiptFuture {
   if self.closed {
@@ -300,8 +303,8 @@ pub async fn Producer::send_async(
 ///|
 /// Send one or more messages as a single (optionally batched) SEND command.
 /// Returns the waiter queue for the whole batch.
-async fn Producer::send_messages(
-  self : Producer,
+async fn SingleProducer::send_messages(
+  self : SingleProducer,
   messages : Array[ProducerMessage],
 ) -> @aqueue.Queue[SendReceipt] {
   let sequence_id = self.next_sequence_id()
@@ -314,6 +317,13 @@ async fn Producer::send_messages(
     encode_batch_payload(messages)
   } else {
     messages[0].payload
+  }
+  let payload = if self.compression is None {
+    payload
+  } else {
+    metadata.compression = self.compression.to_proto()
+    metadata.uncompressed_size = Some(payload.length().reinterpret_as_uint())
+    compress(self.compression, payload)
   }
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::SEND
@@ -369,8 +379,8 @@ fn encode_batch_payload(messages : Array[ProducerMessage]) -> Bytes raise {
 }
 
 ///|
-async fn Producer::enqueue_batch(
-  self : Producer,
+async fn SingleProducer::enqueue_batch(
+  self : SingleProducer,
   msg : ProducerMessage,
 ) -> ReceiptFuture {
   let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
@@ -403,7 +413,7 @@ async fn Producer::enqueue_batch(
 }
 
 ///|
-async fn Producer::flush_after(self : Producer, delay_ms : Int) -> Unit {
+async fn SingleProducer::flush_after(self : SingleProducer, delay_ms : Int) -> Unit {
   @async.sleep(delay_ms)
   self.flush() catch {
     _ => ()
@@ -412,7 +422,7 @@ async fn Producer::flush_after(self : Producer, delay_ms : Int) -> Unit {
 
 ///|
 /// Flush any buffered batch immediately.
-pub async fn Producer::flush(self : Producer) -> Unit {
+pub async fn SingleProducer::flush(self : SingleProducer) -> Unit {
   self.batch_mu.acquire()
   defer self.batch_mu.release()
   self.batch_timer_running = false
@@ -455,7 +465,7 @@ pub async fn Producer::flush(self : Producer) -> Unit {
 
 ///|
 /// Close the producer, flushing any buffered batch first.
-pub async fn Producer::close(self : Producer) -> Unit {
+pub async fn SingleProducer::close(self : SingleProducer) -> Unit {
   if self.closed {
     return
   }
@@ -476,12 +486,126 @@ pub async fn Producer::close(self : Producer) -> Unit {
 
 ///|
 /// The broker-assigned producer name.
-pub fn Producer::name(self : Producer) -> String {
+pub fn SingleProducer::name(self : SingleProducer) -> String {
   self.name
 }
 
 ///|
 /// The topic this producer publishes to.
-pub fn Producer::topic(self : Producer) -> String {
+pub fn SingleProducer::topic(self : SingleProducer) -> String {
   self.topic
+}
+
+///|
+priv enum ProducerImpl {
+  Single(SingleProducer)
+  Partitioned(Array[Producer], Ref[Int])
+}
+
+///|
+/// A producer for a topic, partitioned or not. Partitioned producers route
+/// keyed messages by `xxhash32(key) % partitions` and keyless messages
+/// round-robin.
+pub struct Producer {
+  priv inner : ProducerImpl
+}
+
+///|
+fn Producer::single(p : SingleProducer) -> Producer {
+  { inner: ProducerImpl::Single(p) }
+}
+
+///|
+/// Create a producer on a partitioned topic from one producer per partition.
+pub fn Producer::partitioned(partitions : Array[Producer]) -> Producer {
+  { inner: ProducerImpl::Partitioned(partitions, { val: 0 }) }
+}
+
+///|
+fn Producer::route(self : Producer, msg : ProducerMessage) -> Producer {
+  guard self.inner is ProducerImpl::Partitioned(partitions, rr) else {
+    return self
+  }
+  let n = partitions.length()
+  match msg.key {
+    Some(key) => {
+      let h = xxhash32(@utf8.encode(key)).reinterpret_as_int() & 0x7fffffff
+      partitions[h % n]
+    }
+    None => {
+      let i = rr.val % n
+      rr.val += 1
+      partitions[i]
+    }
+  }
+}
+
+///|
+/// Send a message and wait for the broker's receipt.
+pub async fn Producer::send(
+  self : Producer,
+  msg : ProducerMessage,
+) -> SendReceipt {
+  match self.inner {
+    ProducerImpl::Single(p) => p.send(msg)
+    ProducerImpl::Partitioned(_, _) => self.route(msg).send(msg)
+  }
+}
+
+///|
+/// Send a message without waiting for the receipt.
+pub async fn Producer::send_async(
+  self : Producer,
+  msg : ProducerMessage,
+) -> ReceiptFuture {
+  match self.inner {
+    ProducerImpl::Single(p) => p.send_async(msg)
+    ProducerImpl::Partitioned(_, _) => self.route(msg).send_async(msg)
+  }
+}
+
+///|
+/// Flush buffered batches on every partition.
+pub async fn Producer::flush(self : Producer) -> Unit {
+  match self.inner {
+    ProducerImpl::Single(p) => p.flush()
+    ProducerImpl::Partitioned(partitions, _) =>
+      for p in partitions {
+        p.flush()
+      }
+  }
+}
+
+///|
+/// Close the producer (all partitions), flushing pending batches first.
+pub async fn Producer::close(self : Producer) -> Unit {
+  match self.inner {
+    ProducerImpl::Single(p) => p.close()
+    ProducerImpl::Partitioned(partitions, _) =>
+      for p in partitions {
+        p.close()
+      }
+  }
+}
+
+///|
+/// The broker-assigned producer name (of the first partition).
+pub fn Producer::name(self : Producer) -> String {
+  match self.inner {
+    ProducerImpl::Single(p) => p.name()
+    ProducerImpl::Partitioned(partitions, _) => partitions[0].name()
+  }
+}
+
+///|
+/// The topic this producer publishes to.
+pub fn Producer::topic(self : Producer) -> String {
+  match self.inner {
+    ProducerImpl::Single(p) => p.topic()
+    ProducerImpl::Partitioned(partitions, _) =>
+      match partitions[0].topic().rev_find("-partition-") {
+        Some(i) => partitions[0].topic()[:i].to_owned()
+        None => partitions[0].topic()
+      }
+  }
 }

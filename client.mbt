@@ -51,8 +51,8 @@ pub async fn Client::connect(
   let auth_data = auth.map(fn(a) {
     { method_name: a.method_name(), data: a.auth_data(), }
   })
-  let manager = ConnectionManager::new(group, auth?=auth_data)
-  let addr = broker_addr_of(service_url)
+  let (addr, tls) = broker_addr_of(service_url)
+  let manager = ConnectionManager::new(group, auth?=auth_data, tls~)
   ignore(manager.get(addr))
   { manager, service_addr: addr, }
 }
@@ -71,13 +71,43 @@ pub async fn Client::create_producer(
   topic : String,
   name? : String,
   batching? : BatchingConfig,
+  compression? : CompressionCodec = None,
 ) -> Producer {
-  let conn = lookup_topic(self.manager, self.service_addr, topic)
   let manager = self.manager
   let addr = self.service_addr
-  Producer::create(self.manager.group, conn, topic, name?, batching?, reconnect_with=async fn() {
-    lookup_topic(manager, addr, topic)
-  })
+  let partitions = get_partition_count(manager, addr, topic)
+  if partitions <= 1 {
+    let conn = lookup_topic(manager, addr, topic)
+    let single = SingleProducer::create(
+      self.manager.group,
+      conn,
+      topic,
+      name?,
+      batching?,
+      reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
+      compression~,
+    )
+    return Producer::single(single)
+  }
+  let subs = []
+  for i in 0..<partitions {
+    let partition_topic = "\{topic}-partition-\{i}"
+    let conn = lookup_topic(manager, addr, partition_topic)
+    subs.push(
+      Producer::single(
+        SingleProducer::create(
+          self.manager.group,
+          conn,
+          partition_topic,
+          name?,
+          batching?,
+          reconnect_with=async fn() { lookup_topic(manager, addr, partition_topic) },
+          compression~,
+        ),
+      ),
+    )
+  }
+  Producer::partitioned(subs)
 }
 
 ///|
@@ -91,20 +121,45 @@ pub async fn Client::create_consumer(
   initial_position? : SubscriptionInitialPosition = Latest,
   receiver_queue_size? : Int = 1000,
 ) -> Consumer {
-  let conn = lookup_topic(self.manager, self.service_addr, topic)
   let manager = self.manager
   let addr = self.service_addr
-  Consumer::create(
-    self.manager.group,
-    conn,
-    topic,
-    subscription,
-    sub_type~,
-    consumer_name?,
-    initial_position~,
-    receiver_queue_size~,
-    reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
-  )
+  let partitions = get_partition_count(manager, addr, topic)
+  if partitions <= 1 {
+    let conn = lookup_topic(manager, addr, topic)
+    let single = SingleConsumer::create(
+      self.manager.group,
+      conn,
+      topic,
+      subscription,
+      sub_type~,
+      consumer_name?,
+      initial_position~,
+      receiver_queue_size~,
+      reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
+    )
+    return Consumer::single(single)
+  }
+  let subs = []
+  for i in 0..<partitions {
+    let partition_topic = "\{topic}-partition-\{i}"
+    let conn = lookup_topic(manager, addr, partition_topic)
+    subs.push(
+      Consumer::single(
+        SingleConsumer::create(
+          self.manager.group,
+          conn,
+          partition_topic,
+          subscription,
+          sub_type~,
+          consumer_name?,
+          initial_position~,
+          receiver_queue_size~,
+          reconnect_with=async fn() { lookup_topic(manager, addr, partition_topic) },
+        ),
+      ),
+    )
+  }
+  Consumer::partitioned(self.manager.group, subs)
 }
 
 ///|

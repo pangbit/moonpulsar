@@ -5,7 +5,10 @@ import {
   "moonbitlang/async/io",
   "moonbitlang/async/aqueue",
   "moonbitlang/async/socket",
+  "moonbitlang/async/tls",
   "moonbitlang/core/buffer",
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
+  "moonbit-community/flate/zlib" @zlib,
+  "Milky2018/zstd" @zstd,
 }

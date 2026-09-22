@@ -28,4 +28,6 @@ description = "Apache Pulsar binary protocol client for MoonBit: connection mana
 import {
   "moonbitlang/async@0.22.1",
   "moonbitlang/protobuf@0.1.3",
+  "moonbit-community/flate@0.8.3",
+  "Milky2018/zstd@0.1.3",
 }

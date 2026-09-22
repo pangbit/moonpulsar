@@ -22,7 +22,9 @@ struct PendingRequest {
 /// A single connection to a Pulsar broker speaking the binary protocol.
 pub struct Connection {
   priv addr : String
-  priv tcp : @socket.Tcp
+  priv reader : &@io.Reader
+  priv writer : &@io.Writer
+  priv close_transport : () -> Unit
   priv mut next_id : UInt64
   priv pending : Map[UInt64, PendingRequest]
   /// consumer_id -> handler for MESSAGE / ACK_RESPONSE / CLOSE_CONSUMER
@@ -53,6 +55,7 @@ pub async fn Connection::connect(
   group : @async.TaskGroup[Unit],
   addr : String,
   auth? : AuthData,
+  tls? : Bool = false,
   keepalive_interval_ms? : Int = KEEPALIVE_INTERVAL_MS,
   timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
 ) -> Connection {
@@ -60,9 +63,23 @@ pub async fn Connection::connect(
   let tcp = @socket.Tcp::connect_to_host(host, port~) catch {
     _ => raise ConnectFailed(addr)
   }
+  let (reader, writer, close_transport) : (
+    &@io.Reader,
+    &@io.Writer,
+    () -> Unit,
+  ) = if tls {
+    let tls_conn = @tls.Tls::client(tcp, host~) catch {
+      e => raise ConnectFailed("TLS handshake with \{addr} failed: \{e}")
+    }
+    (tls_conn, tls_conn, fn() { tls_conn.close() })
+  } else {
+    (tcp, tcp, fn() { tcp.close() })
+  }
   let conn = Connection::{
     addr,
-    tcp,
+    reader,
+    writer,
+    close_transport,
     next_id: 0,
     pending: {},
     message_handlers: {},
@@ -117,7 +134,7 @@ pub async fn Connection::connect(
 
 ///|
 async fn Connection::read_frame(self : Connection) -> IncomingFrame {
-  read_frame(self.tcp)
+  read_frame(self.reader)
 }
 
 ///|
@@ -127,7 +144,7 @@ async fn Connection::send_bytes(self : Connection, bytes : Bytes) -> Unit {
   }
   self.write_mu.acquire()
   defer self.write_mu.release()
-  self.tcp.write(bytes) catch {
+  self.writer.write(bytes) catch {
     e => {
       self.notify_closed(Some(e))
       raise ConnectionClosed
@@ -289,7 +306,7 @@ pub fn Connection::on_close(
 /// Close the connection and fail all pending requests.
 pub fn Connection::close(self : Connection) -> Unit {
   self.notify_closed(None)
-  self.tcp.close()
+  (self.close_transport)()
 }
 
 ///|
