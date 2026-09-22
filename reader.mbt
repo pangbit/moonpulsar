@@ -1,4 +1,4 @@
-// Reader: a lightweight non-durable cursor over a topic, starting from an
+// SingleReader: a lightweight non-durable cursor over a topic, starting from an
 // arbitrary message id. Unlike `Consumer`, a reader does not ack messages
 // and can seek freely.
 
@@ -10,7 +10,7 @@ priv enum ReaderEvent {
 
 ///|
 /// A reader over a topic starting at a given position.
-pub struct Reader {
+pub struct SingleReader {
   priv conn : Connection
   priv topic : String
   priv consumer_id : UInt64
@@ -27,16 +27,16 @@ pub struct Reader {
 /// Create a reader on `topic` through an already-resolved connection,
 /// starting after `start_message_id` (default: the latest message).
 /// The subscription is non-durable and exclusive.
-pub async fn Reader::create(
+pub async fn SingleReader::create(
   group : @async.TaskGroup[Unit],
   conn : Connection,
   topic : String,
   start_message_id? : MessageId,
   receiver_queue_size? : Int = 1000,
-) -> Reader {
+) -> SingleReader {
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
-  let reader : Reader = {
+  let reader : SingleReader = {
     conn,
     topic,
     consumer_id,
@@ -80,7 +80,7 @@ pub async fn Reader::create(
 }
 
 ///|
-async fn Reader::send_flow(self : Reader, permits : Int) -> Unit {
+async fn SingleReader::send_flow(self : SingleReader, permits : Int) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::FLOW
   let flow = @proto.CommandFlow::default()
@@ -91,7 +91,7 @@ async fn Reader::send_flow(self : Reader, permits : Int) -> Unit {
 }
 
 ///|
-fn Reader::on_frame(self : Reader, frame : IncomingFrame) -> Unit {
+fn SingleReader::on_frame(self : SingleReader, frame : IncomingFrame) -> Unit {
   match frame.cmd.type_ {
     @proto.BaseCommand_Type::MESSAGE =>
       self.dispatch_message(frame) catch {
@@ -104,7 +104,7 @@ fn Reader::on_frame(self : Reader, frame : IncomingFrame) -> Unit {
 }
 
 ///|
-fn Reader::dispatch_message(self : Reader, frame : IncomingFrame) -> Unit raise {
+fn SingleReader::dispatch_message(self : SingleReader, frame : IncomingFrame) -> Unit raise {
   guard frame.cmd.message is Some(message) else { return }
   guard frame.metadata is Some(metadata) && frame.payload is Some(raw_payload) else {
     raise InvalidFrame("MESSAGE without payload")
@@ -155,7 +155,7 @@ fn Reader::dispatch_message(self : Reader, frame : IncomingFrame) -> Unit raise 
 /// Read the next message, or `None` once the current end of the topic is
 /// reached. Messages published later can still be read by calling `next`
 /// again.
-pub async fn Reader::next(self : Reader) -> Message? {
+pub async fn SingleReader::next(self : SingleReader) -> Message? {
   if self.closed.val {
     raise ConsumerClosed
   }
@@ -179,7 +179,7 @@ pub async fn Reader::next(self : Reader) -> Message? {
 ///|
 /// True when there are buffered messages or the broker reports unseen
 /// messages beyond the last one read.
-pub async fn Reader::has_message_available(self : Reader) -> Bool {
+pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
   if (self.events.try_get() catch { _ => None }) is Some(event) {
     // put it back conceptually: peeking is not supported by the queue,
     // so push the event back through a fresh front slot
@@ -208,7 +208,7 @@ fn message_id_before(a : MessageId, b : MessageId) -> Bool {
 
 ///|
 /// Re-insert an event taken by `try_get` at the front of the queue.
-fn Reader::requeue_front(self : Reader, event : ReaderEvent) -> Unit raise {
+fn SingleReader::requeue_front(self : SingleReader, event : ReaderEvent) -> Unit raise {
   let rest = []
   while true {
     match self.events.try_get() {
@@ -224,7 +224,7 @@ fn Reader::requeue_front(self : Reader, event : ReaderEvent) -> Unit raise {
 
 ///|
 /// Reposition the reader after `message_id`. Buffered messages are dropped.
-pub async fn Reader::seek(self : Reader, message_id : MessageId) -> Unit {
+pub async fn SingleReader::seek(self : SingleReader, message_id : MessageId) -> Unit {
   if self.closed.val {
     raise ConsumerClosed
   }
@@ -251,7 +251,7 @@ pub async fn Reader::seek(self : Reader, message_id : MessageId) -> Unit {
 
 ///|
 /// Close the reader.
-pub async fn Reader::close(self : Reader) -> Unit {
+pub async fn SingleReader::close(self : SingleReader) -> Unit {
   if self.closed.val {
     return
   }
@@ -265,4 +265,145 @@ pub async fn Reader::close(self : Reader) -> Unit {
   ignore(self.conn.request(cmd) catch { _ => @proto.BaseCommand::default() })
   self.conn.message_handlers.remove(self.consumer_id)
   self.events.close(error=ConsumerClosed, clear=true)
+}
+
+///|
+priv enum ReaderImpl {
+  One(SingleReader)
+  Many(PartitionedReaderState)
+}
+
+///|
+priv struct PartitionedReaderState {
+  queue : @aqueue.Queue[ReaderEvent]
+  mut ended : Int
+  total : Int
+  readers : Array[SingleReader]
+  closed : Ref[Bool]
+}
+
+///|
+/// A reader over a topic, partitioned or not.
+pub struct Reader {
+  priv inner : ReaderImpl
+}
+
+///|
+fn Reader::one(r : SingleReader) -> Reader {
+  { inner: ReaderImpl::One(r) }
+}
+
+///|
+/// Aggregate one reader per partition. The merged stream ends
+/// (`next` returns `None`) once every partition reached its end.
+pub fn Reader::partitioned(
+  group : @async.TaskGroup[Unit],
+  readers : Array[SingleReader],
+) -> Reader {
+  let state : PartitionedReaderState = {
+    queue: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
+    ended: 0,
+    total: readers.length(),
+    readers,
+    closed: { val: false },
+  }
+  for r in readers {
+    group.spawn_bg(
+      async fn() {
+        while true {
+          if r.next() is Some(msg) {
+            state.queue.put(Msg(msg))
+          } else {
+            state.ended += 1
+            if state.ended == state.total {
+              state.queue.put(EndOfTopic)
+            }
+            return
+          }
+        }
+      },
+      no_wait=true,
+      allow_failure=true,
+    )
+  }
+  { inner: ReaderImpl::Many(state) }
+}
+
+///|
+/// Read the next message, or `None` once the end of the topic is reached.
+pub async fn Reader::next(self : Reader) -> Message? raise {
+  match self.inner {
+    ReaderImpl::One(r) => r.next()
+    ReaderImpl::Many(state) =>
+      match state.queue.get() {
+        Msg(msg) => Some(msg)
+        EndOfTopic => None
+      }
+  }
+}
+
+///|
+/// True when there are buffered messages or the broker reports unseen
+/// messages beyond the last one read (any partition).
+pub async fn Reader::has_message_available(self : Reader) -> Bool raise {
+  match self.inner {
+    ReaderImpl::One(r) => r.has_message_available()
+    ReaderImpl::Many(state) =>
+      if state.queue.try_get() is Some(event) {
+        state.queue_front_push(event)
+        true
+      } else {
+        for r in state.readers {
+          if r.has_message_available() {
+            return true
+          }
+        }
+        false
+      }
+  }
+}
+
+///|
+fn PartitionedReaderState::queue_front_push(
+  self : PartitionedReaderState,
+  event : ReaderEvent,
+) -> Unit raise {
+  let rest = []
+  while true {
+    match self.queue.try_get() {
+      Some(e) => rest.push(e)
+      None => break
+    }
+  }
+  ignore(self.queue.try_put(event))
+  for e in rest {
+    ignore(self.queue.try_put(e))
+  }
+}
+
+///|
+/// Reposition all partition readers after `message_id`.
+pub async fn Reader::seek(self : Reader, message_id : MessageId) -> Unit raise {
+  match self.inner {
+    ReaderImpl::One(r) => r.seek(message_id)
+    ReaderImpl::Many(state) =>
+      for r in state.readers {
+        r.seek(message_id)
+      }
+  }
+}
+
+///|
+/// Close the reader (all partitions).
+pub async fn Reader::close(self : Reader) -> Unit {
+  match self.inner {
+    ReaderImpl::One(r) => r.close()
+    ReaderImpl::Many(state) => {
+      state.closed.val = true
+      for r in state.readers {
+        r.close()
+      }
+      state.queue.close(error=ConsumerClosed, clear=true)
+    }
+  }
 }

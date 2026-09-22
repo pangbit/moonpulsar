@@ -169,22 +169,43 @@ pub async fn Client::create_consumer(
 ///|
 /// Create a reader over `topic` starting after `start_message_id`
 /// (default: latest). Readers are non-durable and do not ack.
-/// On partitioned topics a reader per partition is not aggregated yet —
-/// read from a concrete `...-partition-N` topic.
+/// Partitioned topics are aggregated over one reader per partition.
 pub async fn Client::create_reader(
   self : Client,
   topic : String,
   start_message_id? : MessageId,
   receiver_queue_size? : Int = 1000,
 ) -> Reader {
-  let conn = lookup_topic(self.manager, self.service_addr, topic)
-  Reader::create(
-    self.manager.group,
-    conn,
-    topic,
-    start_message_id?,
-    receiver_queue_size~,
-  )
+  let manager = self.manager
+  let addr = self.service_addr
+  let partitions = get_partition_count(manager, addr, topic)
+  if partitions <= 1 {
+    let conn = lookup_topic(manager, addr, topic)
+    return Reader::one(
+      SingleReader::create(
+        self.manager.group,
+        conn,
+        topic,
+        start_message_id?,
+        receiver_queue_size~,
+      ),
+    )
+  }
+  let subs = []
+  for i in 0..<partitions {
+    let partition_topic = "\{topic}-partition-\{i}"
+    let conn = lookup_topic(manager, addr, partition_topic)
+    subs.push(
+      SingleReader::create(
+        self.manager.group,
+        conn,
+        partition_topic,
+        start_message_id?,
+        receiver_queue_size~,
+      ),
+    )
+  }
+  Reader::partitioned(self.manager.group, subs)
 }
 
 ///|

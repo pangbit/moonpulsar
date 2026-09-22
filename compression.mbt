@@ -7,6 +7,7 @@ pub(all) enum CompressionCodec {
   Lz4
   Zlib
   Zstd
+  Snappy
 } derive(Eq, Debug)
 
 ///|
@@ -18,6 +19,7 @@ fn CompressionCodec::to_proto(
     Lz4 => Some(@proto.CompressionType::LZ4)
     Zlib => Some(@proto.CompressionType::ZLIB)
     Zstd => Some(@proto.CompressionType::ZSTD)
+    Snappy => Some(@proto.CompressionType::SNAPPY)
   }
 }
 
@@ -30,8 +32,7 @@ fn CompressionCodec::from_proto(
     @proto.CompressionType::LZ4 => Lz4
     @proto.CompressionType::ZLIB => Zlib
     @proto.CompressionType::ZSTD => Zstd
-    @proto.CompressionType::SNAPPY =>
-      raise InvalidFrame("snappy compression is not supported")
+    @proto.CompressionType::SNAPPY => Snappy
   }
 }
 
@@ -47,8 +48,9 @@ pub fn compress(
     Zlib => @zlib.zlib_compress(payload)
     Zstd =>
       @zstd.compress(payload) catch {
-        e => raise InvalidFrame("zstd compress failed")
+        _ => raise InvalidFrame("zstd compress failed")
       }
+    Snappy => snappy_compress(payload)
   }
 }
 
@@ -67,7 +69,8 @@ pub fn decompress(
       }
     Zstd =>
       @zstd.decompress(payload) catch {
-        e => raise InvalidFrame("zstd decompress failed")
+        _ => raise InvalidFrame("zstd decompress failed")
       }
+    Snappy => snappy_decompress(payload)
   }
 }
