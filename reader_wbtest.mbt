@@ -31,7 +31,9 @@ async test "reader reads until end of topic" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let reader = SingleReader::create(group, conn, "persistent://public/default/t")
+    let reader = SingleReader::create(
+      group, conn, "persistent://public/default/t",
+    )
     assert_eq(reader.next().map(fn(m) { m.payload() }), Some(b"r0"))
     assert_eq(reader.next().map(fn(m) { m.payload() }), Some(b"r1"))
     assert_true(reader.next() is None)
@@ -62,7 +64,9 @@ async test "reader has_message_available via last message id" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let reader = SingleReader::create(group, conn, "persistent://public/default/t")
+    let reader = SingleReader::create(
+      group, conn, "persistent://public/default/t",
+    )
     // last seen = latest position marker; broker reports 9:9 -> available
     assert_true(reader.has_message_available())
     reader.close()
@@ -102,7 +106,9 @@ async test "reader seek drops buffered messages" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let reader = SingleReader::create(group, conn, "persistent://public/default/t")
+    let reader = SingleReader::create(
+      group, conn, "persistent://public/default/t",
+    )
     let target : MessageId = {
       ledger_id: 100,
       entry_id: 0,

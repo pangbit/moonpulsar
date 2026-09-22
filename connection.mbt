@@ -235,6 +235,36 @@ fn request_id_of(cmd : @proto.BaseCommand) -> UInt64? {
   if cmd.get_topics_of_namespace_response is Some(c) {
     return Some(c.request_id)
   }
+  if cmd.tc_client_connect_request is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.tc_client_connect_response is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.new_txn is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.add_partition_to_txn is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.add_subscription_to_txn is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.end_txn is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.new_txn_response is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.add_partition_to_txn_response is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.add_subscription_to_txn_response is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.end_txn_response is Some(c) {
+    return Some(c.request_id)
+  }
   None
 }
 

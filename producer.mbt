@@ -309,6 +309,7 @@ pub async fn SingleProducer::send_async(
 async fn SingleProducer::send_messages(
   self : SingleProducer,
   messages : Array[ProducerMessage],
+  txn? : Transaction,
 ) -> @aqueue.Queue[SendReceipt] {
   let sequence_id = self.next_sequence_id()
   let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
@@ -336,6 +337,13 @@ async fn SingleProducer::send_messages(
   if messages.length() > 1 {
     send.num_messages = Some(messages.length())
   }
+  if txn is Some(t) {
+    let (most, least) = t.id()
+    send.txnid_least_bits = Some(least)
+    send.txnid_most_bits = Some(most)
+    metadata.txnid_least_bits = Some(least)
+    metadata.txnid_most_bits = Some(most)
+  }
   cmd.send = Some(send)
   let frame = encode_send_frame(cmd, metadata, payload)
   self.pending[sequence_id] = waiter
@@ -347,6 +355,16 @@ async fn SingleProducer::send_messages(
     self.conn.send_bytes(frame)
   }
   waiter
+}
+
+///|
+/// Send a message as part of a transaction.
+pub async fn SingleProducer::send_txn(
+  self : SingleProducer,
+  txn : Transaction,
+  msg : ProducerMessage,
+) -> SendReceipt {
+  self.send_messages([msg], txn~).get()
 }
 
 ///|
@@ -567,6 +585,19 @@ pub async fn Producer::send_async(
   match self.inner {
     ProducerImpl::Single(p) => p.send_async(msg)
     ProducerImpl::Partitioned(_, _) => self.route(msg).send_async(msg)
+  }
+}
+
+///|
+/// Send a message as part of a transaction.
+pub async fn Producer::send_txn(
+  self : Producer,
+  txn : Transaction,
+  msg : ProducerMessage,
+) -> SendReceipt {
+  match self.inner {
+    ProducerImpl::Single(p) => p.send_txn(txn, msg)
+    ProducerImpl::Partitioned(_, _) => self.route(msg).send_txn(txn, msg)
   }
 }
 

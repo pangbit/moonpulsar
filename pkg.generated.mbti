@@ -33,6 +33,10 @@ pub fn lz4_decompress(Bytes) -> Bytes raise PulsarError
 
 pub async fn[R : @io.Reader] read_frame(R) -> IncomingFrame
 
+pub fn snappy_compress(Bytes) -> Bytes
+
+pub fn snappy_decompress(Bytes) -> Bytes raise PulsarError
+
 pub fn split_host_port(String) -> (String, Int) raise PulsarError
 
 pub async fn[T] with_retry(RetryPolicy, async () -> T) -> T
@@ -56,6 +60,16 @@ pub(all) suberror PulsarError {
 } derive(@debug.Debug)
 
 // Types and methods
+pub struct Admin {
+  // private fields
+}
+pub async fn Admin::create_partitioned_topic(Self, String, Int) -> Unit
+pub async fn Admin::delete_partitioned_topic(Self, String, force? : Bool) -> Unit
+pub async fn Admin::delete_topic(Self, String, force? : Bool) -> Unit
+pub async fn Admin::list_topics(Self, String, String) -> Array[String]
+pub fn Admin::new(String, token? : String) -> Self
+pub async fn Admin::topic_stats(Self, String) -> Json
+
 pub(all) struct AuthData {
   method_name : String
   data : Bytes
@@ -83,6 +97,7 @@ pub(all) enum CompressionCodec {
   Lz4
   Zlib
   Zstd
+  Snappy
 } derive(Eq, @debug.Debug)
 
 pub struct Connection {
@@ -165,6 +180,7 @@ pub fn Producer::name(Self) -> String
 pub fn Producer::partitioned(Array[Self]) -> Self
 pub async fn Producer::send(Self, ProducerMessage) -> SendReceipt
 pub async fn Producer::send_async(Self, ProducerMessage) -> ReceiptFuture
+pub async fn Producer::send_txn(Self, Transaction, ProducerMessage) -> SendReceipt
 pub fn Producer::topic(Self) -> String
 
 pub(all) struct ProducerMessage {
@@ -181,9 +197,9 @@ pub struct Reader {
   // private fields
 }
 pub async fn Reader::close(Self) -> Unit
-pub async fn Reader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int) -> Self
 pub async fn Reader::has_message_available(Self) -> Bool
 pub async fn Reader::next(Self) -> Message?
+pub fn Reader::partitioned(@async.TaskGroup[Unit], Array[SingleReader]) -> Self
 pub async fn Reader::seek(Self, MessageId) -> Unit
 
 pub struct ReceiptFuture {
@@ -228,7 +244,17 @@ pub async fn SingleProducer::flush(Self) -> Unit
 pub fn SingleProducer::name(Self) -> String
 pub async fn SingleProducer::send(Self, ProducerMessage) -> SendReceipt
 pub async fn SingleProducer::send_async(Self, ProducerMessage) -> ReceiptFuture
+pub async fn SingleProducer::send_txn(Self, Transaction, ProducerMessage) -> SendReceipt
 pub fn SingleProducer::topic(Self) -> String
+
+pub struct SingleReader {
+  // private fields
+}
+pub async fn SingleReader::close(Self) -> Unit
+pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int) -> Self
+pub async fn SingleReader::has_message_available(Self) -> Bool
+pub async fn SingleReader::next(Self) -> Message?
+pub async fn SingleReader::seek(Self, MessageId) -> Unit
 
 pub(all) enum SubscriptionInitialPosition {
   Latest
@@ -247,6 +273,30 @@ pub(all) struct TokenAuth {
 }
 pub fn TokenAuth::new(String) -> Self
 pub impl Authentication for TokenAuth
+
+pub(all) struct TopicName {
+  domain : String
+  tenant : String
+  namespace : String
+  topic : String
+} derive(Eq, @debug.Debug)
+pub fn TopicName::parse(String) -> Self raise PulsarError
+
+pub struct Transaction {
+  // private fields
+}
+pub async fn Transaction::abort(Self) -> Unit
+pub async fn Transaction::add_partition(Self, String) -> Unit
+pub async fn Transaction::add_subscription(Self, String, String) -> Unit
+pub async fn Transaction::commit(Self) -> Unit
+pub fn Transaction::id(Self) -> (UInt64, UInt64)
+
+pub struct TransactionCoordinator {
+  // private fields
+}
+pub fn TransactionCoordinator::close(Self) -> Unit
+pub async fn TransactionCoordinator::connect(@async.TaskGroup[Unit], String, UInt64, auth? : AuthData, tls? : Bool) -> Self
+pub async fn TransactionCoordinator::new_transaction(Self, ttl_ms? : UInt64) -> Transaction
 
 // Type aliases
 

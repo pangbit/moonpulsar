@@ -104,7 +104,10 @@ fn SingleReader::on_frame(self : SingleReader, frame : IncomingFrame) -> Unit {
 }
 
 ///|
-fn SingleReader::dispatch_message(self : SingleReader, frame : IncomingFrame) -> Unit raise {
+fn SingleReader::dispatch_message(
+  self : SingleReader,
+  frame : IncomingFrame,
+) -> Unit raise {
   guard frame.cmd.message is Some(message) else { return }
   guard frame.metadata is Some(metadata) && frame.payload is Some(raw_payload) else {
     raise InvalidFrame("MESSAGE without payload")
@@ -208,7 +211,10 @@ fn message_id_before(a : MessageId, b : MessageId) -> Bool {
 
 ///|
 /// Re-insert an event taken by `try_get` at the front of the queue.
-fn SingleReader::requeue_front(self : SingleReader, event : ReaderEvent) -> Unit raise {
+fn SingleReader::requeue_front(
+  self : SingleReader,
+  event : ReaderEvent,
+) -> Unit raise {
   let rest = []
   while true {
     match self.events.try_get() {
@@ -224,7 +230,10 @@ fn SingleReader::requeue_front(self : SingleReader, event : ReaderEvent) -> Unit
 
 ///|
 /// Reposition the reader after `message_id`. Buffered messages are dropped.
-pub async fn SingleReader::seek(self : SingleReader, message_id : MessageId) -> Unit {
+pub async fn SingleReader::seek(
+  self : SingleReader,
+  message_id : MessageId,
+) -> Unit {
   if self.closed.val {
     raise ConsumerClosed
   }
@@ -290,7 +299,7 @@ pub struct Reader {
 
 ///|
 fn Reader::one(r : SingleReader) -> Reader {
-  { inner: ReaderImpl::One(r) }
+  { inner: ReaderImpl::One(r), }
 }
 
 ///|
@@ -305,7 +314,7 @@ pub fn Reader::partitioned(
     ended: 0,
     total: readers.length(),
     readers,
-    closed: { val: false },
+    closed: { val: false, },
   }
   for r in readers {
     group.spawn_bg(
@@ -326,12 +335,12 @@ pub fn Reader::partitioned(
       allow_failure=true,
     )
   }
-  { inner: ReaderImpl::Many(state) }
+  { inner: ReaderImpl::Many(state), }
 }
 
 ///|
 /// Read the next message, or `None` once the end of the topic is reached.
-pub async fn Reader::next(self : Reader) -> Message? raise {
+pub async fn Reader::next(self : Reader) -> Message? {
   match self.inner {
     ReaderImpl::One(r) => r.next()
     ReaderImpl::Many(state) =>
@@ -345,7 +354,7 @@ pub async fn Reader::next(self : Reader) -> Message? raise {
 ///|
 /// True when there are buffered messages or the broker reports unseen
 /// messages beyond the last one read (any partition).
-pub async fn Reader::has_message_available(self : Reader) -> Bool raise {
+pub async fn Reader::has_message_available(self : Reader) -> Bool {
   match self.inner {
     ReaderImpl::One(r) => r.has_message_available()
     ReaderImpl::Many(state) =>
@@ -383,7 +392,7 @@ fn PartitionedReaderState::queue_front_push(
 
 ///|
 /// Reposition all partition readers after `message_id`.
-pub async fn Reader::seek(self : Reader, message_id : MessageId) -> Unit raise {
+pub async fn Reader::seek(self : Reader, message_id : MessageId) -> Unit {
   match self.inner {
     ReaderImpl::One(r) => r.seek(message_id)
     ReaderImpl::Many(state) =>

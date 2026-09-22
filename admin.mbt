@@ -16,11 +16,18 @@ pub fn TopicName::parse(full : String) -> TopicName raise PulsarError {
   let rest = match full.strip_prefix("persistent://") {
     Some(rest) => rest.to_owned()
     None =>
-      raise LookupFailed("expected persistent://tenant/namespace/topic: \{full}")
+      raise LookupFailed(
+        "expected persistent://tenant/namespace/topic: \{full}",
+      )
   }
   match rest.split("/").collect() {
     [tenant, namespace, topic] =>
-      { domain: "persistent", tenant: tenant.to_owned(), namespace: namespace.to_owned(), topic: topic.to_owned() }
+      {
+        domain: "persistent",
+        tenant: tenant.to_owned(),
+        namespace: namespace.to_owned(),
+        topic: topic.to_owned(),
+      }
     _ => raise LookupFailed("malformed topic name: \{full}")
   }
 }
@@ -35,7 +42,7 @@ pub struct Admin {
 ///|
 /// Create an admin client, e.g. `Admin::new("http://localhost:8080")`.
 pub fn Admin::new(base_url : String, token? : String) -> Admin {
-  { base_url, token }
+  { base_url, token, }
 }
 
 ///|
@@ -44,7 +51,7 @@ async fn Admin::request(
   method : @http.RequestMethod,
   path : String,
   body? : Bytes,
-) -> (Int, Bytes) raise {
+) -> (Int, Bytes) {
   let headers = {}
   if self.token is Some(t) {
     headers[@http.CaseInsensitiveString("Authorization")] = "Bearer " + t
@@ -52,12 +59,13 @@ async fn Admin::request(
   let url = self.base_url + path
   let (resp, data) = match (method, body) {
     (@http.RequestMethod::Get, _) => @http.get(url, headers~)
-    (@http.RequestMethod::Delete, _) =>
-      @http.request(url, method, headers, b"")
+    (@http.RequestMethod::Delete, _) => @http.request(url, method, headers, b"")
     (_, Some(b)) => @http.request(url, method, headers, b)
     (_, None) => @http.request(url, method, headers, b"")
   }
-  let payload = data.binary() catch { _ => raise InvalidFrame("admin: unreadable response body") }
+  let payload = data.binary() catch {
+    _ => raise InvalidFrame("admin: unreadable response body")
+  }
   if resp.code < 200 || resp.code >= 300 {
     let text = @utf8.decode(payload) catch { _ => "<binary>" }
     raise ServerError(code=resp.code, message="admin \{path}: \{text}")
@@ -76,7 +84,7 @@ pub async fn Admin::create_partitioned_topic(
   self : Admin,
   topic : String,
   partitions : Int,
-) -> Unit raise {
+) -> Unit {
   let name = TopicName::parse(topic)
   ignore(
     self.request(
@@ -93,7 +101,7 @@ pub async fn Admin::delete_partitioned_topic(
   self : Admin,
   topic : String,
   force? : Bool = false,
-) -> Unit raise {
+) -> Unit {
   let name = TopicName::parse(topic)
   let force_q = if force { "?force=true" } else { "" }
   ignore(self.request(Delete, topic_path(name) + "/partitions" + force_q))
@@ -105,7 +113,7 @@ pub async fn Admin::delete_topic(
   self : Admin,
   topic : String,
   force? : Bool = false,
-) -> Unit raise {
+) -> Unit {
   let name = TopicName::parse(topic)
   let force_q = if force { "?force=true" } else { "" }
   ignore(self.request(Delete, topic_path(name) + force_q))
@@ -117,7 +125,7 @@ pub async fn Admin::list_topics(
   self : Admin,
   tenant : String,
   namespace : String,
-) -> Array[String] raise {
+) -> Array[String] {
   let (_, payload) = self.request(
     Get,
     "/admin/v2/persistent/\{tenant}/\{namespace}/topics",
@@ -143,7 +151,7 @@ pub async fn Admin::list_topics(
 
 ///|
 /// Topic statistics as raw JSON (see Pulsar's TopicStats schema).
-pub async fn Admin::topic_stats(self : Admin, topic : String) -> Json raise {
+pub async fn Admin::topic_stats(self : Admin, topic : String) -> Json {
   let name = TopicName::parse(topic)
   let (_, payload) = self.request(Get, topic_path(name) + "/stats")
   let text = @utf8.decode(payload) catch {

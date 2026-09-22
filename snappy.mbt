@@ -24,17 +24,18 @@ fn write_le24(buf : @buffer.Buffer, v : Int) -> Unit {
 
 ///|
 
-
 ///|
 fn read_le24(data : BytesView, at : Int) -> Int {
-  data[at].to_int() | (data[at + 1].to_int() << 8) | (data[at + 2].to_int() << 16)
+  data[at].to_int() |
+  (data[at + 1].to_int() << 8) |
+  (data[at + 2].to_int() << 16)
 }
 
 ///|
 fn snappy_write_varint(out : @buffer.Buffer, value : Int) -> Unit {
   let mut v = value
   while v >= 128 {
-    out.write_byte((v & 0x7f | 0x80).to_byte())
+    out.write_byte(((v & 0x7f) | 0x80).to_byte())
     v = v >> 7
   }
   out.write_byte(v.to_byte())
@@ -181,7 +182,7 @@ fn snappy_decompress_block(
           raise InvalidFrame("snappy: truncated copy1")
         }
         let len = ((tag >> 2) & 7) + 4
-        let offset = ((tag >> 5) << 8) | data[pos].to_int()
+        let offset = (tag >> 5 << 8) | data[pos].to_int()
         pos += 1
         snappy_copy_from(out, offset, len)
       }

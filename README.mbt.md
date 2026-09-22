@@ -13,9 +13,11 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 - TLS via `pulsar+ssl://` service URLs
 - Payload compression: LZ4 (frame format), Zlib, Zstd
 - Partitioned topics: keyed messages route by `xxhash32(key) % partitions`, keyless round-robin; consumers aggregate all partitions
-- Reader API: non-durable replay from any message id, `seek`, `has_message_available`
+- Reader API: non-durable replay from any message id, `seek`, `has_message_available`, aggregated across partitions
+- Transactions: coordinator channel, `new_transaction` / `commit` / `abort`, transactional send and ack
+- Admin REST API: partitioned topic create/delete, topic delete, list topics, topic stats
 
-Not yet: Snappy compression, transactions, admin API, reader aggregation across partitions.
+Not yet: Snappy compression uses the google framing variant (matching the Go/Python clients); transaction coordinator ownership lookup.
 
 ## Requirements
 
