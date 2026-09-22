@@ -6,9 +6,11 @@ import {
   "moonbitlang/async/aqueue",
   "moonbitlang/async/socket",
   "moonbitlang/async/tls",
+  "moonbitlang/async/http",
   "moonbitlang/core/buffer",
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
   "moonbit-community/flate/zlib",
   "Milky2018/zstd",
 }
