@@ -86,6 +86,7 @@ pub struct ConnectionManager {
 }
 pub fn ConnectionManager::close(Self) -> Unit
 pub async fn ConnectionManager::get(Self, String) -> Connection
+pub fn ConnectionManager::is_closed(Self) -> Bool
 pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData) -> Self
 
 pub struct Consumer {
@@ -94,7 +95,7 @@ pub struct Consumer {
 pub async fn Consumer::ack(Self, MessageId) -> Unit
 pub async fn Consumer::ack_cumulative(Self, MessageId) -> Unit
 pub async fn Consumer::close(Self) -> Unit
-pub async fn Consumer::create(Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int) -> Self
+pub async fn Consumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int, reconnect_with? : async () -> Connection) -> Self
 pub fn Consumer::is_closed(Self) -> Bool
 pub async fn Consumer::nack(Self, MessageId) -> Unit
 pub async fn Consumer::receive(Self) -> Message
@@ -140,7 +141,7 @@ pub struct Producer {
   // private fields
 }
 pub async fn Producer::close(Self) -> Unit
-pub async fn Producer::create(@async.TaskGroup[Unit], Connection, String, name? : String, batching? : BatchingConfig) -> Self
+pub async fn Producer::create(@async.TaskGroup[Unit], Connection, String, name? : String, batching? : BatchingConfig, reconnect_with? : async () -> Connection) -> Self
 pub async fn Producer::flush(Self) -> Unit
 pub fn Producer::name(Self) -> String
 pub async fn Producer::send(Self, ProducerMessage) -> SendReceipt

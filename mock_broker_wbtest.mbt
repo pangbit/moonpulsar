@@ -56,9 +56,14 @@ async fn start_mock_broker(
       }
       group.spawn_bg(
         async fn() {
-          while true {
-            let frame = read_frame(tcp)
-            peer.received.put(frame)
+          try {
+            while true {
+              let frame = read_frame(tcp)
+              peer.received.put(frame)
+            }
+          } catch {
+            // peer disconnected: wake up any pending `next` callers
+            _ => peer.received.close()
           }
         },
         no_wait=true,
@@ -78,22 +83,26 @@ async fn start_mock_broker(
       peer.send_command(connected)
       on_peer(addr, peer)
       // drain: keep answering CLOSE_* like a real broker until disconnect
-      while true {
-        let frame = peer.next()
-        let close_reply = @proto.BaseCommand::default()
-        close_reply.type_ = @proto.BaseCommand_Type::SUCCESS
-        if frame.cmd.close_producer is Some(c) {
-          let success = @proto.CommandSuccess::default()
-          success.request_id = c.request_id
-          close_reply.success = Some(success)
-        } else if frame.cmd.close_consumer is Some(c) {
-          let success = @proto.CommandSuccess::default()
-          success.request_id = c.request_id
-          close_reply.success = Some(success)
-        } else {
-          continue
+      try {
+        while true {
+          let frame = peer.next()
+          let close_reply = @proto.BaseCommand::default()
+          close_reply.type_ = @proto.BaseCommand_Type::SUCCESS
+          if frame.cmd.close_producer is Some(c) {
+            let success = @proto.CommandSuccess::default()
+            success.request_id = c.request_id
+            close_reply.success = Some(success)
+          } else if frame.cmd.close_consumer is Some(c) {
+            let success = @proto.CommandSuccess::default()
+            success.request_id = c.request_id
+            close_reply.success = Some(success)
+          } else {
+            continue
+          }
+          peer.send_command(close_reply)
         }
-        peer.send_command(close_reply)
+      } catch {
+        _ => ()
       }
     },
     no_wait=true,

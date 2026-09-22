@@ -71,7 +71,7 @@ async test "consumer receives message and acks individually" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn, "persistent://public/default/t", "sub-1",
+      group, conn, "persistent://public/default/t", "sub-1",
     )
     // consumer id was allocated as second id on the connection
     let message = consumer.receive()
@@ -108,7 +108,7 @@ async test "consumer nack triggers redeliver command" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn, "persistent://public/default/t", "sub-1",
+      group, conn, "persistent://public/default/t", "sub-1",
     )
     let message = consumer.receive()
     message.nack()
@@ -140,7 +140,7 @@ async test "consumer splits batched messages" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn, "persistent://public/default/t", "sub-1",
+      group, conn, "persistent://public/default/t", "sub-1",
     )
     let m0 = consumer.receive()
     let m1 = consumer.receive()
@@ -176,7 +176,7 @@ async test "cumulative ack sends cumulative ack type" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn, "persistent://public/default/t", "sub-1",
+      group, conn, "persistent://public/default/t", "sub-1",
     )
     let message = consumer.receive()
     consumer.ack_cumulative(message.id())
@@ -201,7 +201,7 @@ async test "broker close consumer terminates receive" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let consumer = Consumer::create(
-      conn, "persistent://public/default/t", "sub-1",
+      group, conn, "persistent://public/default/t", "sub-1",
     )
     let result : Result[Message, Error] = Ok(consumer.receive()) catch {
       e => Err(e)

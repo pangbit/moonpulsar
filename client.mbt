@@ -73,7 +73,11 @@ pub async fn Client::create_producer(
   batching? : BatchingConfig,
 ) -> Producer {
   let conn = lookup_topic(self.manager, self.service_addr, topic)
-  Producer::create(self.manager.group, conn, topic, name?, batching?)
+  let manager = self.manager
+  let addr = self.service_addr
+  Producer::create(self.manager.group, conn, topic, name?, batching?, reconnect_with=async fn() {
+    lookup_topic(manager, addr, topic)
+  })
 }
 
 ///|
@@ -88,7 +92,10 @@ pub async fn Client::create_consumer(
   receiver_queue_size? : Int = 1000,
 ) -> Consumer {
   let conn = lookup_topic(self.manager, self.service_addr, topic)
+  let manager = self.manager
+  let addr = self.service_addr
   Consumer::create(
+    self.manager.group,
     conn,
     topic,
     subscription,
@@ -96,6 +103,7 @@ pub async fn Client::create_consumer(
     consumer_name?,
     initial_position~,
     receiver_queue_size~,
+    reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
   )
 }
 

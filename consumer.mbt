@@ -31,19 +31,27 @@ pub(all) enum SubscriptionInitialPosition {
 ///|
 /// A consumer bound to a topic subscription.
 pub struct Consumer {
-  priv conn : Connection
+  /// current connection; swapped on reconnect (shared with `Message` acks)
+  priv conn_ref : Ref[Connection]
   priv topic : String
   priv subscription : String
   priv consumer_id : UInt64
+  priv sub_type : SubscriptionType
+  priv consumer_name : String?
+  priv initial_position : SubscriptionInitialPosition
   priv messages : @aqueue.Queue[Message]
   priv receiver_permits : Int
   priv mut available_permits : Int
+  priv reconnect_with : (async () -> Connection)?
+  priv reconnecting : Ref[Bool]
+  priv group : @async.TaskGroup[Unit]
   priv closed : Ref[Bool]
 }
 
 ///|
 /// Create a consumer on `topic` through an already-resolved connection.
 pub async fn Consumer::create(
+  group : @async.TaskGroup[Unit],
   conn : Connection,
   topic : String,
   subscription : String,
@@ -51,45 +59,29 @@ pub async fn Consumer::create(
   consumer_name? : String,
   initial_position? : SubscriptionInitialPosition = Latest,
   receiver_queue_size? : Int = 1000,
+  reconnect_with? : async () -> Connection,
 ) -> Consumer {
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
   let consumer : Consumer = {
-    conn,
+    conn_ref: { val: conn, },
     topic,
     subscription,
     consumer_id,
+    sub_type,
+    consumer_name,
+    initial_position,
     messages: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
     receiver_permits: receiver_queue_size,
     available_permits: 0,
+    reconnect_with,
+    reconnecting: { val: false, },
+    group,
     closed: { val: false, },
   }
-  conn.message_handlers[consumer_id] = fn(frame) { consumer.on_frame(frame) }
-  conn.on_close(fn(e) { consumer.on_connection_closed(e) })
-  let cmd = @proto.BaseCommand::default()
-  cmd.type_ = @proto.BaseCommand_Type::SUBSCRIBE
-  let subscribe = @proto.CommandSubscribe::default()
-  subscribe.topic = topic
-  subscribe.subscription = subscription
-  subscribe.sub_type = sub_type.to_proto()
-  subscribe.consumer_id = consumer_id
-  subscribe.request_id = request_id
-  if consumer_name is Some(name) {
-    subscribe.consumer_name = Some(name)
-  }
-  match initial_position {
-    Latest =>
-      subscribe.initial_position = Some(
-        @proto.CommandSubscribe_InitialPosition::Latest,
-      )
-    Earliest =>
-      subscribe.initial_position = Some(
-        @proto.CommandSubscribe_InitialPosition::Earliest,
-      )
-  }
-  cmd.subscribe = Some(subscribe)
+  consumer.attach(conn)
   errdefer conn.message_handlers.remove(consumer_id)
-  let reply = conn.request(cmd)
+  let reply = conn.request(consumer.subscribe_command(request_id))
   guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
     raise UnexpectedResponse("expected SUCCESS for SUBSCRIBE")
   }
@@ -100,12 +92,98 @@ pub async fn Consumer::create(
 }
 
 ///|
+fn Consumer::subscribe_command(
+  self : Consumer,
+  request_id : UInt64,
+) -> @proto.BaseCommand {
+  let cmd = @proto.BaseCommand::default()
+  cmd.type_ = @proto.BaseCommand_Type::SUBSCRIBE
+  let subscribe = @proto.CommandSubscribe::default()
+  subscribe.topic = self.topic
+  subscribe.subscription = self.subscription
+  subscribe.sub_type = self.sub_type.to_proto()
+  subscribe.consumer_id = self.consumer_id
+  subscribe.request_id = request_id
+  if self.consumer_name is Some(name) {
+    subscribe.consumer_name = Some(name)
+  }
+  match self.initial_position {
+    Latest =>
+      subscribe.initial_position = Some(
+        @proto.CommandSubscribe_InitialPosition::Latest,
+      )
+    Earliest =>
+      subscribe.initial_position = Some(
+        @proto.CommandSubscribe_InitialPosition::Earliest,
+      )
+  }
+  cmd.subscribe = Some(subscribe)
+  cmd
+}
+
+///|
+/// Wire the message handler and the close hook onto a connection.
+fn Consumer::attach(self : Consumer, conn : Connection) -> Unit {
+  conn.message_handlers[self.consumer_id] = fn(frame) { self.on_frame(frame) }
+  conn.on_close(fn(e) { self.on_connection_closed(e) })
+}
+
+///|
+/// Re-subscribe on a fresh connection and resume the message flow.
+async fn Consumer::reconnect(self : Consumer) -> Unit {
+  guard self.reconnect_with is Some(provider) else { return }
+  let policy = RetryPolicy::default()
+  let method = @async.RetryMethod::ExponentialDelay(
+    initial=policy.initial_backoff_ms,
+    factor=2.0,
+    maximum=policy.max_backoff_ms,
+  )
+  let attempt = async fn() -> Unit {
+    if self.closed.val {
+      raise ConsumerClosed
+    }
+    let conn = provider()
+    self.attach(conn)
+    let request_id = conn.next_request_id()
+    let reply = conn.request(self.subscribe_command(request_id))
+    guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
+      raise UnexpectedResponse("expected SUCCESS for SUBSCRIBE")
+    }
+    self.conn_ref.val = conn
+    // the broker forgot our permits with the old connection; re-open the
+    // flow window fully (messages buffered locally may over-deliver slightly)
+    self.send_flow(self.receiver_permits)
+    self.available_permits = self.receiver_permits
+  }
+  @async.retry(method, fatal_error=fn(e) { e is ConsumerClosed }, attempt) catch {
+    _ =>
+      if !self.closed.val {
+        self.closed.val = true
+        self.messages.close(error=ConnectionClosed, clear=true)
+      }
+  }
+  self.reconnecting.val = false
+}
+
+///|
 fn Consumer::on_connection_closed(self : Consumer, error : Error?) -> Unit {
   ignore(error)
-  if !self.closed.val {
-    self.closed.val = true
-    self.messages.close(error=ConnectionClosed, clear=true)
+  if self.closed.val || self.reconnect_with is None {
+    if !self.closed.val {
+      self.closed.val = true
+      self.messages.close(error=ConnectionClosed, clear=true)
+    }
+    return
   }
+  if self.reconnecting.val {
+    return
+  }
+  self.reconnecting.val = true
+  self.group.spawn_bg(
+    async fn() { self.reconnect() },
+    no_wait=true,
+    allow_failure=true,
+  )
 }
 
 ///|
@@ -116,7 +194,7 @@ async fn Consumer::send_flow(self : Consumer, permits : Int) -> Unit {
   flow.consumer_id = self.consumer_id
   flow.message_permits = permits.reinterpret_as_uint()
   cmd.flow = Some(flow)
-  self.conn.send_command(cmd)
+  self.conn_ref.val.send_command(cmd)
 }
 
 ///|
@@ -177,7 +255,7 @@ fn Consumer::push_message(
   redelivery_count : UInt,
 ) -> Unit raise {
   let message : Message = {
-    conn: self.conn,
+    conn_ref: self.conn_ref,
     consumer_id: self.consumer_id,
     id: { ..base_id, batch_index, },
     topic: self.topic,
@@ -280,23 +358,29 @@ pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
 ///|
 /// Acknowledge a message individually.
 pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
-  send_ack(self.conn, self.consumer_id, @proto.CommandAck_AckType::Individual, [
-    id,
-  ])
+  send_ack(
+    self.conn_ref.val,
+    self.consumer_id,
+    @proto.CommandAck_AckType::Individual,
+    [id],
+  )
 }
 
 ///|
 /// Acknowledge cumulatively: this message and all before it.
 pub async fn Consumer::ack_cumulative(self : Consumer, id : MessageId) -> Unit {
-  send_ack(self.conn, self.consumer_id, @proto.CommandAck_AckType::Cumulative, [
-    id,
-  ])
+  send_ack(
+    self.conn_ref.val,
+    self.consumer_id,
+    @proto.CommandAck_AckType::Cumulative,
+    [id],
+  )
 }
 
 ///|
 /// Negatively acknowledge a message, triggering redelivery.
 pub async fn Consumer::nack(self : Consumer, id : MessageId) -> Unit {
-  send_redeliver(self.conn, self.consumer_id, [id])
+  send_redeliver(self.conn_ref.val, self.consumer_id, [id])
 }
 
 ///|
@@ -310,10 +394,14 @@ pub async fn Consumer::close(self : Consumer) -> Unit {
   cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
   let close = @proto.CommandCloseConsumer::default()
   close.consumer_id = self.consumer_id
-  close.request_id = self.conn.next_request_id()
+  close.request_id = self.conn_ref.val.next_request_id()
   cmd.close_consumer = Some(close)
-  ignore(self.conn.request(cmd) catch { _ => @proto.BaseCommand::default() })
-  self.conn.message_handlers.remove(self.consumer_id)
+  ignore(
+    self.conn_ref.val.request(cmd) catch {
+      _ => @proto.BaseCommand::default()
+    },
+  )
+  self.conn_ref.val.message_handlers.remove(self.consumer_id)
   self.messages.close(error=ConsumerClosed, clear=true)
 }
 

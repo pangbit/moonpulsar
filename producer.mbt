@@ -1,4 +1,9 @@
 // Producer: publishes messages to a topic with optional batching.
+//
+// Reconnection: when the connection breaks and the producer was created
+// with a `reconnect_with` provider (which `Client::create_producer` always
+// passes), the producer re-registers itself on a fresh connection and
+// replays every message that has not received a receipt yet.
 
 ///|
 /// Batching configuration for a producer.
@@ -32,12 +37,17 @@ pub async fn ReceiptFuture::wait(self : ReceiptFuture) -> SendReceipt {
 /// A producer bound to a single topic.
 pub struct Producer {
   priv group : @async.TaskGroup[Unit]
-  priv conn : Connection
+  priv mut conn : Connection
   priv topic : String
   priv producer_id : UInt64
+  priv requested_name : String?
   priv mut name : String
   priv mut sequence_id : UInt64
   priv pending : Map[UInt64, @aqueue.Queue[SendReceipt]]
+  /// encoded SEND frames awaiting a receipt, for replay after reconnect
+  priv payloads : Map[UInt64, Bytes]
+  priv reconnect_with : (async () -> Connection)?
+  priv reconnecting : Ref[Bool]
   priv batching : BatchingConfig?
   priv batch_mu : @async.Mutex
   priv mut batch_messages : Array[ProducerMessage]
@@ -56,31 +66,30 @@ fn Producer::next_sequence_id(self : Producer) -> UInt64 {
 
 ///|
 /// Create a producer on `topic` through an already-resolved connection.
+/// `reconnect_with` should yield a fresh connection to the owning broker;
+/// it enables automatic re-registration and pending message replay.
 pub async fn Producer::create(
   group : @async.TaskGroup[Unit],
   conn : Connection,
   topic : String,
   name? : String,
   batching? : BatchingConfig,
+  reconnect_with? : async () -> Connection,
 ) -> Producer {
   let request_id = conn.next_request_id()
   let producer_id = conn.next_request_id()
-  let cmd = @proto.BaseCommand::default()
-  cmd.type_ = @proto.BaseCommand_Type::PRODUCER
-  let produce = @proto.CommandProducer::default()
-  produce.topic = topic
-  produce.producer_id = producer_id
-  produce.request_id = request_id
-  produce.producer_name = name
-  cmd.producer = Some(produce)
   let producer : Producer = {
     group,
     conn,
     topic,
     producer_id,
+    requested_name: name,
     name: name.unwrap_or(""),
     sequence_id: 0,
     pending: {},
+    payloads: {},
+    reconnect_with,
+    reconnecting: { val: false, },
     batching,
     batch_mu: @async.Mutex::Mutex(),
     batch_messages: [],
@@ -89,14 +98,9 @@ pub async fn Producer::create(
     batch_timer_running: false,
     closed: false,
   }
-  conn.producer_handlers[producer_id] = fn(cmd) {
-    producer.on_command(cmd) catch {
-      _ => ()
-    }
-  }
-  conn.on_close(fn(e) { producer.on_connection_closed(e) })
+  producer.attach(conn)
   errdefer conn.producer_handlers.remove(producer_id)
-  let reply = conn.request(cmd)
+  let reply = conn.request(producer.producer_command(request_id))
   guard reply.producer_success is Some(success) else {
     raise UnexpectedResponse("expected PRODUCER_SUCCESS")
   }
@@ -108,6 +112,33 @@ pub async fn Producer::create(
 }
 
 ///|
+fn Producer::producer_command(
+  self : Producer,
+  request_id : UInt64,
+) -> @proto.BaseCommand {
+  let cmd = @proto.BaseCommand::default()
+  cmd.type_ = @proto.BaseCommand_Type::PRODUCER
+  let produce = @proto.CommandProducer::default()
+  produce.topic = self.topic
+  produce.producer_id = self.producer_id
+  produce.request_id = request_id
+  produce.producer_name = self.requested_name
+  cmd.producer = Some(produce)
+  cmd
+}
+
+///|
+/// Wire dispatch handlers and the close hook onto a connection.
+fn Producer::attach(self : Producer, conn : Connection) -> Unit {
+  conn.producer_handlers[self.producer_id] = fn(cmd) {
+    self.on_command(cmd) catch {
+      _ => ()
+    }
+  }
+  conn.on_close(fn(e) { self.on_connection_closed(e) })
+}
+
+///|
 fn Producer::on_command(
   self : Producer,
   cmd : @proto.BaseCommand,
@@ -115,6 +146,7 @@ fn Producer::on_command(
   if cmd.send_receipt is Some(receipt) {
     if self.pending.get(receipt.sequence_id) is Some(waiter) {
       self.pending.remove(receipt.sequence_id)
+      self.payloads.remove(receipt.sequence_id)
       let message_id = match receipt.message_id {
         Some(data) => MessageId::from_proto(data)
         None => MessageId::latest()
@@ -130,6 +162,7 @@ fn Producer::on_command(
   } else if cmd.send_error is Some(err) {
     if self.pending.get(err.sequence_id) is Some(waiter) {
       self.pending.remove(err.sequence_id)
+      self.payloads.remove(err.sequence_id)
       waiter.close(
         error=ServerError(
           code=err.error.to_enum().0.reinterpret_as_int(),
@@ -146,7 +179,56 @@ fn Producer::on_command(
 ///|
 fn Producer::on_connection_closed(self : Producer, error : Error?) -> Unit {
   ignore(error)
-  self.fail_all(ConnectionClosed)
+  if self.closed || self.reconnect_with is None {
+    self.fail_all(ConnectionClosed)
+    return
+  }
+  if self.reconnecting.val {
+    return
+  }
+  self.reconnecting.val = true
+  self.group.spawn_bg(
+    async fn() { self.reconnect() },
+    no_wait=true,
+    allow_failure=true,
+  )
+}
+
+///|
+/// Re-register on a fresh connection and replay unconfirmed messages.
+async fn Producer::reconnect(self : Producer) -> Unit {
+  guard self.reconnect_with is Some(provider) else { return }
+  let policy = RetryPolicy::default()
+  let method = @async.RetryMethod::ExponentialDelay(
+    initial=policy.initial_backoff_ms,
+    factor=2.0,
+    maximum=policy.max_backoff_ms,
+  )
+  let attempt = async fn() -> Unit {
+    if self.closed {
+      raise ProducerClosed
+    }
+    let conn = provider()
+    self.attach(conn)
+    let request_id = conn.next_request_id()
+    let reply = conn.request(self.producer_command(request_id))
+    guard reply.producer_success is Some(_) else {
+      raise UnexpectedResponse("expected PRODUCER_SUCCESS")
+    }
+    // swap the connection, then replay unconfirmed messages in order
+    self.conn = conn
+    let seqs = self.payloads.keys().collect()
+    seqs.sort()
+    for seq in seqs {
+      if self.payloads.get(seq) is Some(bytes) {
+        conn.send_bytes(bytes)
+      }
+    }
+  }
+  @async.retry(method, fatal_error=fn(e) { e is ProducerClosed }, attempt) catch {
+    _ => self.fail_all(ConnectionClosed)
+  }
+  self.reconnecting.val = false
 }
 
 ///|
@@ -155,6 +237,7 @@ fn Producer::fail_all(self : Producer, error : PulsarError) -> Unit {
     waiter.close(error~, clear=true)
   }
   self.pending.clear()
+  self.payloads.clear()
   for waiter in self.batch_waiters {
     waiter.close(error~, clear=true)
   }
@@ -225,7 +308,6 @@ async fn Producer::send_messages(
   let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
     kind=@aqueue.Kind::Blocking(1),
   )
-  self.pending[sequence_id] = waiter
   let metadata = self.build_metadata(messages[0], sequence_id)
   let payload = if messages.length() > 1 {
     metadata.num_messages_in_batch = Some(messages.length())
@@ -242,9 +324,15 @@ async fn Producer::send_messages(
     send.num_messages = Some(messages.length())
   }
   cmd.send = Some(send)
-  // if the write fails the connection is broken; the close handler fails
-  // every pending waiter, so no cleanup is needed here
-  self.conn.send_payload_frame(cmd, metadata, payload)
+  let frame = encode_send_frame(cmd, metadata, payload)
+  self.pending[sequence_id] = waiter
+  self.payloads[sequence_id] = frame
+  // while reconnecting the frame stays queued for replay; a write failure
+  // is handled by the connection close handler which fails or replays
+  // every pending waiter
+  if !self.reconnecting.val {
+    self.conn.send_bytes(frame)
+  }
   waiter
 }
 

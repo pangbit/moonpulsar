@@ -114,7 +114,8 @@ pub(all) struct SendReceipt {
 ///|
 /// A message received by a consumer.
 pub struct Message {
-  priv conn : Connection
+  /// current connection of the owning consumer; follows reconnects
+  priv conn_ref : Ref[Connection]
   priv consumer_id : UInt64
   priv id : MessageId
   priv topic : String
@@ -182,15 +183,18 @@ pub fn Message::redelivery_count(self : Message) -> UInt {
 ///|
 /// Acknowledge this message individually.
 pub async fn Message::ack(self : Message) -> Unit {
-  send_ack(self.conn, self.consumer_id, @proto.CommandAck_AckType::Individual, [
-    self.id,
-  ])
+  send_ack(
+    self.conn_ref.val,
+    self.consumer_id,
+    @proto.CommandAck_AckType::Individual,
+    [self.id],
+  )
 }
 
 ///|
 /// Negatively acknowledge this message, triggering redelivery.
 pub async fn Message::nack(self : Message) -> Unit {
-  send_redeliver(self.conn, self.consumer_id, [self.id])
+  send_redeliver(self.conn_ref.val, self.consumer_id, [self.id])
 }
 
 ///|
