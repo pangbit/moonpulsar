@@ -2,7 +2,10 @@ import {
   "pangbit/moonpulsar/proto" @proto,
   "moonbitlang/protobuf" @lib,
   "moonbitlang/async",
+  "moonbitlang/async/io" @io,
   "moonbitlang/async/aqueue",
   "moonbitlang/async/socket" @socket,
   "moonbitlang/core/buffer",
+  "moonbitlang/core/string",
+  "moonbitlang/core/encoding/utf8",
 }

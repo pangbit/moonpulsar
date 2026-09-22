@@ -1,0 +1,10 @@
+# Local Pulsar standalone broker for manual integration testing:
+#   docker compose -f scripts/docker-compose.yml up -d
+#   moon run examples/roundtrip --target native
+services:
+  pulsar:
+    image: apachepulsar/pulsar:latest
+    command: bin/pulsar standalone
+    ports:
+      - "6650:6650"
+      - "8080:8080"

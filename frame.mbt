@@ -90,6 +90,19 @@ pub fn encode_send_frame(
 }
 
 ///|
+/// Read one frame from an async byte stream: 4-byte big-endian total size,
+/// then the frame body.
+pub async fn[R : @io.Reader] read_frame(reader : R) -> IncomingFrame raise {
+  let header = reader.read_exactly(4) catch { _ => raise ConnectionClosed }
+  let total = (((header[0].to_uint() << 24) |
+  (header[1].to_uint() << 16) |
+  (header[2].to_uint() << 8) |
+  header[3].to_uint())).reinterpret_as_int()
+  let body = reader.read_exactly(total) catch { _ => raise ConnectionClosed }
+  decode_frame_body(body)
+}
+
+///|
 /// A frame received from the broker: the command plus, for MESSAGE frames,
 /// the message metadata and payload.
 pub(all) struct IncomingFrame {

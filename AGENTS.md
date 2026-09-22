@@ -15,6 +15,22 @@ You can browse and install extra skills here:
 - In the toplevel directory, there is a `moon.mod` file listing module
   metadata.
 
+- This repository is a pure library (`pangbit/moonpulsar`) — no executable
+  code in the root module. The root package is the client itself
+  (`client.mbt`, `connection.mbt`, `producer.mbt`, `consumer.mbt`, ...).
+  `proto/` holds the protocol layer generated from the vendored
+  `proto/PulsarApi.proto` by `protoc-gen-mbt`; do not edit it by hand,
+  regenerate with `protoc --mbt_out=. --mbt_opt=project_name=proto proto/PulsarApi.proto`
+  and move the generated file into place.
+
+- `moon.work` adds `./examples` as a separate module of runnable example
+  programs, one sub-package per scenario. Examples need a local broker
+  (`scripts/docker-compose.yml`).
+
+- Tests run against an in-process mock broker (`mock_broker_wbtest.mbt`),
+  no docker required. The module targets the **native** backend only
+  (TCP sockets); keep `preferred_target = "native"`.
+
 ## Coding convention
 
 - MoonBit code is organized in block style, each block is separated by `///|`,
