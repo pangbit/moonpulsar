@@ -10,7 +10,9 @@ pub(all) enum CompressionCodec {
 } derive(Eq, Debug)
 
 ///|
-fn CompressionCodec::to_proto(self : CompressionCodec) -> @proto.CompressionType? {
+fn CompressionCodec::to_proto(
+  self : CompressionCodec,
+) -> @proto.CompressionType? {
   match self {
     None => None
     Lz4 => Some(@proto.CompressionType::LZ4)

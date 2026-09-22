@@ -63,11 +63,7 @@ pub async fn Connection::connect(
   let tcp = @socket.Tcp::connect_to_host(host, port~) catch {
     _ => raise ConnectFailed(addr)
   }
-  let (reader, writer, close_transport) : (
-    &@io.Reader,
-    &@io.Writer,
-    () -> Unit,
-  ) = if tls {
+  let (reader, writer, close_transport) : (&@io.Reader, &@io.Writer, () -> Unit) = if tls {
     let tls_conn = @tls.Tls::client(tcp, host~) catch {
       e => raise ConnectFailed("TLS handshake with \{addr} failed: \{e}")
     }
@@ -410,6 +406,11 @@ async fn Connection::dispatch(self : Connection, frame : IncomingFrame) -> Unit 
       }
     @proto.BaseCommand_Type::ACTIVE_CONSUMER_CHANGE =>
       if cmd.active_consumer_change is Some(c) &&
+        self.message_handlers.get(c.consumer_id) is Some(handler) {
+        handler(frame)
+      }
+    @proto.BaseCommand_Type::REACHED_END_OF_TOPIC =>
+      if cmd.reached_end_of_topic is Some(c) &&
         self.message_handlers.get(c.consumer_id) is Some(handler) {
         handler(frame)
       }

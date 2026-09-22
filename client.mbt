@@ -101,7 +101,9 @@ pub async fn Client::create_producer(
           partition_topic,
           name?,
           batching?,
-          reconnect_with=async fn() { lookup_topic(manager, addr, partition_topic) },
+          reconnect_with=async fn() {
+            lookup_topic(manager, addr, partition_topic)
+          },
           compression~,
         ),
       ),
@@ -154,12 +156,35 @@ pub async fn Client::create_consumer(
           consumer_name?,
           initial_position~,
           receiver_queue_size~,
-          reconnect_with=async fn() { lookup_topic(manager, addr, partition_topic) },
+          reconnect_with=async fn() {
+            lookup_topic(manager, addr, partition_topic)
+          },
         ),
       ),
     )
   }
   Consumer::partitioned(self.manager.group, subs)
+}
+
+///|
+/// Create a reader over `topic` starting after `start_message_id`
+/// (default: latest). Readers are non-durable and do not ack.
+/// On partitioned topics a reader per partition is not aggregated yet —
+/// read from a concrete `...-partition-N` topic.
+pub async fn Client::create_reader(
+  self : Client,
+  topic : String,
+  start_message_id? : MessageId,
+  receiver_queue_size? : Int = 1000,
+) -> Reader {
+  let conn = lookup_topic(self.manager, self.service_addr, topic)
+  Reader::create(
+    self.manager.group,
+    conn,
+    topic,
+    start_message_id?,
+    receiver_queue_size~,
+  )
 }
 
 ///|

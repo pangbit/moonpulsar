@@ -166,7 +166,10 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
 }
 
 ///|
-fn SingleConsumer::on_connection_closed(self : SingleConsumer, error : Error?) -> Unit {
+fn SingleConsumer::on_connection_closed(
+  self : SingleConsumer,
+  error : Error?,
+) -> Unit {
   ignore(error)
   if self.closed.val || self.reconnect_with is None {
     if !self.closed.val {
@@ -187,7 +190,10 @@ fn SingleConsumer::on_connection_closed(self : SingleConsumer, error : Error?) -
 }
 
 ///|
-async fn SingleConsumer::send_flow(self : SingleConsumer, permits : Int) -> Unit {
+async fn SingleConsumer::send_flow(
+  self : SingleConsumer,
+  permits : Int,
+) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::FLOW
   let flow = @proto.CommandFlow::default()
@@ -198,7 +204,10 @@ async fn SingleConsumer::send_flow(self : SingleConsumer, permits : Int) -> Unit
 }
 
 ///|
-fn SingleConsumer::on_frame(self : SingleConsumer, frame : IncomingFrame) -> Unit {
+fn SingleConsumer::on_frame(
+  self : SingleConsumer,
+  frame : IncomingFrame,
+) -> Unit {
   match frame.cmd.type_ {
     @proto.BaseCommand_Type::MESSAGE =>
       self.dispatch_message(frame) catch {
@@ -397,7 +406,10 @@ pub async fn SingleConsumer::ack(self : SingleConsumer, id : MessageId) -> Unit 
 
 ///|
 /// Acknowledge cumulatively: this message and all before it.
-pub async fn SingleConsumer::ack_cumulative(self : SingleConsumer, id : MessageId) -> Unit {
+pub async fn SingleConsumer::ack_cumulative(
+  self : SingleConsumer,
+  id : MessageId,
+) -> Unit {
   send_ack(
     self.conn_ref.val,
     self.consumer_id,
@@ -408,7 +420,10 @@ pub async fn SingleConsumer::ack_cumulative(self : SingleConsumer, id : MessageI
 
 ///|
 /// Negatively acknowledge a message, triggering redelivery.
-pub async fn SingleConsumer::nack(self : SingleConsumer, id : MessageId) -> Unit {
+pub async fn SingleConsumer::nack(
+  self : SingleConsumer,
+  id : MessageId,
+) -> Unit {
   send_redeliver(self.conn_ref.val, self.consumer_id, [id])
 }
 
@@ -471,7 +486,7 @@ pub struct Consumer {
 
 ///|
 fn Consumer::single(c : SingleConsumer) -> Consumer {
-  { inner: ConsumerImpl::Single(c) }
+  { inner: ConsumerImpl::Single(c), }
 }
 
 ///|
@@ -483,26 +498,22 @@ pub fn Consumer::partitioned(
   let state : PartitionedConsumerState = {
     consumers,
     queue: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
-    closed: { val: false },
+    closed: { val: false, },
   }
   for sub in consumers {
-    let forward = async fn() -> Unit raise {
+    let forward = async fn() -> Unit {
       while true {
         let msg = sub.receive()
         state.queue.put(msg)
       }
     }
     group.spawn_bg(
-      async fn() {
-        forward() catch {
-          _ => ()
-        }
-      },
+      async fn() { forward() catch { _ => () } },
       no_wait=true,
       allow_failure=true,
     )
   }
-  { inner: ConsumerImpl::Partitioned(state) }
+  { inner: ConsumerImpl::Partitioned(state), }
 }
 
 ///|
@@ -532,7 +543,9 @@ pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => c.ack(id)
     ConsumerImpl::Partitioned(_) =>
-      raise InvalidFrame("ack by id needs the message's own consumer; use message.ack()")
+      raise InvalidFrame(
+        "ack by id needs the message's own consumer; use message.ack()",
+      )
   }
 }
 
@@ -542,7 +555,9 @@ pub async fn Consumer::ack_cumulative(self : Consumer, id : MessageId) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => c.ack_cumulative(id)
     ConsumerImpl::Partitioned(_) =>
-      raise InvalidFrame("cumulative ack needs the message's own consumer; use message.ack()")
+      raise InvalidFrame(
+        "cumulative ack needs the message's own consumer; use message.ack()",
+      )
   }
 }
 
@@ -552,7 +567,9 @@ pub async fn Consumer::nack(self : Consumer, id : MessageId) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => c.nack(id)
     ConsumerImpl::Partitioned(_) =>
-      raise InvalidFrame("nack by id needs the message's own consumer; use message.nack()")
+      raise InvalidFrame(
+        "nack by id needs the message's own consumer; use message.nack()",
+      )
   }
 }
 

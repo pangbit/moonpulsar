@@ -9,6 +9,8 @@ struct MockPeer {
   tcp : @socket.Tcp
   /// frames received from the client after the handshake
   received : @aqueue.Queue[IncomingFrame]
+  /// one-frame pushback buffer
+  stash : Ref[IncomingFrame?]
 }
 
 ///|
@@ -32,7 +34,19 @@ async fn MockPeer::send_message(
 ///|
 /// Next frame received from the client.
 async fn MockPeer::next(self : MockPeer) -> IncomingFrame {
-  self.received.get()
+  match self.stash.val {
+    Some(frame) => {
+      self.stash.val = None
+      frame
+    }
+    None => self.received.get()
+  }
+}
+
+///|
+/// Push a frame back so the next `next()` returns it again.
+fn MockPeer::unread(self : MockPeer, frame : IncomingFrame) -> Unit {
+  self.stash.val = Some(frame)
 }
 
 ///|
@@ -53,6 +67,7 @@ async fn start_mock_broker(
       let peer : MockPeer = {
         tcp,
         received: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
+        stash: { val: None, },
       }
       group.spawn_bg(
         async fn() {
@@ -82,31 +97,36 @@ async fn start_mock_broker(
       connected.connected = Some(c)
       peer.send_command(connected)
       on_peer(addr, peer)
-      // drain: keep answering CLOSE_* like a real broker until disconnect
-      try {
-        while true {
-          let frame = peer.next()
-          let close_reply = @proto.BaseCommand::default()
-          close_reply.type_ = @proto.BaseCommand_Type::SUCCESS
-          if frame.cmd.close_producer is Some(c) {
-            let success = @proto.CommandSuccess::default()
-            success.request_id = c.request_id
-            close_reply.success = Some(success)
-          } else if frame.cmd.close_consumer is Some(c) {
-            let success = @proto.CommandSuccess::default()
-            success.request_id = c.request_id
-            close_reply.success = Some(success)
-          } else {
-            continue
-          }
-          peer.send_command(close_reply)
-        }
-      } catch {
-        _ => ()
-      }
+      drain_closes(peer)
     },
     no_wait=true,
     allow_failure=true,
   )
   addr
+}
+
+///|
+/// Keep answering CLOSE_* like a real broker until the peer disconnects.
+async fn drain_closes(peer : MockPeer) -> Unit {
+  try {
+    while true {
+      let frame = peer.next()
+      let close_reply = @proto.BaseCommand::default()
+      close_reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      if frame.cmd.close_producer is Some(c) {
+        let success = @proto.CommandSuccess::default()
+        success.request_id = c.request_id
+        close_reply.success = Some(success)
+      } else if frame.cmd.close_consumer is Some(c) {
+        let success = @proto.CommandSuccess::default()
+        success.request_id = c.request_id
+        close_reply.success = Some(success)
+      } else {
+        continue
+      }
+      peer.send_command(close_reply)
+    }
+  } catch {
+    _ => ()
+  }
 }

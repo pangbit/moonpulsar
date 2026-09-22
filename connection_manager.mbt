@@ -16,7 +16,7 @@ pub fn ConnectionManager::new(
   auth? : AuthData,
   tls? : Bool = false,
 ) -> ConnectionManager {
-  { group, auth, connections: {}, default_tls: tls, closed: false }
+  { group, auth, connections: {}, default_tls: tls, closed: false, }
 }
 
 ///|

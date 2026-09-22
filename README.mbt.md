@@ -10,8 +10,12 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 - Consumer: Exclusive / Shared / Failover / KeyShared subscriptions, individual & cumulative ack, negative ack with redelivery, flow control (FLOW permits), batched message unpacking
 - Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks
 - Authentication: pluggable `Authentication` trait, token auth built in
+- TLS via `pulsar+ssl://` service URLs
+- Payload compression: LZ4 (frame format), Zlib, Zstd
+- Partitioned topics: keyed messages route by `xxhash32(key) % partitions`, keyless round-robin; consumers aggregate all partitions
+- Reader API: non-durable replay from any message id, `seek`, `has_message_available`
 
-Not yet: TLS (`pulsar+ssl://`), message compression (LZ4/Zlib/Snappy/Zstd), partitioned-topic aggregation, reader API, transactions, admin API.
+Not yet: Snappy compression, transactions, admin API, reader aggregation across partitions.
 
 ## Requirements
 
@@ -52,6 +56,8 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/consumer_nack` | negative ack and redelivery |
 | `examples/roundtrip` | produce-then-consume verification |
 | `examples/auth_token` | token authentication (`PULSAR_TOKEN` env var) |
+| `examples/producer_compression` | Zstd-compressed payloads |
+| `examples/reader` | replay a topic from the start with a reader |
 
 Run one with:
 

@@ -180,7 +180,10 @@ fn SingleProducer::on_command(
 }
 
 ///|
-fn SingleProducer::on_connection_closed(self : SingleProducer, error : Error?) -> Unit {
+fn SingleProducer::on_connection_closed(
+  self : SingleProducer,
+  error : Error?,
+) -> Unit {
   ignore(error)
   if self.closed || self.reconnect_with is None {
     self.fail_all(ConnectionClosed)
@@ -413,7 +416,10 @@ async fn SingleProducer::enqueue_batch(
 }
 
 ///|
-async fn SingleProducer::flush_after(self : SingleProducer, delay_ms : Int) -> Unit {
+async fn SingleProducer::flush_after(
+  self : SingleProducer,
+  delay_ms : Int,
+) -> Unit {
   @async.sleep(delay_ms)
   self.flush() catch {
     _ => ()
@@ -512,13 +518,13 @@ pub struct Producer {
 
 ///|
 fn Producer::single(p : SingleProducer) -> Producer {
-  { inner: ProducerImpl::Single(p) }
+  { inner: ProducerImpl::Single(p), }
 }
 
 ///|
 /// Create a producer on a partitioned topic from one producer per partition.
 pub fn Producer::partitioned(partitions : Array[Producer]) -> Producer {
-  { inner: ProducerImpl::Partitioned(partitions, { val: 0 }) }
+  { inner: ProducerImpl::Partitioned(partitions, { val: 0, }), }
 }
 
 ///|

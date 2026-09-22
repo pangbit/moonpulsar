@@ -9,6 +9,18 @@ async fn two_stage_lookup(
   first_addr : String,
   second_addr : String,
 ) -> Unit {
+  // partition metadata is only asked once, at creation time
+  let meta_frame = peer.next()
+  guard meta_frame.cmd.partition_metadata is Some(meta_req) else {
+    fail("expected PARTITIONED_METADATA")
+  }
+  let meta_reply = @proto.BaseCommand::default()
+  meta_reply.type_ = @proto.BaseCommand_Type::PARTITIONED_METADATA_RESPONSE
+  let meta_resp = @proto.CommandPartitionedTopicMetadataResponse::default()
+  meta_resp.request_id = meta_req.request_id
+  meta_resp.partitions = Some(0)
+  meta_reply.partition_metadata_response = Some(meta_resp)
+  peer.send_command(meta_reply)
   for stage in [first_addr, second_addr] {
     let frame = peer.next()
     guard frame.cmd.lookup_topic is Some(req) else { fail("expected LOOKUP") }

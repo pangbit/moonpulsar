@@ -11,7 +11,6 @@ priv enum ReaderEvent {
 ///|
 /// A reader over a topic starting at a given position.
 pub struct Reader {
-  priv group : @async.TaskGroup[Unit]
   priv conn : Connection
   priv topic : String
   priv consumer_id : UInt64
@@ -38,16 +37,15 @@ pub async fn Reader::create(
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
   let reader : Reader = {
-    group,
     conn,
     topic,
     consumer_id,
     events: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
-    conn_ref: { val: conn },
+    conn_ref: { val: conn, },
     receiver_permits: receiver_queue_size,
     available_permits: 0,
-    last_seen: { val: start_message_id },
-    closed: { val: false },
+    last_seen: { val: start_message_id, },
+    closed: { val: false, },
   }
   conn.message_handlers[consumer_id] = fn(frame) { reader.on_frame(frame) }
   errdefer conn.message_handlers.remove(consumer_id)
@@ -82,7 +80,7 @@ pub async fn Reader::create(
 }
 
 ///|
-async fn Reader::send_flow(self : Reader, permits : Int) -> Unit raise {
+async fn Reader::send_flow(self : Reader, permits : Int) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::FLOW
   let flow = @proto.CommandFlow::default()
@@ -157,7 +155,7 @@ fn Reader::dispatch_message(self : Reader, frame : IncomingFrame) -> Unit raise 
 /// Read the next message, or `None` once the current end of the topic is
 /// reached. Messages published later can still be read by calling `next`
 /// again.
-pub async fn Reader::next(self : Reader) -> Message? raise {
+pub async fn Reader::next(self : Reader) -> Message? {
   if self.closed.val {
     raise ConsumerClosed
   }
@@ -181,7 +179,7 @@ pub async fn Reader::next(self : Reader) -> Message? raise {
 ///|
 /// True when there are buffered messages or the broker reports unseen
 /// messages beyond the last one read.
-pub async fn Reader::has_message_available(self : Reader) -> Bool raise {
+pub async fn Reader::has_message_available(self : Reader) -> Bool {
   if (self.events.try_get() catch { _ => None }) is Some(event) {
     // put it back conceptually: peeking is not supported by the queue,
     // so push the event back through a fresh front slot
@@ -195,9 +193,7 @@ pub async fn Reader::has_message_available(self : Reader) -> Bool raise {
   req.request_id = self.conn.next_request_id()
   cmd.get_last_message_id = Some(req)
   let reply = self.conn.request(cmd) catch { _ => return false }
-  guard reply.get_last_message_id_response is Some(resp) else {
-    return false
-  }
+  guard reply.get_last_message_id_response is Some(resp) else { return false }
   let last = MessageId::from_proto(resp.last_message_id)
   match self.last_seen.val {
     Some(seen) => message_id_before(seen, last)
@@ -245,6 +241,7 @@ pub async fn Reader::seek(self : Reader, message_id : MessageId) -> Unit {
   }
   // drop everything buffered before the seek
   while (self.events.try_get() catch { _ => None }) is Some(_) {
+
   }
   self.last_seen.val = Some(message_id)
   self.available_permits = 0

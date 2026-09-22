@@ -9,6 +9,6 @@ import {
   "moonbitlang/core/buffer",
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
-  "moonbit-community/flate/zlib" @zlib,
-  "Milky2018/zstd" @zstd,
+  "moonbit-community/flate/zlib",
+  "Milky2018/zstd",
 }
