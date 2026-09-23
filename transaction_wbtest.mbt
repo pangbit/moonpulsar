@@ -74,3 +74,51 @@ async test "transaction lifecycle over one connection" {
     coord.close()
   })
 }
+
+///|
+async test "client resolves transaction coordinator ownership" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(addr, peer) {
+      for _ in 0..<4 {
+        let frame = peer.next()
+        if frame.cmd.partition_metadata is Some(req) {
+          assert_eq(req.topic, TRANSACTION_COORDINATOR_ASSIGN_TOPIC)
+          let reply = @proto.BaseCommand::default()
+          reply.type_ = @proto.BaseCommand_Type::PARTITIONED_METADATA_RESPONSE
+          let resp = @proto.CommandPartitionedTopicMetadataResponse::default()
+          resp.request_id = req.request_id
+          resp.partitions = Some(2U)
+          reply.partition_metadata_response = Some(resp)
+          peer.send_command(reply)
+        } else if frame.cmd.lookup_topic is Some(req) {
+          assert_eq(
+            req.topic,
+            TRANSACTION_COORDINATOR_ASSIGN_TOPIC + "-partition-1",
+          )
+          peer.send_command(
+            lookup_reply(
+              req.request_id,
+              @proto.CommandLookupTopicResponse_LookupType::Connect,
+              broker_url="pulsar://\{addr}",
+            ),
+          )
+        } else if frame.cmd.tc_client_connect_request is Some(req) {
+          assert_eq(req.tc_id, 1UL)
+          let reply = @proto.BaseCommand::default()
+          reply.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_RESPONSE
+          let resp = @proto.CommandTcClientConnectResponse::default()
+          resp.request_id = req.request_id
+          reply.tc_client_connect_response = Some(resp)
+          peer.send_command(reply)
+        } else {
+          fail("unexpected coordinator setup command")
+        }
+      }
+    })
+    let client = Client::connect(group, "pulsar://\{addr}")
+    let coord = client.transaction_coordinator(1UL)
+    coord.close()
+    assert_eq(client.partitions_of(TRANSACTION_COORDINATOR_ASSIGN_TOPIC), 2)
+    client.close()
+  })
+}

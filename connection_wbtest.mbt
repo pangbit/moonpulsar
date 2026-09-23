@@ -13,6 +13,94 @@ async test "handshake completes and reports server version" {
 }
 
 ///|
+test "basic authentication uses Pulsar command credentials" {
+  let basic = BasicAuth::new("alice", "secret")
+  assert_eq(basic.method_name(), "basic")
+  assert_eq(basic.auth_data(), b"alice:secret")
+  let missing : Result[BasicAuth, Error] = Ok(BasicAuth::new("", "secret")) catch {
+    e => Err(e)
+  }
+  assert_true(missing is Err(InvalidFrame(_)))
+}
+
+///|
+async test "authentication challenge during handshake gets a response" {
+  @async.with_task_group(async fn(group) {
+    let server = @socket.TcpServer::TcpServer(
+      @socket.Addr::parse("127.0.0.1:0"),
+    )
+    let addr = server.addr.to_string()
+    group.spawn_bg(
+      async fn() {
+        defer server.close()
+        let (tcp, _) = server.accept()
+        defer tcp.close()
+        let hello = read_frame(tcp)
+        guard hello.cmd.connect is Some(connect) else {
+          fail("expected CONNECT")
+        }
+        assert_eq(connect.auth_data, Some(b"token-1"))
+        let challenge = @proto.BaseCommand::default()
+        challenge.type_ = @proto.BaseCommand_Type::AUTH_CHALLENGE
+        challenge.auth_challenge = Some(@proto.CommandAuthChallenge::default())
+        tcp.write(encode_command_frame(challenge))
+        let answer = read_frame(tcp)
+        guard answer.cmd.auth_response is Some(response) &&
+          response.response is Some(data) else {
+          fail("expected AUTH_RESPONSE")
+        }
+        assert_eq(data.auth_method_name, Some("token"))
+        assert_eq(data.auth_data, Some(b"token-2"))
+        let connected = @proto.BaseCommand::default()
+        connected.type_ = @proto.BaseCommand_Type::CONNECTED
+        let info = @proto.CommandConnected::default()
+        info.server_version = "mock-broker"
+        info.protocol_version = Some(21)
+        connected.connected = Some(info)
+        tcp.write(encode_command_frame(connected))
+      },
+      no_wait=true,
+      allow_failure=true,
+    )
+    let calls : Ref[Int] = { val: 0, }
+    let conn = Connection::connect(group, addr, auth_provider=fn() {
+      calls.val += 1
+      { method_name: "token", data: @utf8.encode("token-\{calls.val}"), }
+    })
+    assert_eq(conn.server_version(), "mock-broker")
+    assert_eq(calls.val, 2)
+    conn.close()
+  })
+}
+
+///|
+async test "authentication challenge after handshake gets a response" {
+  @async.with_task_group(async fn(group) {
+    let seen : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let challenge = @proto.BaseCommand::default()
+      challenge.type_ = @proto.BaseCommand_Type::AUTH_CHALLENGE
+      challenge.auth_challenge = Some(@proto.CommandAuthChallenge::default())
+      peer.send_command(challenge)
+      let frame = peer.next()
+      guard frame.cmd.auth_response is Some(response) &&
+        response.response is Some(data) else {
+        fail("expected AUTH_RESPONSE")
+      }
+      seen.put(data.auth_data == Some(b"test-token"))
+    })
+    let conn = Connection::connect(group, addr, auth={
+      method_name: "token",
+      data: b"test-token",
+    })
+    assert_true(@async.with_timeout(1000, async fn() { seen.get() }))
+    conn.close()
+  })
+}
+
+///|
 async test "request/response correlation by request id" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {

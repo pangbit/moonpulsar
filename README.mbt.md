@@ -1,21 +1,23 @@
 # moonpulsar
 
-Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com), with full producer and consumer support. Architecture follows [pulsar-rs](https://github.com/streamnative/pulsar-rs) and [pulsar-client-go](https://github.com/apache/pulsar-client-go).
+Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com). Architecture follows [pulsar-rs](https://github.com/streamnative/pulsar-rs) and [pulsar-client-go](https://github.com/apache/pulsar-client-go). See [CAPABILITY_MATRIX.md](CAPABILITY_MATRIX.md) for verified coverage and remaining differences.
 
 ## Features
 
 - Connection management over TCP with the Pulsar binary protocol (`pulsar://`), handshake, keepalive and request/response correlation
 - Topic lookup with redirect following and connection pooling
 - Producer: synchronous and asynchronous send, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation
-- Consumer: Exclusive / Shared / Failover / KeyShared subscriptions, individual & cumulative ack, negative ack with redelivery, flow control (FLOW permits), batched message unpacking
+- Consumer: Exclusive / Shared / Failover / KeyShared subscriptions, individual & cumulative ack, negative ack with redelivery, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), batched message unpacking
+- Explicit multi-topic consumers and pattern consumers that discover new topics in a namespace
 - Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks
-- Authentication: pluggable `Authentication` trait, token auth built in
+- Binary-protocol authentication: pluggable `Authentication` trait, token and basic auth built in; refresh auth data on broker challenge
 - TLS via `pulsar+ssl://` service URLs
 - Payload compression: LZ4 (frame format), Zlib, Zstd
 - Partitioned topics: keyed messages route by `xxhash32(key) % partitions`, keyless round-robin; consumers aggregate all partitions
+- Optional producer chunking and consumer/reader chunk reassembly, including compressed payloads
 - Reader API: non-durable replay from any message id, `seek`, `has_message_available`, aggregated across partitions
-- Transactions: coordinator channel, `new_transaction` / `commit` / `abort`, transactional send and ack
-- Admin REST API: partitioned topic create/delete, topic delete, list topics, topic stats
+- Transactions: coordinator ownership lookup, `new_transaction` / `commit` / `abort`, transactional send and ack
+- Admin REST API: topic create/delete, partitioned topic create/expand/delete and metadata, list topics/subscriptions, delete subscriptions, topic stats
 - Schema declaration: producers/consumers declare `SchemaInfo` (String/JSON/Avro/Protobuf/raw) on creation
 - Delayed delivery: `deliver_at` / `deliver_after` on `ProducerMessage`
 - Timestamp seek for readers
@@ -23,8 +25,10 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 Not yet / known gaps:
 
 - Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
-- Transaction coordinator ownership lookup (connect directly to the owning broker for now)
-- `pulsar+ssl://` is implemented via `moonbitlang/async/tls` but has not been exercised against a TLS-enabled broker
+- Partitioned producers and consumers do not yet discover added partitions automatically; pattern consumers discover added topics but do not remove deleted topics.
+- Retry/DLQ policies, TableView, broker-side KeyShared policies, OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
+- Chunking requires an explicit `chunk_size`; broker maximum-message-size discovery and configurable chunk expiry are not implemented.
+- `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; this capability run used plain TCP with token auth.
 
 ## Verified against a real broker
 
@@ -36,6 +40,8 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - partitioned topics (admin-created, key routing, merged consumption)
 - transactions: TC channel, transactional produce, commit, read-back
 - automatic reconnection across a broker restart (producer replay + consumer re-subscribe)
+- token-authenticated multi-topic and pattern consumption, ack timeout, consumer seek, chunked produce/consume/reader replay, and coordinator lookup
+- token-authenticated Admin REST topic/subscription operations and partition expansion
 
 ## Requirements
 
@@ -78,11 +84,20 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/auth_token` | token authentication (`PULSAR_TOKEN` env var) |
 | `examples/producer_compression` | Zstd-compressed payloads |
 | `examples/reader` | replay a topic from the start with a reader |
+| `examples/live_capabilities` | real-broker regression for multi-topic, pattern, ack timeout, seek, chunking, transactions, and optional Admin REST |
 
 Run one with:
 
 ```sh
 moon run examples/producer --target native
+```
+
+The extended integration scenario accepts `PULSAR_URL`, `PULSAR_TOKEN`,
+`PULSAR_TEST_PREFIX`, and optional `PULSAR_ADMIN_URL`:
+
+```sh
+PULSAR_URL=pulsar://127.0.0.1:6650 PULSAR_TEST_PREFIX=moonpulsar-check \
+  moon run examples/live_capabilities --target native
 ```
 
 A quick local broker via docker:

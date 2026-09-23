@@ -19,6 +19,7 @@ fn ReaderEvent::consumer_id(self : ReaderEvent) -> UInt64 {
 ///|
 /// A reader over a topic starting at a given position.
 pub struct SingleReader {
+  priv group : @async.TaskGroup[Unit]
   priv conn : Connection
   priv topic : String
   priv sub_name : String
@@ -30,6 +31,7 @@ pub struct SingleReader {
   /// last message seen, for `has_message_available`
   priv last_seen : Ref[MessageId?]
   priv closed : Ref[Bool]
+  priv chunks : ChunkAssembler
 }
 
 ///|
@@ -46,6 +48,7 @@ pub async fn SingleReader::create(
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
   let reader : SingleReader = {
+    group,
     conn,
     topic,
     // unique per process and reader: non-durable subscriptions linger
@@ -62,6 +65,7 @@ pub async fn SingleReader::create(
     available_permits: 0,
     last_seen: { val: start_message_id, },
     closed: { val: false, },
+    chunks: ChunkAssembler::new(),
   }
   conn.message_handlers[consumer_id] = fn(frame) { reader.on_frame(frame) }
   errdefer conn.message_handlers.remove(consumer_id)
@@ -123,6 +127,7 @@ async fn SingleReader::resubscribe(
   self : SingleReader,
   start_message_id : MessageId?,
 ) -> Unit {
+  self.chunks.clear()
   let conn = self.conn_ref.val
   conn.message_handlers.remove(self.consumer_id)
   // best-effort close of the old consumer
@@ -184,20 +189,34 @@ fn SingleReader::dispatch_message(
   guard frame.metadata is Some(metadata) && frame.payload is Some(raw_payload) else {
     raise InvalidFrame("MESSAGE without payload")
   }
+  let base_id = MessageId::from_proto(message.message_id)
+  let chunk = self.chunks.accept(metadata, base_id, raw_payload)
+  guard chunk.payload is Some(assembled) else {
+    if chunk.is_chunk {
+      self.group.spawn_bg(
+        async fn() { self.send_flow(1) catch { _ => () } },
+        no_wait=true,
+        allow_failure=true,
+      )
+    }
+    return
+  }
   let payload = match metadata.compression {
     Some(t) =>
       decompress(
         CompressionCodec::from_proto(t),
-        raw_payload,
+        assembled,
         uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt) {
           u.reinterpret_as_int()
         }),
       )
-    None => raw_payload
+    None => assembled
   }
   let redelivery_count = message.redelivery_count.unwrap_or(0)
-  let base_id = MessageId::from_proto(message.message_id)
   let batch_size = metadata.num_messages_in_batch.unwrap_or(0)
+  if chunk.is_chunk && batch_size > 1 {
+    raise InvalidFrame("chunked and batched message")
+  }
   if batch_size > 1 {
     let singles = split_batch_payload(payload, batch_size)
     for i, single in singles {
@@ -216,6 +235,7 @@ fn SingleReader::dispatch_message(
       ignore(self.events.try_put(Msg(msg)))
     }
   } else {
+    let chunk_ids = if chunk.is_chunk { Some(chunk.ids) } else { None }
     let msg = build_message(
       self.conn_ref,
       self.consumer_id,
@@ -226,6 +246,7 @@ fn SingleReader::dispatch_message(
       None,
       payload,
       redelivery_count,
+      chunk_ids?,
     )
     ignore(self.events.try_put(Msg(msg)))
   }
@@ -386,6 +407,7 @@ pub async fn SingleReader::close(self : SingleReader) -> Unit {
   cmd.close_consumer = Some(close)
   ignore(self.conn.request(cmd) catch { _ => @proto.BaseCommand::default() })
   self.conn.message_handlers.remove(self.consumer_id)
+  self.chunks.clear()
   self.events.close(error=ConsumerClosed, clear=true)
 }
 

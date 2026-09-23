@@ -6,6 +6,25 @@
 const MAX_LOOKUP_REDIRECTS : Int = 20
 
 ///|
+/// Topic kinds included in namespace discovery.
+pub(all) enum NamespaceTopicMode {
+  Persistent
+  NonPersistent
+  AllTopics
+} derive(Eq, Debug)
+
+///|
+fn NamespaceTopicMode::to_proto(
+  self : NamespaceTopicMode,
+) -> @proto.CommandGetTopicsOfNamespace_Mode {
+  match self {
+    Persistent => @proto.CommandGetTopicsOfNamespace_Mode::PERSISTENT
+    NonPersistent => @proto.CommandGetTopicsOfNamespace_Mode::NON_PERSISTENT
+    AllTopics => @proto.CommandGetTopicsOfNamespace_Mode::ALL
+  }
+}
+
+///|
 /// Strip the scheme of a pulsar service URL, returning ("host:port", tls?).
 pub fn broker_addr_of(url : String) -> (String, Bool) raise PulsarError {
   if url.strip_prefix("pulsar+ssl://") is Some(rest) {
@@ -115,5 +134,59 @@ pub async fn get_partition_count(
   match resp.partitions {
     Some(p) => p.reinterpret_as_int()
     None => 0
+  }
+}
+
+///|
+/// Ask a broker for topics in `tenant/namespace` and apply an optional
+/// MoonBit regular expression locally. This also works with brokers that do
+/// not implement server-side pattern filtering.
+pub async fn get_topics_of_namespace(
+  manager : ConnectionManager,
+  addr : String,
+  namespace : String,
+  pattern? : String,
+  mode? : NamespaceTopicMode = Persistent,
+) -> Array[String] {
+  let conn = manager.get(addr)
+  let req = @proto.CommandGetTopicsOfNamespace::default()
+  req.request_id = conn.next_request_id()
+  req.namespace_ = namespace
+  req.mode = Some(mode.to_proto())
+  let cmd = @proto.BaseCommand::default()
+  cmd.type_ = @proto.BaseCommand_Type::GET_TOPICS_OF_NAMESPACE
+  cmd.get_topics_of_namespace = Some(req)
+  let reply = conn.request(cmd)
+  guard reply.get_topics_of_namespace_response is Some(resp) else {
+    raise UnexpectedResponse("expected GET_TOPICS_OF_NAMESPACE_RESPONSE")
+  }
+  match pattern {
+    Some(source) => {
+      let regex = @string.Regex::Regex(source)
+      let result = []
+      for topic in resp.topics {
+        if regex.execute(topic) is Some(_) {
+          result.push(topic)
+        }
+      }
+      result
+    }
+    None => resp.topics
+  }
+}
+
+///|
+fn base_topic_name(topic : String) -> String {
+  match topic.rev_find("-partition-") {
+    Some(index) => {
+      let suffix = topic[index + 11:]
+      let part = @string.parse_int(suffix) catch { _ => -1 }
+      if part >= 0 {
+        topic[:index].to_owned()
+      } else {
+        topic
+      }
+    }
+    None => topic
   }
 }

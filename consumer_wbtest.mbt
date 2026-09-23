@@ -159,6 +159,131 @@ async test "consumer nack triggers redeliver command" {
 }
 
 ///|
+async test "consumer subscription options are sent on the wire" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.subscribe is Some(req) else { fail("expected SUBSCRIBE") }
+      assert_eq(req.priority_level, Some(2))
+      assert_eq(req.durable, Some(false))
+      assert_eq(req.read_compacted, Some(true))
+      assert_eq(req.metadata.length(), 1)
+      assert_eq(req.metadata[0].key, "consumer")
+      assert_eq(req.metadata[0].value, "test")
+      assert_eq(req.subscription_properties.length(), 1)
+      assert_eq(req.subscription_properties[0].key, "subscription")
+      assert_eq(req.subscription_properties[0].value, "test")
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = req.request_id
+      reply.success = Some(success)
+      peer.send_command(reply)
+      assert_true(peer.next().cmd.flow is Some(_))
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let consumer = SingleConsumer::create(
+      group,
+      conn,
+      "persistent://public/default/options",
+      "options-sub",
+      priority_level=2,
+      durable=false,
+      read_compacted=true,
+      properties={ "consumer": "test" },
+      subscription_properties={ "subscription": "test" },
+    )
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "unsubscribe removes a subscription and closes the consumer" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let frame = peer.next()
+      guard frame.cmd.unsubscribe is Some(req) else {
+        fail("expected UNSUBSCRIBE")
+      }
+      assert_eq(req.consumer_id, 1UL)
+      assert_eq(req.force, Some(true))
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = req.request_id
+      reply.success = Some(success)
+      peer.send_command(reply)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let consumer = SingleConsumer::create(
+      group, conn, "persistent://public/default/unsubscribe", "sub-1",
+    )
+    consumer.unsubscribe(force=true)
+    assert_true(consumer.is_closed())
+    manager.close()
+  })
+}
+
+///|
+async test "ack timeout redelivers only unacknowledged messages" {
+  @async.with_task_group(async fn(group) {
+    let redelivered : @aqueue.Queue[UInt64] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let (cmd_a, meta_a, body_a) = message_frame(
+        1UL,
+        7,
+        1,
+        b"ack",
+        test_metadata(),
+      )
+      let (cmd_b, meta_b, body_b) = message_frame(
+        1UL,
+        7,
+        2,
+        b"timeout",
+        test_metadata(),
+      )
+      peer.send_message(cmd_a, meta_a, body_a)
+      peer.send_message(cmd_b, meta_b, body_b)
+      assert_true(peer.next().cmd.ack is Some(_))
+      let frame = peer.next()
+      guard frame.cmd.redeliver_unacknowledged_messages is Some(req) else {
+        fail("expected timeout redelivery")
+      }
+      assert_eq(req.message_ids.length(), 1)
+      redelivered.put(req.message_ids[0].entry_id)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let consumer = SingleConsumer::create(
+      group,
+      conn,
+      "persistent://public/default/t",
+      "sub-1",
+      ack_timeout_ms=50,
+    )
+    let first = consumer.receive()
+    let second = consumer.receive()
+    assert_eq(first.payload(), b"ack")
+    assert_eq(second.payload(), b"timeout")
+    first.ack()
+    assert_eq(consumer.ack_pending.get(first.id()), None)
+    assert_true(consumer.ack_pending.get(second.id()) is Some(_))
+    assert_eq(@async.with_timeout(1000, async fn() { redelivered.get() }), 2UL)
+    assert_eq(consumer.ack_pending.get(second.id()), None)
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
 async test "consumer splits batched messages" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {
@@ -249,6 +374,110 @@ async test "broker close consumer terminates receive" {
     }
     assert_true(result is Err(_))
     assert_true(consumer.is_closed())
+    manager.close()
+  })
+}
+
+///|
+async test "consumer seek drops buffered messages and re-subscribes" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let (old_cmd, old_meta, old_body) = message_frame(
+        1UL,
+        1,
+        1,
+        b"stale",
+        test_metadata(),
+      )
+      peer.send_message(old_cmd, old_meta, old_body)
+      let frame = peer.next()
+      guard frame.cmd.seek is Some(seek) else { fail("expected SEEK") }
+      assert_eq(seek.message_publish_time, Some(12345UL))
+      let success = @proto.BaseCommand::default()
+      success.type_ = @proto.BaseCommand_Type::SUCCESS
+      let response = @proto.CommandSuccess::default()
+      response.request_id = seek.request_id
+      success.success = Some(response)
+      peer.send_command(success)
+      let frame = peer.next()
+      guard frame.cmd.close_consumer is Some(close) else {
+        fail("expected CLOSE_CONSUMER after seek")
+      }
+      let close_success = @proto.BaseCommand::default()
+      close_success.type_ = @proto.BaseCommand_Type::SUCCESS
+      let close_response = @proto.CommandSuccess::default()
+      close_response.request_id = close.request_id
+      close_success.success = Some(close_response)
+      peer.send_command(close_success)
+      let frame = peer.next()
+      guard frame.cmd.subscribe is Some(sub) else {
+        fail("expected re-SUBSCRIBE after seek")
+      }
+      assert_true(sub.consumer_id != close.consumer_id)
+      let subscribed = @proto.BaseCommand::default()
+      subscribed.type_ = @proto.BaseCommand_Type::SUCCESS
+      let subscribed_response = @proto.CommandSuccess::default()
+      subscribed_response.request_id = sub.request_id
+      subscribed.success = Some(subscribed_response)
+      peer.send_command(subscribed)
+      assert_true(peer.next().cmd.flow is Some(_))
+      let (new_cmd, new_meta, new_body) = message_frame(
+        sub.consumer_id,
+        2,
+        1,
+        b"fresh",
+        test_metadata(),
+      )
+      peer.send_message(new_cmd, new_meta, new_body)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let consumer = SingleConsumer::create(
+      group, conn, "persistent://public/default/seek", "seek-sub",
+    )
+    consumer.seek(PositionTimestamp(12345UL))
+    let message = @async.with_timeout(3000, async fn() { consumer.receive() })
+    assert_eq(message.payload(), b"fresh")
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "broker CLOSE_CONSUMER re-subscribes on an open connection" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let close = @proto.BaseCommand::default()
+      close.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
+      let req = @proto.CommandCloseConsumer::default()
+      req.consumer_id = 1UL
+      req.request_id = 99UL
+      close.close_consumer = Some(req)
+      peer.send_command(close)
+      expect_subscribe(peer)
+      let (cmd, metadata, payload) = message_frame(
+        1UL,
+        3,
+        4,
+        b"after-close",
+        test_metadata(),
+      )
+      peer.send_message(cmd, metadata, payload)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let consumer = SingleConsumer::create(
+      group,
+      conn,
+      "persistent://public/default/seek",
+      "seek-sub",
+      reconnect_with=async fn() { conn },
+    )
+    let message = @async.with_timeout(3000, async fn() { consumer.receive() })
+    assert_eq(message.payload(), b"after-close")
+    consumer.close()
     manager.close()
   })
 }

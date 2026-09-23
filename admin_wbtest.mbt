@@ -76,6 +76,29 @@ async test "list topics parses JSON" {
 }
 
 ///|
+async test "list non-persistent topics selects the correct domain" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(request, _payload) {
+        assert_eq(request.path, "/admin/v2/non-persistent/public/default")
+        (200, "[\"non-persistent://public/default/events\"]")
+      },
+      async fn(url) {
+        assert_eq(
+          Admin::new(url).list_topics(
+            "public",
+            "default",
+            domain="non-persistent",
+          ),
+          ["non-persistent://public/default/events"],
+        )
+      },
+    )
+  })
+}
+
+///|
 async test "admin error surfaces status code and body" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
@@ -105,4 +128,170 @@ test "topic name parsing" {
     e => Err(e)
   }
   assert_true(bad is Err(LookupFailed(_)))
+  let non_persistent = TopicName::parse(
+    "non-persistent://public/default/events",
+  )
+  assert_eq(non_persistent.domain, "non-persistent")
+  let empty : Result[TopicName, Error] = Ok(
+    TopicName::parse("persistent://public//events"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(empty is Err(LookupFailed(_)))
+}
+
+///|
+async test "create non-persistent topic" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(request, payload) {
+        assert_eq(request.meth, @http.RequestMethod::Put)
+        assert_eq(
+          request.path,
+          "/admin/v2/non-persistent/public/default/events",
+        )
+        assert_eq(payload.length(), 0)
+        (204, "")
+      },
+      async fn(url) {
+        Admin::new(url).create_topic("non-persistent://public/default/events")
+      },
+    )
+  })
+}
+
+///|
+async test "update partition count" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(request, payload) {
+        assert_eq(request.meth, @http.RequestMethod::Post)
+        assert_eq(
+          request.path,
+          "/admin/v2/persistent/public/default/events/partitions",
+        )
+        assert_eq(@utf8.decode(payload), "8")
+        (204, "")
+      },
+      async fn(url) {
+        Admin::new(url).update_partitioned_topic(
+          "persistent://public/default/events", 8,
+        )
+      },
+    )
+  })
+}
+
+///|
+async test "partition count parses metadata" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(request, _payload) {
+        assert_eq(
+          request.path,
+          "/admin/v2/persistent/public/default/events/partitions",
+        )
+        (200, "{\"partitions\":4,\"deleted\":false}")
+      },
+      async fn(url) {
+        assert_eq(
+          Admin::new(url).partition_count("persistent://public/default/events"),
+          4,
+        )
+      },
+    )
+  })
+}
+
+///|
+async test "partition metadata rejects missing or fractional counts" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(_request, _payload) { (200, "{\"partitions\":1.5}") },
+      async fn(url) {
+        let result : Result[Int, Error] = Ok(
+          Admin::new(url).partition_count("persistent://public/default/events"),
+        ) catch {
+          e => Err(e)
+        }
+        assert_true(result is Err(InvalidFrame(_)))
+      },
+    )
+  })
+}
+
+///|
+async test "admin rejects invalid partition and subscription inputs" {
+  let admin = Admin::new("http://127.0.0.1:1")
+  let topic = "persistent://public/default/events"
+  let create : Result[Unit, Error] = Ok(
+    admin.create_partitioned_topic(topic, 0),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(create is Err(LookupFailed(_)))
+  let update : Result[Unit, Error] = Ok(
+    admin.update_partitioned_topic(topic, -1),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(update is Err(LookupFailed(_)))
+  let subscription : Result[Unit, Error] = Ok(
+    admin.delete_subscription(topic, "bad/name"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(subscription is Err(LookupFailed(_)))
+}
+
+///|
+async test "list subscriptions" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(request, _payload) {
+        assert_eq(
+          request.path,
+          "/admin/v2/persistent/public/default/events/subscriptions",
+        )
+        (200, "[\"worker\",\"audit\"]")
+      },
+      async fn(url) {
+        assert_eq(
+          Admin::new(url).list_subscriptions(
+            "persistent://public/default/events",
+          ),
+          ["worker", "audit"],
+        )
+      },
+    )
+  })
+}
+
+///|
+async test "delete subscription" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(request, _payload) {
+        assert_eq(request.meth, @http.RequestMethod::Delete)
+        assert_eq(
+          request.path,
+          "/admin/v2/persistent/public/default/events/subscription/worker?force=true",
+        )
+        (204, "")
+      },
+      async fn(url) {
+        Admin::new(url).delete_subscription(
+          "persistent://public/default/events",
+          "worker",
+          force=true,
+        )
+      },
+    )
+  })
 }

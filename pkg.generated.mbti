@@ -25,6 +25,8 @@ pub fn encode_send_frame(@proto.BaseCommand, @proto.MessageMetadata, Bytes) -> B
 
 pub async fn get_partition_count(ConnectionManager, String, String) -> Int
 
+pub async fn get_topics_of_namespace(ConnectionManager, String, String, pattern? : String, mode? : NamespaceTopicMode) -> Array[String]
+
 pub async fn lookup_topic(ConnectionManager, String, String, authoritative? : Bool) -> Connection
 
 pub fn lz4_compress(Bytes) -> Bytes
@@ -69,16 +71,28 @@ pub struct Admin {
   // private fields
 }
 pub async fn Admin::create_partitioned_topic(Self, String, Int) -> Unit
+pub async fn Admin::create_topic(Self, String) -> Unit
 pub async fn Admin::delete_partitioned_topic(Self, String, force? : Bool) -> Unit
+pub async fn Admin::delete_subscription(Self, String, String, force? : Bool) -> Unit
 pub async fn Admin::delete_topic(Self, String, force? : Bool) -> Unit
-pub async fn Admin::list_topics(Self, String, String) -> Array[String]
+pub async fn Admin::list_subscriptions(Self, String) -> Array[String]
+pub async fn Admin::list_topics(Self, String, String, domain? : String) -> Array[String]
 pub fn Admin::new(String, token? : String) -> Self
+pub async fn Admin::partition_count(Self, String) -> Int
 pub async fn Admin::topic_stats(Self, String) -> Json
+pub async fn Admin::update_partitioned_topic(Self, String, Int) -> Unit
 
 pub(all) struct AuthData {
   method_name : String
   data : Bytes
 } derive(@debug.Debug)
+
+pub(all) struct BasicAuth {
+  username : String
+  password : String
+}
+pub fn BasicAuth::new(String, String) -> Self raise PulsarError
+pub impl Authentication for BasicAuth
 
 pub(all) struct BatchingConfig {
   max_messages : Int
@@ -87,16 +101,24 @@ pub(all) struct BatchingConfig {
 } derive(@debug.Debug)
 pub fn BatchingConfig::default() -> Self
 
+type ChunkAssembler
+
+type ChunkResult
+
 pub struct Client {
   // private fields
 }
 pub fn Client::close(Self) -> Unit
 pub async fn Client::connect(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
 pub async fn Client::connect_tls_insecure(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
-pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int, schema? : SchemaInfo) -> Consumer
-pub async fn Client::create_producer(Self, String, name? : String, batching? : BatchingConfig, compression? : CompressionCodec, schema? : SchemaInfo) -> Producer
+pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, schema? : SchemaInfo) -> Consumer
+pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, schema? : SchemaInfo) -> Consumer
+pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, schema? : SchemaInfo) -> Consumer
+pub async fn Client::create_producer(Self, String, name? : String, batching? : BatchingConfig, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo) -> Producer
 pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int) -> Reader
 pub async fn Client::partitions_of(Self, String) -> Int
+pub async fn Client::topics_of_namespace(Self, String, pattern? : String, mode? : NamespaceTopicMode) -> Array[String]
+pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordinator
 
 pub(all) enum CompressionCodec {
   None
@@ -110,7 +132,7 @@ pub struct Connection {
   // private fields
 }
 pub fn Connection::close(Self) -> Unit
-pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, tls? : Bool, tls_insecure? : Bool, keepalive_interval_ms? : Int, timeout_ms? : Int) -> Self
+pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, keepalive_interval_ms? : Int, timeout_ms? : Int) -> Self
 pub fn Connection::is_closed(Self) -> Bool
 pub fn Connection::next_request_id(Self) -> UInt64
 pub fn Connection::on_close(Self, (Error?) -> Unit) -> Unit
@@ -126,7 +148,7 @@ pub struct ConnectionManager {
 pub fn ConnectionManager::close(Self) -> Unit
 pub async fn ConnectionManager::get(Self, String) -> Connection
 pub fn ConnectionManager::is_closed(Self) -> Bool
-pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, tls? : Bool, tls_insecure? : Bool) -> Self
+pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool) -> Self
 pub fn ConnectionManager::uses_tls(Self) -> Bool
 
 pub struct Consumer {
@@ -140,9 +162,12 @@ pub fn Consumer::is_closed(Self) -> Bool
 pub async fn Consumer::nack(Self, MessageId) -> Unit
 pub fn Consumer::partitioned(@async.TaskGroup[Unit], Array[Self]) -> Self
 pub async fn Consumer::receive(Self) -> Message
+pub async fn Consumer::seek(Self, SeekPosition) -> Unit
 pub fn Consumer::subscription(Self) -> String
 pub fn Consumer::topic(Self) -> String
+pub fn Consumer::topics(Self) -> Array[String]
 pub fn Consumer::try_receive(Self) -> Message? raise
+pub async fn Consumer::unsubscribe(Self, force? : Bool) -> Unit
 
 pub(all) struct IncomingFrame {
   cmd : @proto.BaseCommand
@@ -176,6 +201,12 @@ pub(all) struct MessageId {
 } derive(Compare, Eq, Hash, @debug.Debug)
 pub fn MessageId::earliest() -> Self
 pub fn MessageId::latest() -> Self
+
+pub(all) enum NamespaceTopicMode {
+  Persistent
+  NonPersistent
+  AllTopics
+} derive(Eq, @debug.Debug)
 
 type PendingRequest
 
@@ -255,19 +286,21 @@ pub async fn SingleConsumer::ack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::ack_cumulative(Self, MessageId) -> Unit
 pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId) -> Unit
 pub async fn SingleConsumer::close(Self) -> Unit
-pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int, reconnect_with? : async () -> Connection, schema? : SchemaInfo) -> Self
+pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, reconnect_with? : async () -> Connection, schema? : SchemaInfo) -> Self
 pub fn SingleConsumer::is_closed(Self) -> Bool
 pub async fn SingleConsumer::nack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::receive(Self) -> Message
+pub async fn SingleConsumer::seek(Self, SeekPosition) -> Unit
 pub fn SingleConsumer::subscription(Self) -> String
 pub fn SingleConsumer::topic(Self) -> String
 pub fn SingleConsumer::try_receive(Self) -> Message? raise
+pub async fn SingleConsumer::unsubscribe(Self, force? : Bool) -> Unit
 
 pub struct SingleProducer {
   // private fields
 }
 pub async fn SingleProducer::close(Self) -> Unit
-pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, schema? : SchemaInfo) -> Self
+pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo) -> Self
 pub async fn SingleProducer::flush(Self) -> Unit
 pub fn SingleProducer::name(Self) -> String
 pub async fn SingleProducer::send(Self, ProducerMessage) -> SendReceipt

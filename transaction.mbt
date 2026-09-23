@@ -1,15 +1,18 @@
 // Transactions: coordinator client (TC channel) plus produce/ack within a
 // transaction, mirroring the transaction commands of the binary protocol.
 //
-// The coordinator connects directly to a broker with a chosen `tc_id`; the
-// broker must have transactions enabled. (TC ownership lookup via the
-// transaction coordinator assign topic is not implemented yet.)
+// The coordinator connects to the broker owning its assignment partition;
+// the broker must have transactions enabled.
+
+///|
+const TRANSACTION_COORDINATOR_ASSIGN_TOPIC : String = "persistent://pulsar/system/transaction_coordinator_assign"
 
 ///|
 /// A handle to a transaction coordinator channel on a broker.
 pub struct TransactionCoordinator {
   priv conn : Connection
   priv tc_id : UInt64
+  priv owns_connection : Bool
 }
 
 ///|
@@ -22,7 +25,17 @@ pub async fn TransactionCoordinator::connect(
   tls? : Bool = false,
 ) -> TransactionCoordinator {
   let conn = Connection::connect(group, addr, auth?, tls~)
-  let coord : TransactionCoordinator = { conn, tc_id, }
+  errdefer conn.close()
+  TransactionCoordinator::attach(conn, tc_id, owns_connection=true)
+}
+
+///|
+async fn TransactionCoordinator::attach(
+  conn : Connection,
+  tc_id : UInt64,
+  owns_connection~ : Bool,
+) -> TransactionCoordinator {
+  let coord : TransactionCoordinator = { conn, tc_id, owns_connection, }
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_REQUEST
   let req = @proto.CommandTcClientConnectRequest::default()
@@ -45,7 +58,9 @@ pub async fn TransactionCoordinator::connect(
 ///|
 /// Close the coordinator's connection.
 pub fn TransactionCoordinator::close(self : TransactionCoordinator) -> Unit {
-  self.conn.close()
+  if self.owns_connection {
+    self.conn.close()
+  }
 }
 
 ///|

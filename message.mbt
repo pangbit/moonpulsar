@@ -142,6 +142,17 @@ pub struct Message {
   priv producer_name : String
   priv sequence_id : UInt64?
   priv redelivery_count : UInt
+  priv ack_tracker : Map[MessageId, Int]?
+  priv chunk_ids : Array[MessageId]?
+  priv chunk_tracker : Map[MessageId, Array[MessageId]]?
+  priv on_delivery : ((Message) -> Unit)?
+}
+
+///|
+fn Message::mark_delivered(self : Message) -> Unit {
+  if self.on_delivery is Some(callback) {
+    callback(self)
+  }
 }
 
 ///|
@@ -198,22 +209,34 @@ pub fn Message::redelivery_count(self : Message) -> UInt {
 ///|
 /// Acknowledge this message individually.
 pub async fn Message::ack(self : Message) -> Unit {
+  if self.ack_tracker is Some(pending) {
+    pending.remove(self.id)
+  }
+  if self.chunk_tracker is Some(chunks) {
+    chunks.remove(self.id)
+  }
   send_ack(
     self.conn_ref.val,
     self.consumer_id,
     @proto.CommandAck_AckType::Individual,
-    [self.id],
+    self.chunk_ids.unwrap_or([self.id]),
   )
 }
 
 ///|
 /// Acknowledge this message as part of a transaction.
 pub async fn Message::ack_txn(self : Message, txn : Transaction) -> Unit {
+  if self.ack_tracker is Some(pending) {
+    pending.remove(self.id)
+  }
+  if self.chunk_tracker is Some(chunks) {
+    chunks.remove(self.id)
+  }
   send_ack(
     self.conn_ref.val,
     self.consumer_id,
     @proto.CommandAck_AckType::Individual,
-    [self.id],
+    self.chunk_ids.unwrap_or([self.id]),
     txn~,
   )
 }
@@ -221,7 +244,17 @@ pub async fn Message::ack_txn(self : Message, txn : Transaction) -> Unit {
 ///|
 /// Negatively acknowledge this message, triggering redelivery.
 pub async fn Message::nack(self : Message) -> Unit {
-  send_redeliver(self.conn_ref.val, self.consumer_id, [self.id])
+  if self.ack_tracker is Some(pending) {
+    pending.remove(self.id)
+  }
+  if self.chunk_tracker is Some(chunks) {
+    chunks.remove(self.id)
+  }
+  send_redeliver(
+    self.conn_ref.val,
+    self.consumer_id,
+    self.chunk_ids.unwrap_or([self.id]),
+  )
 }
 
 ///|

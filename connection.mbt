@@ -24,6 +24,8 @@ pub struct Connection {
   priv addr : String
   priv reader : &@io.Reader
   priv writer : &@io.Writer
+  priv auth : AuthData?
+  priv auth_provider : (() -> AuthData)?
   priv close_transport : () -> Unit
   priv mut next_id : UInt64
   priv pending : Map[UInt64, PendingRequest]
@@ -55,12 +57,17 @@ pub async fn Connection::connect(
   group : @async.TaskGroup[Unit],
   addr : String,
   auth? : AuthData,
+  auth_provider? : () -> AuthData,
   tls? : Bool = false,
   /// skip certificate verification (self-signed / testing only)
   tls_insecure? : Bool = false,
   keepalive_interval_ms? : Int = KEEPALIVE_INTERVAL_MS,
   timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
 ) -> Connection {
+  let auth = match auth_provider {
+    Some(provider) => Some(provider())
+    None => auth
+  }
   let (host, port) = split_host_port(addr)
   let tcp = @socket.Tcp::connect_to_host(host, port~) catch {
     _ => raise ConnectFailed(addr)
@@ -77,6 +84,8 @@ pub async fn Connection::connect(
     addr,
     reader,
     writer,
+    auth,
+    auth_provider,
     close_transport,
     next_id: 0,
     pending: {},
@@ -89,6 +98,7 @@ pub async fn Connection::connect(
     remote_version: "",
     remote_protocol_version: 0,
   }
+  errdefer conn.close()
   // handshake before any background traffic
   let connect = @proto.CommandConnect::default()
   connect.client_version = "moonpulsar 0.1.0"
@@ -101,21 +111,34 @@ pub async fn Connection::connect(
   cmd.type_ = @proto.BaseCommand_Type::CONNECT
   cmd.connect = Some(connect)
   conn.send_bytes(encode_command_frame(cmd))
-  let reply = @async.with_timeout(timeout_ms, async fn() { conn.read_frame() }) catch {
-    @async.TimeoutError => raise ConnectFailed("handshake timeout: \{addr}")
-    e => raise e
+  let mut connected = false
+  for _ in 0..<8 {
+    let reply = @async.with_timeout(timeout_ms, async fn() { conn.read_frame() }) catch {
+      @async.TimeoutError => raise ConnectFailed("handshake timeout: \{addr}")
+      e => raise e
+    }
+    match reply.cmd.type_ {
+      @proto.BaseCommand_Type::CONNECTED => {
+        guard reply.cmd.connected is Some(info) else {
+          raise ConnectFailed("CONNECTED without broker information")
+        }
+        conn.remote_version = info.server_version
+        conn.remote_protocol_version = info.protocol_version.unwrap_or(0)
+        connected = true
+        break
+      }
+      @proto.BaseCommand_Type::AUTH_CHALLENGE => conn.respond_to_challenge()
+      @proto.BaseCommand_Type::ERROR =>
+        if reply.cmd.error is Some(err) {
+          raise ConnectFailed("broker rejected CONNECT: " + err.message)
+        } else {
+          raise ConnectFailed("broker rejected CONNECT")
+        }
+      _ => raise ConnectFailed("unexpected handshake response from \{addr}")
+    }
   }
-  match reply.cmd.type_ {
-    @proto.BaseCommand_Type::CONNECTED =>
-      if reply.cmd.connected is Some(connected) {
-        conn.remote_version = connected.server_version
-        conn.remote_protocol_version = connected.protocol_version.unwrap_or(0)
-      }
-    @proto.BaseCommand_Type::ERROR =>
-      if reply.cmd.error is Some(err) {
-        raise ConnectFailed("broker rejected CONNECT: " + err.message)
-      }
-    _ => raise ConnectFailed("unexpected handshake response from \{addr}")
+  if !connected {
+    raise ConnectFailed("too many authentication challenges from \{addr}")
   }
   group.spawn_bg(
     async fn() { conn.reader_loop() },
@@ -128,6 +151,28 @@ pub async fn Connection::connect(
     allow_failure=true,
   )
   conn
+}
+
+///|
+async fn Connection::respond_to_challenge(self : Connection) -> Unit {
+  let current = match self.auth_provider {
+    Some(provider) => Some(provider())
+    None => self.auth
+  }
+  guard current is Some(auth) else {
+    raise ConnectFailed("broker requested authentication without credentials")
+  }
+  let response = @proto.CommandAuthResponse::default()
+  response.client_version = Some("moonpulsar 0.1.0")
+  response.protocol_version = Some(PROTOCOL_VERSION)
+  let data = @proto.AuthData::default()
+  data.auth_method_name = Some(auth.method_name)
+  data.auth_data = Some(auth.data)
+  response.response = Some(data)
+  let cmd = @proto.BaseCommand::default()
+  cmd.type_ = @proto.BaseCommand_Type::AUTH_RESPONSE
+  cmd.auth_response = Some(response)
+  self.send_command(cmd)
 }
 
 ///|
@@ -413,6 +458,13 @@ pub fn split_host_port(addr : String) -> (String, Int) raise PulsarError {
 async fn Connection::dispatch(self : Connection, frame : IncomingFrame) -> Unit {
   let cmd = frame.cmd
   match cmd.type_ {
+    @proto.BaseCommand_Type::AUTH_CHALLENGE =>
+      self.respond_to_challenge() catch {
+        e => {
+          self.notify_closed(Some(e))
+          (self.close_transport)()
+        }
+      }
     @proto.BaseCommand_Type::PING => {
       let pong = @proto.BaseCommand::default()
       pong.type_ = @proto.BaseCommand_Type::PONG
