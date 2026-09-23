@@ -1,5 +1,4 @@
-// Schema declaration: produce with the built-in String schema so schema-
-// aware consumers (Java/Python) decode payloads as strings.
+// Schema declaration and typed payload conversion.
 
 ///|
 async fn main {
@@ -11,23 +10,21 @@ async fn main {
       None => @pulsar.Client::connect(group, url)
     }
     let topic = "persistent://public/default/moonpulsar-schema"
-    let producer = client.create_producer(
-      topic,
-      schema=@pulsar.SchemaInfo::string(),
-    )
+    let codec = @pulsar.SchemaCodec::string()
+    let producer = client.create_producer(topic, schema=codec.info())
     ignore(
       producer.send(
-        @pulsar.ProducerMessage::new(@utf8.encode("string-schema message")),
+        @pulsar.ProducerMessage::new(codec.encode("string-schema message")),
       ),
     )
     let consumer = client.create_consumer(
       topic,
       "schema-subscription",
       initial_position=Earliest,
-      schema=@pulsar.SchemaInfo::string(),
+      schema=codec.info(),
     )
     let message = consumer.receive()
-    println("received: \{@utf8.decode(message.payload())}")
+    println("received: \{message.decode(codec)}")
     message.ack()
     consumer.close()
     producer.close()

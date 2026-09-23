@@ -30,7 +30,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 - TableView: raw-byte key/value snapshot from a compacted reader, live updates, tombstone deletion, and change listeners
 - Transactions: coordinator ownership lookup, `new_transaction` / `commit` / `abort`, transactional send and ack
 - Admin REST API: topic create/delete, partitioned topic create/expand/delete and metadata, list topics and partitioned topics, list/delete subscriptions, topic and partitioned-topic stats
-- Schema declaration: producers/consumers declare `SchemaInfo` (String/JSON/Avro/Protobuf/raw) on creation
+- Schema declaration: producers/consumers declare `SchemaInfo` (String/JSON/Avro/Protobuf/raw) on creation; `SchemaCodec[T]` encodes and decodes STRING and JSON payloads or uses custom callbacks
 - Delayed delivery: `deliver_at` / `deliver_after` on `ProducerMessage`
 - Timestamp seek for readers
 
@@ -38,7 +38,7 @@ Not yet / known gaps:
 
 - Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
 - The tested Pulsar 4.2.4 broker rejected creation of partitioned metadata over an existing non-partitioned topic with HTTP 409. Migrate data into a new partitioned topic when this change is needed.
-- Retry-letter handling uses a separate `create_retry_consumer` constructor; the standard multi-topic and pattern constructors do not automatically add retry topics. OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
+- Retry-letter handling uses a separate `create_retry_consumer` constructor; the standard multi-topic and pattern constructors do not automatically add retry topics. OAuth2/Athenz/TLS-certificate authentication, encryption, and typed Avro/Protobuf serialization are not implemented.
 - Chunking requires an explicit `chunk_size`; broker maximum-message-size discovery and configurable chunk expiry are not implemented.
 - `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; custom CA handshake and reconnection are covered by a local TLS mock, while the live broker run used plain TCP with token auth. The current TLS client API does not expose a client certificate for mutual TLS.
 
@@ -59,6 +59,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - producer exclusive access rejects a competing producer; wait-for-exclusive becomes ready after the owner closes
 - dead-letter routing after explicit NACK, with source ACK after publish and preserved message metadata
 - retry-letter delivery through a Shared subscription after a 5-second delay, then transfer to DLQ when the retry limit is exceeded
+- STRING and JSON schema declaration with typed payload encode/decode roundtrips
 
 ## Requirements
 

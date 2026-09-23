@@ -172,7 +172,11 @@ async fn main {
       let retry_dead_letter_topic = "persistent://public/default/\{prefix}-retry-dlq"
       let partitioned_topic = "persistent://public/default/\{prefix}-admin-partitioned"
       let volatile_topic = "non-persistent://public/default/\{prefix}-admin-volatile"
+      let string_schema_topic = "persistent://public/default/\{prefix}-schema-string"
+      let json_schema_topic = "persistent://public/default/\{prefix}-schema-json"
       admin.create_topic(admin_topic)
+      admin.create_topic(string_schema_topic)
+      admin.create_topic(json_schema_topic)
       admin.create_topic(table_topic)
       admin.create_topic(dead_letter_source)
       admin.create_topic(dead_letter_topic)
@@ -316,6 +320,55 @@ async fn main {
         .contains(volatile_topic),
       )
       admin.create_partitioned_topic(partitioned_topic, 2)
+      let string_codec = @pulsar.SchemaCodec::string()
+      let string_producer = client.create_producer(
+        string_schema_topic,
+        schema=string_codec.info(),
+      )
+      let string_consumer = client.create_consumer(
+        string_schema_topic,
+        "\{prefix}-schema-string-sub",
+        initial_position=Earliest,
+        schema=string_codec.info(),
+      )
+      ignore(
+        string_producer.send(
+          @pulsar.ProducerMessage::new(string_codec.encode("typed string")),
+        ),
+      )
+      let string_message = @async.with_timeout(10000, async fn() {
+        string_consumer.receive()
+      })
+      assert_eq(string_message.decode(string_codec), "typed string")
+      string_message.ack()
+      string_consumer.close()
+      string_producer.close()
+      let json_codec : @pulsar.SchemaCodec[Map[String, Int]] = @pulsar.SchemaCodec::json(
+        b"{\"type\":\"record\",\"name\":\"Count\",\"fields\":[{\"name\":\"count\",\"type\":\"int\"}]}",
+      )
+      let json_producer = client.create_producer(
+        json_schema_topic,
+        schema=json_codec.info(),
+      )
+      let json_consumer = client.create_consumer(
+        json_schema_topic,
+        "\{prefix}-schema-json-sub",
+        initial_position=Earliest,
+        schema=json_codec.info(),
+      )
+      let value : Map[String, Int] = { "count": 7 }
+      ignore(
+        json_producer.send(
+          @pulsar.ProducerMessage::new(json_codec.encode(value)),
+        ),
+      )
+      let json_message = @async.with_timeout(10000, async fn() {
+        json_consumer.receive()
+      })
+      assert_eq(json_message.decode(json_codec), value)
+      json_message.ack()
+      json_consumer.close()
+      json_producer.close()
       assert_true(
         admin
         .list_partitioned_topics("public", "default")
@@ -437,6 +490,8 @@ async fn main {
         !admin.list_subscriptions(admin_topic).contains("\{prefix}-admin-sub"),
       )
       admin.delete_topic(admin_topic, force=true)
+      admin.delete_topic(string_schema_topic, force=true)
+      admin.delete_topic(json_schema_topic, force=true)
       admin.delete_topic(table_topic, force=true)
       admin.delete_topic(dead_letter_source, force=true)
       admin.delete_topic(dead_letter_topic, force=true)
@@ -468,7 +523,7 @@ async fn main {
     }
     client.close()
     println(
-      "live multi-topic, pattern discovery, dead-letter/retry, ack timeout, chunking, partition expansion, and coordinator lookup OK",
+      "live multi-topic, pattern discovery, dead-letter/retry, schema codecs, ack timeout, chunking, partition expansion, and coordinator lookup OK",
     )
   })
 }

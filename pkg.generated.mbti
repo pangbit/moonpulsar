@@ -6,6 +6,7 @@ import {
   "moonbitlang/async/io",
   "moonbitlang/async/tls",
   "moonbitlang/core/debug",
+  "moonbitlang/core/json",
   "pangbit/moonpulsar/proto",
 }
 
@@ -201,6 +202,7 @@ pub struct Message {
 }
 pub async fn Message::ack(Self) -> Unit
 pub async fn Message::ack_txn(Self, Transaction) -> Unit
+pub fn[T] Message::decode(Self, SchemaCodec[T]) -> T raise PulsarError
 pub fn Message::event_time(Self) -> UInt64?
 pub fn Message::id(Self) -> MessageId
 pub fn Message::key(Self) -> String?
@@ -292,6 +294,16 @@ pub(all) struct RetryPolicy {
   max_backoff_ms : Int
 } derive(@debug.Debug)
 pub fn RetryPolicy::default() -> Self
+
+pub struct SchemaCodec[T] {
+  // private fields
+}
+pub fn[T] SchemaCodec::decode(Self[T], Bytes) -> T raise PulsarError
+pub fn[T] SchemaCodec::encode(Self[T], T) -> Bytes raise PulsarError
+pub fn[T] SchemaCodec::info(Self[T]) -> SchemaInfo
+pub fn[T : ToJson + @json.FromJson] SchemaCodec::json(Bytes) -> Self[T]
+pub fn[T] SchemaCodec::new(SchemaInfo, (T) -> Bytes raise PulsarError, (Bytes) -> T raise PulsarError) -> Self[T]
+pub fn SchemaCodec::string() -> Self[String]
 
 pub(all) struct SchemaInfo {
   name : String
