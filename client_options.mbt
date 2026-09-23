@@ -14,6 +14,8 @@ pub struct ClientOptions {
   priv listener_name : String?
   priv lookup_properties : Map[String, String]
   priv reconnect_policy : RetryPolicy
+  priv max_connections_per_broker : Int
+  priv connection_idle_timeout_ms : Int?
 }
 
 ///|
@@ -29,6 +31,8 @@ pub fn ClientOptions::new(
   listener_name? : String,
   lookup_properties? : Map[String, String] = {},
   reconnect_policy? : RetryPolicy = RetryPolicy::default(),
+  max_connections_per_broker? : Int = 1,
+  connection_idle_timeout_ms? : Int,
 ) -> ClientOptions raise PulsarError {
   guard connection_timeout_ms > 0 &&
     operation_timeout_ms > 0 &&
@@ -49,6 +53,12 @@ pub fn ClientOptions::new(
     reconnect_policy.max_backoff_ms >= reconnect_policy.initial_backoff_ms else {
     raise InvalidFrame("invalid reconnect retry policy")
   }
+  guard max_connections_per_broker > 0 else {
+    raise InvalidFrame("max connections per broker must be positive")
+  }
+  if connection_idle_timeout_ms is Some(timeout) && timeout <= 0 {
+    raise InvalidFrame("connection idle timeout must be positive")
+  }
   {
     service_url,
     auth,
@@ -61,6 +71,8 @@ pub fn ClientOptions::new(
     listener_name,
     lookup_properties,
     reconnect_policy,
+    max_connections_per_broker,
+    connection_idle_timeout_ms,
   }
 }
 

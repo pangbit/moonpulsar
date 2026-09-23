@@ -109,6 +109,8 @@ pub async fn Client::connect_with_options(
     keepalive_interval_ms=options.keepalive_interval_ms,
     listener_name?=options.listener_name,
     lookup_properties=options.lookup_properties,
+    max_connections_per_broker=options.max_connections_per_broker,
+    connection_idle_timeout_ms?=options.connection_idle_timeout_ms,
   )
   ignore(manager.get(addr))
   { manager, service_addr: addr, reconnect_policy: options.reconnect_policy, }

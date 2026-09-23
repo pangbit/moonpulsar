@@ -9,7 +9,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 ## Features
 
 - Connection management over TCP with the Pulsar binary protocol (`pulsar://`), handshake, keepalive and request/response correlation
-- `ClientOptions` for connection/operation timeouts, keepalive interval, advertised listener and lookup properties; asynchronous authentication providers and token-file reload on connection or challenge
+- `ClientOptions` for connection/operation timeouts, keepalive interval, per-broker connection pool size and idle eviction, advertised listener and lookup properties; asynchronous authentication providers and token-file reload on connection or challenge
 - Topic lookup with redirect following and connection pooling
 - Producer: synchronous and asynchronous send, shared/exclusive/wait-for-exclusive/fencing access modes, producer metadata, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation, optional pending-message limit with blocking or fail-fast admission, and in-flight send timeout
 - Consumer: Exclusive / Shared / Failover / KeyShared subscriptions (including auto-split and sticky hash-range policies), individual & cumulative ack with optional broker confirmation, negative ack with optional exponential redelivery backoff, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), batched message unpacking

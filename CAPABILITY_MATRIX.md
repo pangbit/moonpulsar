@@ -8,7 +8,7 @@ repository on 2026-09-23.
 | Capability | Status | Verification |
 | --- | --- | --- |
 | TCP handshake, lookup, pooling, keepalive, reconnection | Implemented | Mock broker; prior real-broker restart scenario |
-| Client configuration | Partial: connection/operation timeouts, keepalive, listener and lookup properties, reconnect backoff/attempts; pool sizing, idle eviction and memory limits open | Mock timeout, LOOKUP wire, invalid retry policy, and exhausted producer/consumer reconnect tests |
+| Client configuration | Partial: connection/operation timeouts, keepalive, listener and lookup properties, reconnect backoff/attempts, per-broker pool sizing and idle eviction; client-wide memory limit open | Mock timeout, LOOKUP wire, invalid retry policy, exhausted producer/consumer reconnect, pool bound/replacement and active-handler-aware idle eviction; two-connection live suite on 4.2.4 and 3.3.9 |
 | TLS service URL and custom PEM CA | Implemented, limited live verification | TLS mock validates a private CA, rejects an untrusted certificate, and reconnects with the same CA; runnable TLS example; excluded from the token-authenticated live run |
 | Binary-protocol token and basic auth | Implemented | Token: live broker; basic: unit test; Admin REST supports bearer token |
 | Auth challenge refresh | Implemented for data refresh | Handshake and post-handshake mock tests; challenge-specific algorithms remain open |

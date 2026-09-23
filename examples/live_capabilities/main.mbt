@@ -7,11 +7,22 @@ async fn main {
     "moonpulsar-live-capabilities",
   )
   @async.with_task_group(async fn(group) {
-    let client = match @env.get_env_var("PULSAR_TOKEN") {
-      Some(token) =>
-        @pulsar.Client::connect(group, url, auth=@pulsar.TokenAuth::new(token))
-      None => @pulsar.Client::connect(group, url)
+    let pool_size = if @env.get_env_var("PULSAR_TEST_POOL") is Some(_) {
+      2
+    } else {
+      1
     }
+    let options = match @env.get_env_var("PULSAR_TOKEN") {
+      Some(token) =>
+        @pulsar.ClientOptions::new(
+          url,
+          auth=@pulsar.TokenAuth::new(token),
+          max_connections_per_broker=pool_size,
+        )
+      None =>
+        @pulsar.ClientOptions::new(url, max_connections_per_broker=pool_size)
+    }
+    let client = @pulsar.Client::connect_with_options(group, options)
     let topic_a = "persistent://public/default/\{prefix}-a"
     let topic_b = "persistent://public/default/\{prefix}-b"
     let producer_a = client.create_producer(topic_a)

@@ -150,7 +150,7 @@ pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordin
 pub struct ClientOptions {
   // private fields
 }
-pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, listener_name? : String, lookup_properties? : Map[String, String], reconnect_policy? : RetryPolicy) -> Self raise PulsarError
+pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, listener_name? : String, lookup_properties? : Map[String, String], reconnect_policy? : RetryPolicy, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int) -> Self raise PulsarError
 
 pub(all) enum CompressionCodec {
   None
@@ -181,7 +181,7 @@ pub struct ConnectionManager {
 pub fn ConnectionManager::close(Self) -> Unit
 pub async fn ConnectionManager::get(Self, String) -> Connection
 pub fn ConnectionManager::is_closed(Self) -> Bool
-pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, listener_name? : String, lookup_properties? : Map[String, String], async_auth_provider? : async () -> AuthData) -> Self
+pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, listener_name? : String, lookup_properties? : Map[String, String], async_auth_provider? : async () -> AuthData, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int) -> Self raise PulsarError
 pub fn ConnectionManager::uses_tls(Self) -> Bool
 
 pub struct Consumer {
@@ -267,6 +267,8 @@ pub(all) enum NamespaceTopicMode {
 } derive(Eq, @debug.Debug)
 
 type PendingRequest
+
+type PoolConnection
 
 pub struct Producer {
   // private fields
