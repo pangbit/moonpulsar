@@ -47,6 +47,65 @@ async test "token file provider reloads the token" {
 }
 
 ///|
+async test "Athenz role token supplier refreshes on broker challenge" {
+  @async.with_task_group(async fn(group) {
+    let seen : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let challenge = @proto.BaseCommand::default()
+      challenge.type_ = @proto.BaseCommand_Type::AUTH_CHALLENGE
+      challenge.auth_challenge = Some(@proto.CommandAuthChallenge::default())
+      peer.send_command(challenge)
+      let reply = peer.next()
+      guard reply.cmd.auth_response is Some(response) &&
+        response.response is Some(data) else {
+        fail("expected Athenz AUTH_RESPONSE")
+      }
+      seen.put(
+        data.auth_method_name == Some("athenz") &&
+        data.auth_data == Some(b"role-2"),
+      )
+    })
+    let calls : Ref[Int] = { val: 0, }
+    let provider = athenz_role_token_provider(async fn() {
+      calls.val += 1
+      "role-\{calls.val}"
+    })
+    let client = Client::connect_with_options(
+      group,
+      ClientOptions::new("pulsar://\{addr}", auth_provider=provider),
+    )
+    assert_true(@async.with_timeout(1000, async fn() { seen.get() }))
+    assert_eq(calls.val, 2)
+    client.close()
+  })
+}
+
+///|
+async test "Athenz role token file rotates and empty tokens fail" {
+  let dir = @fs.tmpdir(prefix="moonpulsar-athenz-")
+  let path = dir + "/role-token"
+  defer {
+    @fs.remove(path) catch {
+      _ => ()
+    }
+    @fs.rmdir(dir) catch {
+      _ => ()
+    }
+  }
+  @fs.write_file(path, "first\n")
+  let provider = athenz_role_token_file_provider(path)
+  assert_eq(provider().method_name, "athenz")
+  assert_eq(provider().data, b"first")
+  @fs.write_file(path, "second\n")
+  assert_eq(provider().data, b"second")
+  @fs.write_file(path, "  \n")
+  let empty : Result[AuthData, Error] = Ok(provider()) catch { e => Err(e) }
+  assert_true(empty is Err(AuthenticationFailed(_)))
+}
+
+///|
 async test "OAuth2 client credentials encode form and refresh tokens" {
   @async.with_task_group(async fn(group) {
     let calls : Ref[Int] = { val: 0, }

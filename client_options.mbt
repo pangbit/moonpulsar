@@ -88,6 +88,27 @@ pub fn token_file_provider(path : String) -> async () -> AuthData {
 }
 
 ///|
+/// Use an Athenz role token supplied by a sidecar or another ZTS client.
+/// The supplier is invoked on each connection and authentication challenge.
+pub fn athenz_role_token_provider(
+  supplier : async () -> String,
+) -> async () -> AuthData {
+  async fn() {
+    let token = supplier().trim().to_owned()
+    guard token != "" else {
+      raise AuthenticationFailed("empty Athenz role token")
+    }
+    { method_name: "athenz", data: @utf8.encode(token), }
+  }
+}
+
+///|
+/// Read an Athenz role token file afresh for each connection or challenge.
+pub fn athenz_role_token_file_provider(path : String) -> async () -> AuthData {
+  athenz_role_token_provider(async fn() { @fs.read_file(path).text() })
+}
+
+///|
 fn oauth2_form_component(value : String) -> String {
   let encoded = @buffer.Buffer()
   let digits = b"0123456789ABCDEF"

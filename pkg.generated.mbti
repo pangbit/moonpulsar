@@ -11,6 +11,10 @@ import {
 }
 
 // Values
+pub fn athenz_role_token_file_provider(String) -> async () -> AuthData
+
+pub fn athenz_role_token_provider(async () -> String) -> async () -> AuthData
+
 pub fn broker_addr_of(String) -> (String, Bool) raise PulsarError
 
 pub fn compress(CompressionCodec, Bytes) -> Bytes raise PulsarError

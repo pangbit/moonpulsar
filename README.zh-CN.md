@@ -20,7 +20,7 @@
 - 多 Topic 消费者，以及能够发现新增 Topic 并关闭已移除源的模式消费者
 - 复合消费者与 Reader 的有界合并队列；慢速应用会对源转发形成背压
 - 自动重连：连接断开后，生产者重放尚未确认的消息，消费者重新订阅；`ClientOptions` 可设置退避和有限重试次数
-- 二进制协议认证：可扩展的 `Authentication` trait，内置 token 与 basic auth；`ClientOptions::new(auth_provider=...)` 可使用轮换 Token 文件和 OAuth2 客户端凭据，broker 发出认证挑战时刷新认证数据
+- 二进制协议认证：可扩展的 `Authentication` trait，内置 token 与 basic auth；`ClientOptions::new(auth_provider=...)` 可使用轮换 Token 文件、OAuth2 客户端凭据和外部供应的 Athenz 角色令牌，broker 发出认证挑战时刷新认证数据
 - `pulsar+ssl://` TLS 连接：系统信任根或通过 `Client::connect_tls_with_ca` 提供自定义 PEM CA
 - LZ4（帧格式）、Zlib、Zstd 压缩；Snappy 的兼容性限制见下文
 - 分区 Topic：可选 key 哈希（默认）、轮询、固定单分区或自定义回调路由；生产者可读取最后确认的序列号；消费者聚合全部分区，生产者和消费者可发现新增分区（默认每 60 秒轮询）
@@ -37,7 +37,7 @@
 
 - Snappy 使用 **google framing** 变体，与 Go/Python 客户端一致；Java 客户端使用 xerial framing，不能解码这种格式。官方 Java 与 Go 客户端之间也存在这一差异。
 - 测试所用的 Pulsar 4.2.4 broker 在已有非分区 Topic 上创建分区元数据时返回 HTTP 409。需要转换时，应把数据迁移到新的分区 Topic。
-- 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz、TLS 客户端证书认证、加密和 Avro/Protobuf 类型化序列化尚未实现。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。
+- 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz ZTS 密钥/证书换取角色令牌、TLS 客户端证书、加密和 Avro/Protobuf 类型化序列化尚未实现。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。Athenz 角色令牌供应器目前只有 mock broker 验证。
 - 支持显式 `chunk_size` 或按 broker 协商上限自动分块；自动模式要求 broker 公布最大消息尺寸。尚未实现过期未完成分块的可选 ACK。
 - `send_timeout_ms` 从 SEND 帧登记时开始计时；缓冲中的批次可能先等待 flush 延时。超时不代表 broker 一定拒绝消息，重试时应使用稳定的生产者名称和序列号。
 - `Connection::max_message_size` 可读取 broker 握手报告的上限；生产者会按此限制编码后的帧，并可自动选择分块大小。
@@ -124,6 +124,7 @@ async fn main {
 | `examples/roundtrip` | 生产后消费的往返验证 |
 | `examples/auth_token` | token 认证（`PULSAR_TOKEN` 环境变量） |
 | `examples/oauth2` | 从令牌端点获取 OAuth2 客户端凭据 |
+| `examples/athenz` | 读取由 sidecar 维护的 Athenz 角色令牌文件 |
 | `examples/producer_compression` | Zstd 压缩负载 |
 | `examples/reader` | 从头回放 Topic |
 | `examples/live_capabilities` | 多 Topic、模式订阅、ACK 超时、seek、分块、事务和可选 Admin REST 的真实 broker 回归场景 |
