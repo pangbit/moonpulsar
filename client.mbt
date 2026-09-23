@@ -76,11 +76,39 @@ pub async fn Client::connect(
   service_url : String,
   auth? : &Authentication,
 ) -> Client {
-  let auth_provider = auth.map(fn(a) {
+  Client::connect_with_options(group, ClientOptions::new(service_url, auth?))
+}
+
+///|
+/// Connect using settings shared by all broker connections, including
+/// redirected lookups and reconnects.
+pub async fn Client::connect_with_options(
+  group : @async.TaskGroup[Unit],
+  options : ClientOptions,
+) -> Client {
+  let auth_provider = options.auth.map(fn(a) {
     fn() -> AuthData { { method_name: a.method_name(), data: a.auth_data(), } }
   })
-  let (addr, tls) = broker_addr_of(service_url)
-  let manager = ConnectionManager::new(group, auth_provider?, tls~)
+  let (addr, tls) = broker_addr_of(options.service_url)
+  if options.ca_pem_file is Some(_) && !tls {
+    raise InvalidFrame("TLS CA requires a pulsar+ssl URL")
+  }
+  let tls_trust = options.ca_pem_file.map(fn(path) {
+    @tls.TrustedRoot::CustomPemFile(path)
+  })
+  let manager = ConnectionManager::new(
+    group,
+    auth_provider?,
+    async_auth_provider?=options.auth_provider,
+    tls~,
+    tls_insecure=options.tls_insecure,
+    tls_trust?,
+    connection_timeout_ms=options.connection_timeout_ms,
+    operation_timeout_ms=options.operation_timeout_ms,
+    keepalive_interval_ms=options.keepalive_interval_ms,
+    listener_name?=options.listener_name,
+    lookup_properties=options.lookup_properties,
+  )
   ignore(manager.get(addr))
   { manager, service_addr: addr, }
 }
@@ -93,18 +121,10 @@ pub async fn Client::connect_tls_insecure(
   service_url : String,
   auth? : &Authentication,
 ) -> Client {
-  let auth_provider = auth.map(fn(a) {
-    fn() -> AuthData { { method_name: a.method_name(), data: a.auth_data(), } }
-  })
-  let (addr, tls) = broker_addr_of(service_url)
-  let manager = ConnectionManager::new(
+  Client::connect_with_options(
     group,
-    auth_provider?,
-    tls~,
-    tls_insecure=true,
+    ClientOptions::new(service_url, auth?, tls_insecure=true),
   )
-  ignore(manager.get(addr))
-  { manager, service_addr: addr, }
 }
 
 ///|
@@ -116,23 +136,16 @@ pub async fn Client::connect_tls_with_ca(
   ca_pem_file : String,
   auth? : &Authentication,
 ) -> Client {
-  let (addr, tls) = broker_addr_of(service_url)
+  let (_, tls) = broker_addr_of(service_url)
   guard tls && ca_pem_file != "" else {
     raise InvalidFrame(
       "TLS CA connection requires a pulsar+ssl URL and PEM file",
     )
   }
-  let auth_provider = auth.map(fn(a) {
-    fn() -> AuthData { { method_name: a.method_name(), data: a.auth_data(), } }
-  })
-  let manager = ConnectionManager::new(
+  Client::connect_with_options(
     group,
-    auth_provider?,
-    tls=true,
-    tls_trust=@tls.TrustedRoot::CustomPemFile(ca_pem_file),
+    ClientOptions::new(service_url, auth?, ca_pem_file~),
   )
-  ignore(manager.get(addr))
-  { manager, service_addr: addr, }
 }
 
 ///|
@@ -549,6 +562,10 @@ pub async fn Client::create_reader(
   receiver_queue_size? : Int = 1000,
   read_compacted? : Bool = false,
   partition_refresh_ms? : Int = 60000,
+  name? : String,
+  properties? : Map[String, String] = {},
+  subscription_name? : String,
+  subscription_role_prefix? : String = "reader",
 ) -> Reader {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -566,6 +583,10 @@ pub async fn Client::create_reader(
         start_message_id?,
         receiver_queue_size~,
         read_compacted~,
+        name?,
+        properties~,
+        subscription_name?,
+        subscription_role_prefix~,
       ),
     )
   }
@@ -579,6 +600,10 @@ pub async fn Client::create_reader(
       start_message_id?,
       receiver_queue_size~,
       read_compacted~,
+      name?,
+      properties~,
+      subscription_name?,
+      subscription_role_prefix~,
     )
   }
   let subs : Array[SingleReader] = []

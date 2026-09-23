@@ -1,6 +1,44 @@
 // Reader tests: non-durable subscription, end-of-topic, seek.
 
 ///|
+async test "reader name and properties are sent in SUBSCRIBE" {
+  @async.with_task_group(async fn(group) {
+    let checked : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.subscribe is Some(req) else { fail("expected SUBSCRIBE") }
+      checked.put(
+        req.subscription == "custom-reader" &&
+        req.consumer_name == Some("reader-name") &&
+        properties_of(req.metadata).get("team") == Some("moonbit"),
+      )
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = req.request_id
+      reply.success = Some(success)
+      peer.send_command(reply)
+      ignore(peer.next())
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let reader = SingleReader::create(
+      group,
+      conn,
+      "persistent://public/default/t",
+      name="reader-name",
+      properties={ "team": "moonbit" },
+      subscription_name="custom-reader",
+    )
+    assert_true(checked.get())
+    reader.close()
+    manager.close()
+  })
+}
+
+///|
 async test "single reader wakes next on broker disconnect" {
   @async.with_task_group(async fn(group) {
     let disconnect : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
@@ -107,7 +145,7 @@ async test "reader has_message_available via last message id" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {
       expect_subscribe(peer)
-      for _ in 0..<3 {
+      for _ in 0..<4 {
         let frame = peer.next()
         guard frame.cmd.get_last_message_id is Some(req) else {
           fail("expected GET_LAST_MESSAGE_ID")
@@ -130,6 +168,7 @@ async test "reader has_message_available via last message id" {
     let reader = SingleReader::create(
       group, conn, "persistent://public/default/t",
     )
+    assert_eq(Reader::one(reader).last_message_id().entry_id, 9UL)
     // last seen = latest position marker; broker reports 9:9 -> available
     assert_true(reader.has_message_available())
     reader.last_seen.val = Some({

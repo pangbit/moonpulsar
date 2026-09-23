@@ -47,6 +47,8 @@ pub fn snappy_decompress(Bytes) -> Bytes raise PulsarError
 
 pub fn split_host_port(String) -> (String, Int) raise PulsarError
 
+pub fn token_file_provider(String) -> async () -> AuthData
+
 pub async fn[T] with_retry(RetryPolicy, async () -> T) -> T
 
 pub fn xxhash32(BytesView) -> UInt
@@ -123,16 +125,22 @@ pub fn Client::close(Self) -> Unit
 pub async fn Client::connect(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
 pub async fn Client::connect_tls_insecure(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
 pub async fn Client::connect_tls_with_ca(@async.TaskGroup[Unit], String, String, auth? : &Authentication) -> Self
+pub async fn Client::connect_with_options(@async.TaskGroup[Unit], ClientOptions) -> Self
 pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_producer(Self, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Producer
-pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, partition_refresh_ms? : Int) -> Reader
+pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, partition_refresh_ms? : Int, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String) -> Reader
 pub async fn Client::create_retry_consumer(Self, String, String, String, DeadLetterPolicy, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_table_view(Self, String, partition_refresh_ms? : Int) -> TableView
 pub async fn Client::partitions_of(Self, String) -> Int
 pub async fn Client::topics_of_namespace(Self, String, pattern? : String, mode? : NamespaceTopicMode) -> Array[String]
 pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordinator
+
+pub struct ClientOptions {
+  // private fields
+}
+pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, listener_name? : String, lookup_properties? : Map[String, String]) -> Self raise PulsarError
 
 pub(all) enum CompressionCodec {
   None
@@ -146,8 +154,9 @@ pub struct Connection {
   // private fields
 }
 pub fn Connection::close(Self) -> Unit
-pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, keepalive_interval_ms? : Int, timeout_ms? : Int) -> Self
+pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, keepalive_interval_ms? : Int, timeout_ms? : Int, connection_timeout_ms? : Int, async_auth_provider? : async () -> AuthData) -> Self
 pub fn Connection::is_closed(Self) -> Bool
+pub fn Connection::max_message_size(Self) -> Int?
 pub fn Connection::next_request_id(Self) -> UInt64
 pub fn Connection::on_close(Self, (Error?) -> Unit) -> Unit
 pub fn Connection::remote_protocol_version(Self) -> Int
@@ -162,7 +171,7 @@ pub struct ConnectionManager {
 pub fn ConnectionManager::close(Self) -> Unit
 pub async fn ConnectionManager::get(Self, String) -> Connection
 pub fn ConnectionManager::is_closed(Self) -> Bool
-pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot) -> Self
+pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, listener_name? : String, lookup_properties? : Map[String, String], async_auth_provider? : async () -> AuthData) -> Self
 pub fn ConnectionManager::uses_tls(Self) -> Bool
 
 pub struct Consumer {
@@ -286,6 +295,7 @@ pub struct Reader {
 pub async fn Reader::close(Self) -> Unit
 pub async fn Reader::has_message_available(Self) -> Bool
 pub fn Reader::is_closed(Self) -> Bool
+pub async fn Reader::last_message_id(Self) -> MessageId
 pub async fn Reader::next(Self) -> Message?
 pub fn Reader::partitioned(@async.TaskGroup[Unit], Array[SingleReader]) -> Self
 pub async fn Reader::seek(Self, SeekPosition) -> Unit
@@ -305,9 +315,16 @@ pub fn RetryPolicy::default() -> Self
 pub struct SchemaCodec[T] {
   // private fields
 }
+pub fn SchemaCodec::bytes() -> Self[Bytes]
 pub fn[T] SchemaCodec::decode(Self[T], Bytes) -> T raise PulsarError
+pub fn SchemaCodec::double() -> Self[Double]
 pub fn[T] SchemaCodec::encode(Self[T], T) -> Bytes raise PulsarError
+pub fn SchemaCodec::float() -> Self[Float]
 pub fn[T] SchemaCodec::info(Self[T]) -> SchemaInfo
+pub fn SchemaCodec::int16() -> Self[Int]
+pub fn SchemaCodec::int32() -> Self[Int]
+pub fn SchemaCodec::int64() -> Self[Int64]
+pub fn SchemaCodec::int8() -> Self[Int]
 pub fn[T : ToJson + @json.FromJson] SchemaCodec::json(Bytes) -> Self[T]
 pub fn[T] SchemaCodec::new(SchemaInfo, (T) -> Bytes raise PulsarError, (Bytes) -> T raise PulsarError) -> Self[T]
 pub fn SchemaCodec::string() -> Self[String]
@@ -320,6 +337,12 @@ pub(all) struct SchemaInfo {
 } derive(Eq, @debug.Debug)
 pub fn SchemaInfo::avro(Bytes) -> Self
 pub fn SchemaInfo::bytes() -> Self
+pub fn SchemaInfo::double() -> Self
+pub fn SchemaInfo::float() -> Self
+pub fn SchemaInfo::int16() -> Self
+pub fn SchemaInfo::int32() -> Self
+pub fn SchemaInfo::int64() -> Self
+pub fn SchemaInfo::int8() -> Self
 pub fn SchemaInfo::json(Bytes) -> Self
 pub fn SchemaInfo::protobuf(Bytes) -> Self
 pub fn SchemaInfo::string() -> Self
@@ -369,8 +392,9 @@ pub struct SingleReader {
   // private fields
 }
 pub async fn SingleReader::close(Self) -> Unit
-pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool) -> Self
+pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String) -> Self
 pub async fn SingleReader::has_message_available(Self) -> Bool
+pub async fn SingleReader::last_message_id(Self) -> MessageId
 pub async fn SingleReader::next(Self) -> Message?
 pub async fn SingleReader::seek(Self, SeekPosition) -> Unit
 

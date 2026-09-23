@@ -54,6 +54,66 @@ pub fn SchemaInfo::bytes() -> SchemaInfo {
 }
 
 ///|
+pub fn SchemaInfo::int8() -> SchemaInfo {
+  {
+    name: "INT8",
+    type_: @proto.Schema_Type::Int8,
+    schema_data: b"",
+    properties: Map([]),
+  }
+}
+
+///|
+pub fn SchemaInfo::int16() -> SchemaInfo {
+  {
+    name: "INT16",
+    type_: @proto.Schema_Type::Int16,
+    schema_data: b"",
+    properties: Map([]),
+  }
+}
+
+///|
+pub fn SchemaInfo::int32() -> SchemaInfo {
+  {
+    name: "INT32",
+    type_: @proto.Schema_Type::Int32,
+    schema_data: b"",
+    properties: Map([]),
+  }
+}
+
+///|
+pub fn SchemaInfo::int64() -> SchemaInfo {
+  {
+    name: "INT64",
+    type_: @proto.Schema_Type::Int64,
+    schema_data: b"",
+    properties: Map([]),
+  }
+}
+
+///|
+pub fn SchemaInfo::float() -> SchemaInfo {
+  {
+    name: "FLOAT",
+    type_: @proto.Schema_Type::Float,
+    schema_data: b"",
+    properties: Map([]),
+  }
+}
+
+///|
+pub fn SchemaInfo::double() -> SchemaInfo {
+  {
+    name: "DOUBLE",
+    type_: @proto.Schema_Type::Double,
+    schema_data: b"",
+    properties: Map([]),
+  }
+}
+
+///|
 /// Avro schema with the given JSON definition.
 pub fn SchemaInfo::avro(definition : Bytes) -> SchemaInfo {
   {

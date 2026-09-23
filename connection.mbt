@@ -26,6 +26,7 @@ pub struct Connection {
   priv writer : &@io.Writer
   priv auth : AuthData?
   priv auth_provider : (() -> AuthData)?
+  priv async_auth_provider : (async () -> AuthData)?
   priv close_transport : () -> Unit
   priv mut next_id : UInt64
   priv pending : Map[UInt64, PendingRequest]
@@ -41,6 +42,8 @@ pub struct Connection {
   priv write_mu : @async.Mutex
   priv mut remote_version : String
   priv mut remote_protocol_version : Int
+  priv mut max_message_size : Int?
+  priv request_timeout_ms : Int
 }
 
 ///|
@@ -64,15 +67,27 @@ pub async fn Connection::connect(
   tls_trust? : @tls.TrustedRoot,
   keepalive_interval_ms? : Int = KEEPALIVE_INTERVAL_MS,
   timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
+  connection_timeout_ms? : Int = 10000,
+  async_auth_provider? : async () -> AuthData,
 ) -> Connection {
-  let auth = match auth_provider {
+  guard timeout_ms > 0 && connection_timeout_ms > 0 && keepalive_interval_ms > 0 else {
+    raise InvalidFrame("connection timeouts must be positive")
+  }
+  let auth = match async_auth_provider {
     Some(provider) => Some(provider())
-    None => auth
+    None =>
+      match auth_provider {
+        Some(provider) => Some(provider())
+        None => auth
+      }
   }
   let (host, port) = split_host_port(addr)
-  let tcp = @socket.Tcp::connect_to_host(host, port~) catch {
+  let tcp = @async.with_timeout(connection_timeout_ms, async fn() {
+    @socket.Tcp::connect_to_host(host, port~)
+  }) catch {
     _ => raise ConnectFailed(addr)
   }
+  errdefer tcp.close()
   let (reader, writer, close_transport) : (&@io.Reader, &@io.Writer, () -> Unit) = if tls {
     let trust = match tls_trust {
       Some(root) => root
@@ -83,7 +98,9 @@ pub async fn Connection::connect(
           @tls.TrustedRoot::SystemRoot
         }
     }
-    let tls_conn = @tls.Tls::client(tcp, host~, trust~) catch {
+    let tls_conn = @async.with_timeout(connection_timeout_ms, async fn() {
+      @tls.Tls::client(tcp, host~, trust~)
+    }) catch {
       e => raise ConnectFailed("TLS handshake with \{addr} failed: \{e}")
     }
     (tls_conn, tls_conn, fn() { tls_conn.close() })
@@ -96,6 +113,7 @@ pub async fn Connection::connect(
     writer,
     auth,
     auth_provider,
+    async_auth_provider,
     close_transport,
     next_id: 0,
     pending: {},
@@ -107,6 +125,8 @@ pub async fn Connection::connect(
     write_mu: @async.Mutex::Mutex(),
     remote_version: "",
     remote_protocol_version: 0,
+    max_message_size: None,
+    request_timeout_ms: timeout_ms,
   }
   errdefer conn.close()
   // handshake before any background traffic
@@ -134,6 +154,7 @@ pub async fn Connection::connect(
         }
         conn.remote_version = info.server_version
         conn.remote_protocol_version = info.protocol_version.unwrap_or(0)
+        conn.max_message_size = info.max_message_size
         connected = true
         break
       }
@@ -165,9 +186,13 @@ pub async fn Connection::connect(
 
 ///|
 async fn Connection::respond_to_challenge(self : Connection) -> Unit {
-  let current = match self.auth_provider {
+  let current = match self.async_auth_provider {
     Some(provider) => Some(provider())
-    None => self.auth
+    None =>
+      match self.auth_provider {
+        Some(provider) => Some(provider())
+        None => self.auth
+      }
   }
   guard current is Some(auth) else {
     raise ConnectFailed("broker requested authentication without credentials")
@@ -331,8 +356,9 @@ fn request_id_of(cmd : @proto.BaseCommand) -> UInt64? {
 pub async fn Connection::request(
   self : Connection,
   cmd : @proto.BaseCommand,
-  timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
+  timeout_ms? : Int,
 ) -> @proto.BaseCommand {
+  let timeout_ms = timeout_ms.unwrap_or(self.request_timeout_ms)
   guard request_id_of(cmd) is Some(id) else {
     raise UnexpectedResponse("command carries no request id")
   }
@@ -413,6 +439,12 @@ pub fn Connection::server_version(self : Connection) -> String {
 /// Protocol version reported by the broker during the handshake.
 pub fn Connection::remote_protocol_version(self : Connection) -> Int {
   self.remote_protocol_version
+}
+
+///|
+/// Maximum frame payload announced by the broker, when available.
+pub fn Connection::max_message_size(self : Connection) -> Int? {
+  self.max_message_size
 }
 
 ///|

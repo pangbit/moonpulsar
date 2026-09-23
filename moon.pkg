@@ -5,6 +5,7 @@ import {
   "moonbitlang/async/io",
   "moonbitlang/async/aqueue",
   "moonbitlang/async/socket",
+  "moonbitlang/async/fs",
   "moonbitlang/async/tls",
   "moonbitlang/async/http",
   "moonbitlang/core/buffer",

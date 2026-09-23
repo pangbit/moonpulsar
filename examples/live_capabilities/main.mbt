@@ -175,6 +175,7 @@ async fn main {
       let volatile_topic = "non-persistent://public/default/\{prefix}-admin-volatile"
       let string_schema_topic = "persistent://public/default/\{prefix}-schema-string"
       let json_schema_topic = "persistent://public/default/\{prefix}-schema-json"
+      let int64_schema_topic = "persistent://public/default/\{prefix}-schema-int64"
       let admin_backlog_topic = "persistent://public/default/\{prefix}-admin-backlog"
       admin.create_topic(admin_topic)
       admin.update_topic_properties(admin_topic, {
@@ -187,6 +188,7 @@ async fn main {
       admin.create_topic(admin_backlog_topic)
       admin.create_topic(string_schema_topic)
       admin.create_topic(json_schema_topic)
+      admin.create_topic(int64_schema_topic)
       admin.create_topic(table_topic)
       admin.create_topic(dead_letter_source)
       admin.create_topic(dead_letter_topic)
@@ -379,6 +381,29 @@ async fn main {
       json_message.ack()
       json_consumer.close()
       json_producer.close()
+      let int64_codec = @pulsar.SchemaCodec::int64()
+      let int64_producer = client.create_producer(
+        int64_schema_topic,
+        schema=int64_codec.info(),
+      )
+      let int64_consumer = client.create_consumer(
+        int64_schema_topic,
+        "\{prefix}-schema-int64-sub",
+        initial_position=Earliest,
+        schema=int64_codec.info(),
+      )
+      ignore(
+        int64_producer.send(
+          @pulsar.ProducerMessage::new(int64_codec.encode(-123456789L)),
+        ),
+      )
+      let int64_message = @async.with_timeout(10000, async fn() {
+        int64_consumer.receive()
+      })
+      assert_eq(int64_message.decode(int64_codec), -123456789L)
+      int64_message.ack()
+      int64_consumer.close()
+      int64_producer.close()
       let backlog_producer = client.create_producer(admin_backlog_topic)
       ignore(backlog_producer.send(@pulsar.ProducerMessage::new(b"skip-this")))
       ignore(backlog_producer.send(@pulsar.ProducerMessage::new(b"keep-this")))
@@ -556,6 +581,7 @@ async fn main {
       admin.delete_topic(admin_backlog_topic, force=true)
       admin.delete_topic(string_schema_topic, force=true)
       admin.delete_topic(json_schema_topic, force=true)
+      admin.delete_topic(int64_schema_topic, force=true)
       admin.delete_topic(table_topic, force=true)
       admin.delete_topic(dead_letter_source, force=true)
       admin.delete_topic(dead_letter_topic, force=true)

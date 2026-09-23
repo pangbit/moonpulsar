@@ -8,9 +8,11 @@ repository on 2026-09-23.
 | Capability | Status | Verification |
 | --- | --- | --- |
 | TCP handshake, lookup, pooling, keepalive, reconnection | Implemented | Mock broker; prior real-broker restart scenario |
+| Client configuration | Partial: connection/operation timeouts, keepalive, listener and lookup properties; pool sizing, idle eviction and memory limits open | Mock timeout and LOOKUP wire tests |
 | TLS service URL and custom PEM CA | Implemented, limited live verification | TLS mock validates a private CA, rejects an untrusted certificate, and reconnects with the same CA; runnable TLS example; excluded from the token-authenticated live run |
 | Binary-protocol token and basic auth | Implemented | Token: live broker; basic: unit test; Admin REST supports bearer token |
 | Auth challenge refresh | Implemented for data refresh | Handshake and post-handshake mock tests; challenge-specific algorithms remain open |
+| Async auth provider and rotating token file | Implemented | Local file rotation and broker challenge mock tests; no live token rotation run yet |
 | Producer send, async receipt, batching, compression, delayed delivery | Implemented | Mock broker and prior live broker scenarios |
 | Producer access modes, metadata, and reconnect epoch | Implemented | Mock wire, wait-ready, and reconnect tests; live exclusive conflict and wait-for-exclusive takeover |
 | Producer chunking and compressed chunking | Implemented with explicit size | Wire-level mock and live Pulsar 4.2.4 |
@@ -21,10 +23,10 @@ repository on 2026-09-23.
 | Consumer options, ack/nack, ack timeout, seek, unsubscribe | Implemented | Mock tests; ack timeout and ID seek live |
 | Exponential negative-ack backoff | Implemented for `Message::nack` | Timing and close-cancellation mock tests; live broker redelivery |
 | Chunk reassembly and ACK | Implemented with bounded memory | Mock wire tests and live consumer/reader replay |
-| Reader, seek, replay, and added-partition discovery | Implemented for initially partitioned topics | Mock one-to-two expansion, bounded slow-reader forwarding, and disconnect wakeup; live two-to-three expansion |
+| Reader, seek, replay, and added-partition discovery | Implemented for initially partitioned topics; custom name/properties/subscription and last-message ID added; inclusive start and chunk expiry open | Mock one-to-two expansion, SUBSCRIBE metadata, last-ID query, bounded slow-reader forwarding, and disconnect wakeup; live two-to-three expansion |
 | Transaction coordinator lookup and transaction lifecycle | Implemented | Mock tests and live coordinator/abort; prior live commit/read-back |
 | Admin topic and subscription operations | Selected endpoints implemented, including partitioned-topic list/stats, topic properties, and subscription create/skip/expire | Mock HTTP path, body, JSON-shape, and invalid-input tests; live create/expand/query/stats/delete, topic property updates, and subscription cursor/backlog behavior |
-| Schema declaration and typed payload conversion | STRING and JSON codecs plus custom codec callbacks implemented | Local Unicode, malformed payload, JSON type-mismatch and custom-codec tests; STRING and JSON broker roundtrips with schema declaration. Avro and Protobuf typed conversion remain open |
+| Schema declaration and typed payload conversion | STRING, JSON, BYTES and integer/float primitive codecs plus custom callbacks implemented | Local wire-byte, range and malformed-payload tests for primitives; STRING, JSON and INT64 broker roundtrips. Official-client primitive interop and Avro/Protobuf typed conversion remain open |
 | Dead-letter policy | Implemented for consumer delivery and negative ack; producer created when the consumer is created | Mock publish-before-ACK, send-failure NACK, direct consumer NACK, composite non-blocking receive, and live broker explicit-NACK routing (including a broker that reports redelivery count zero) |
 | Retry-letter topic policy | Implemented through explicit `create_retry_consumer` and `reconsume_later` for a source topic; standard multi-topic/pattern constructors do not auto-add retry topics | Mock retry then DLQ publish-before-ACK, send-failure NACK; live Shared subscription delayed retry and DLQ escalation |
 | TableView (raw payload values) | Implemented | Mock initial replay/live updates/empty topic/query failure; live broker update, tombstone, and added partition |

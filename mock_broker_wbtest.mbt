@@ -57,6 +57,7 @@ fn MockPeer::unread(self : MockPeer, frame : IncomingFrame) -> Unit {
 async fn start_mock_broker(
   group : @async.TaskGroup[Unit],
   on_peer : async (String, MockPeer) -> Unit,
+  max_message_size? : Int,
 ) -> String {
   let server = @socket.TcpServer::TcpServer(@socket.Addr::parse("127.0.0.1:0"))
   let addr = server.addr.to_string()
@@ -94,6 +95,7 @@ async fn start_mock_broker(
       let c = @proto.CommandConnected::default()
       c.server_version = "mock-broker 1.0"
       c.protocol_version = Some(21)
+      c.max_message_size = max_message_size
       connected.connected = Some(c)
       peer.send_command(connected)
       on_peer(addr, peer)

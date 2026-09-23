@@ -56,6 +56,8 @@ pub async fn lookup_topic(
     lookup.topic = topic
     lookup.request_id = conn.next_request_id()
     lookup.authoritative = Some(authoritative)
+    lookup.advertised_listener_name = manager.listener_name
+    lookup.properties = key_values_of(manager.lookup_properties)
     let cmd = @proto.BaseCommand::default()
     cmd.type_ = @proto.BaseCommand_Type::LOOKUP
     cmd.lookup_topic = Some(lookup)

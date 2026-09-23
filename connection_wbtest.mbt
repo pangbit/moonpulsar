@@ -13,6 +13,20 @@ async test "handshake completes and reports server version" {
 }
 
 ///|
+async test "handshake retains broker maximum message size" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(
+      group,
+      async fn(_addr, _peer) {  },
+      max_message_size=1048576,
+    )
+    let conn = Connection::connect(group, addr)
+    assert_eq(conn.max_message_size(), Some(1048576))
+    conn.close()
+  })
+}
+
+///|
 test "basic authentication uses Pulsar command credentials" {
   let basic = BasicAuth::new("alice", "secret")
   assert_eq(basic.method_name(), "basic")
@@ -70,6 +84,39 @@ async test "authentication challenge during handshake gets a response" {
     assert_eq(conn.server_version(), "mock-broker")
     assert_eq(calls.val, 2)
     conn.close()
+  })
+}
+
+///|
+async test "asynchronous authentication provider refreshes on challenge" {
+  @async.with_task_group(async fn(group) {
+    let seen : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let challenge = @proto.BaseCommand::default()
+      challenge.type_ = @proto.BaseCommand_Type::AUTH_CHALLENGE
+      challenge.auth_challenge = Some(@proto.CommandAuthChallenge::default())
+      peer.send_command(challenge)
+      let answer = peer.next()
+      guard answer.cmd.auth_response is Some(response) &&
+        response.response is Some(data) else {
+        fail("expected AUTH_RESPONSE")
+      }
+      seen.put(data.auth_data == Some(b"token-2"))
+    })
+    let calls : Ref[Int] = { val: 0, }
+    let client = Client::connect_with_options(
+      group,
+      ClientOptions::new("pulsar://\{addr}", auth_provider=async fn() {
+        calls.val += 1
+        @async.sleep(1)
+        { method_name: "token", data: @utf8.encode("token-\{calls.val}"), }
+      }),
+    )
+    assert_true(@async.with_timeout(1000, async fn() { seen.get() }))
+    assert_eq(calls.val, 2)
+    client.close()
   })
 }
 

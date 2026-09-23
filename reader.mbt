@@ -26,6 +26,8 @@ pub struct SingleReader {
   priv conn : Connection
   priv topic : String
   priv sub_name : String
+  priv reader_name : String?
+  priv properties : Map[String, String]
   priv mut consumer_id : UInt64
   priv events : @aqueue.Queue[ReaderEvent]
   priv conn_ref : Ref[Connection]
@@ -50,7 +52,14 @@ pub async fn SingleReader::create(
   start_message_id? : MessageId,
   receiver_queue_size? : Int = 1000,
   read_compacted? : Bool = false,
+  name? : String,
+  properties? : Map[String, String] = {},
+  subscription_name? : String,
+  subscription_role_prefix? : String = "reader",
 ) -> SingleReader {
+  guard subscription_name != Some("") && subscription_role_prefix != "" else {
+    raise InvalidFrame("reader subscription name or prefix must not be empty")
+  }
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
   let reader : SingleReader = {
@@ -60,10 +69,15 @@ pub async fn SingleReader::create(
     // unique per process and reader: non-durable subscriptions linger
     // briefly on the broker after disconnect, and a name collision would
     // inherit the previous cursor position
-    sub_name: "reader-" +
-    consumer_id.to_string() +
-    "-" +
-    @async.now().to_string(),
+    sub_name: subscription_name.unwrap_or(
+      subscription_role_prefix +
+      "-" +
+      consumer_id.to_string() +
+      "-" +
+      @async.now().to_string(),
+    ),
+    reader_name: name,
+    properties,
     consumer_id,
     events: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
     conn_ref: { val: conn, },
@@ -119,6 +133,8 @@ fn SingleReader::subscribe_command(
   subscribe.consumer_id = self.consumer_id
   subscribe.request_id = request_id
   subscribe.durable = Some(false)
+  subscribe.consumer_name = self.reader_name
+  subscribe.metadata = key_values_of(self.properties)
   match start_message_id {
     Some(id) => subscribe.start_message_id = Some(id.to_proto())
     None =>
@@ -331,17 +347,7 @@ pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
     self.requeue_front(event)
     return true
   }
-  let cmd = @proto.BaseCommand::default()
-  cmd.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID
-  let req = @proto.CommandGetLastMessageId::default()
-  req.consumer_id = self.consumer_id
-  req.request_id = self.conn.next_request_id()
-  cmd.get_last_message_id = Some(req)
-  let reply = self.conn.request(cmd)
-  guard reply.get_last_message_id_response is Some(resp) else {
-    raise UnexpectedResponse("expected GET_LAST_MESSAGE_ID_RESPONSE")
-  }
-  let last = MessageId::from_proto(resp.last_message_id)
+  let last = self.last_message_id()
   if last.ledger_id == 18446744073709551615 &&
     last.entry_id == 18446744073709551615 {
     return false
@@ -357,6 +363,28 @@ pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
       }
     None => true
   }
+}
+
+///|
+/// Return the broker's last message ID for this single-topic reader.
+pub async fn SingleReader::last_message_id(self : SingleReader) -> MessageId {
+  if self.closed.val {
+    if self.close_error.val is Some(error) {
+      raise error
+    }
+    raise ConsumerClosed
+  }
+  let cmd = @proto.BaseCommand::default()
+  cmd.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID
+  let req = @proto.CommandGetLastMessageId::default()
+  req.consumer_id = self.consumer_id
+  req.request_id = self.conn.next_request_id()
+  cmd.get_last_message_id = Some(req)
+  let reply = self.conn.request(cmd)
+  guard reply.get_last_message_id_response is Some(resp) else {
+    raise UnexpectedResponse("expected GET_LAST_MESSAGE_ID_RESPONSE")
+  }
+  MessageId::from_proto(resp.last_message_id)
 }
 
 ///|
@@ -642,6 +670,17 @@ pub async fn Reader::has_message_available(self : Reader) -> Bool {
       }
       false
     }
+  }
+}
+
+///|
+/// Return the last ID for a single-topic reader. A partitioned reader has
+/// multiple independent last IDs and must be queried per partition.
+pub async fn Reader::last_message_id(self : Reader) -> MessageId {
+  match self.inner {
+    ReaderImpl::One(r) => r.last_message_id()
+    ReaderImpl::Many(_) =>
+      raise InvalidFrame("partitioned reader has no single last message ID")
   }
 }
 
