@@ -75,12 +75,12 @@ async test "client rejects invalid consumer and chunking options before lookup" 
       e => Err(e)
     }
     assert_true(no_topics is Err(InvalidFrame(_)))
-    let no_queue : Result[Consumer, Error] = Ok(
-      client.create_consumer(topic, "sub", receiver_queue_size=0),
+    let negative_queue : Result[Consumer, Error] = Ok(
+      client.create_consumer(topic, "sub", receiver_queue_size=-1),
     ) catch {
       e => Err(e)
     }
-    assert_true(no_queue is Err(InvalidFrame(_)))
+    assert_true(negative_queue is Err(InvalidFrame(_)))
     let negative_timeout : Result[Consumer, Error] = Ok(
       client.create_consumer(topic, "sub", ack_timeout_ms=-1),
     ) catch {

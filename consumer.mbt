@@ -184,8 +184,11 @@ pub struct SingleConsumer {
   priv properties : Map[String, String]
   priv subscription_properties : Map[String, String]
   priv messages : @aqueue.Queue[Message]
+  priv mut buffered_messages : Int
   priv receiver_permits : Int
   priv mut available_permits : Int
+  priv mut demand_active : Bool
+  priv mut waiting_receives : Int
   priv ack_timeout_ms : Int
   priv nack_backoff : NackBackoff?
   priv nack_epoch : Ref[Int]
@@ -230,8 +233,8 @@ pub async fn SingleConsumer::create(
   guard ack_timeout_ms >= 0 else {
     raise InvalidFrame("ack timeout must not be negative")
   }
-  guard receiver_queue_size > 0 else {
-    raise InvalidFrame("receiver queue size must be positive")
+  guard receiver_queue_size >= 0 else {
+    raise InvalidFrame("receiver queue size must not be negative")
   }
   if key_shared_policy is Some(_) && sub_type != KeyShared {
     raise InvalidFrame("KeyShared policy requires KeyShared subscription")
@@ -254,8 +257,11 @@ pub async fn SingleConsumer::create(
     properties,
     subscription_properties,
     messages: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
+    buffered_messages: 0,
     receiver_permits: receiver_queue_size,
     available_permits: 0,
+    demand_active: false,
+    waiting_receives: 0,
     ack_timeout_ms,
     nack_backoff,
     nack_epoch: { val: 0, },
@@ -279,8 +285,10 @@ pub async fn SingleConsumer::create(
     raise UnexpectedResponse("expected SUCCESS for SUBSCRIBE")
   }
   // start the flow of messages
-  consumer.send_flow(receiver_queue_size)
-  consumer.available_permits = receiver_queue_size
+  if receiver_queue_size > 0 {
+    consumer.send_flow(receiver_queue_size)
+    consumer.available_permits = receiver_queue_size
+  }
   group.spawn_bg(
     async fn() {
       while !consumer.closed.val {
@@ -383,8 +391,7 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
     self.chunk_acks.clear()
     // the broker forgot our permits with the old connection; re-open the
     // flow window fully (messages buffered locally may over-deliver slightly)
-    self.send_flow(self.receiver_permits)
-    self.available_permits = self.receiver_permits
+    self.reset_flow()
   }
   let run = async fn() -> Unit {
     if policy.max_retries < 0 {
@@ -450,6 +457,35 @@ async fn SingleConsumer::send_flow(
 }
 
 ///|
+async fn SingleConsumer::reset_flow(self : SingleConsumer) -> Unit {
+  self.demand_active = false
+  self.available_permits = 0
+  if self.receiver_permits == 0 {
+    if self.waiting_receives > 0 && self.buffered_messages == 0 {
+      self.request_one()
+    }
+  } else {
+    self.send_flow(self.receiver_permits)
+    self.available_permits = self.receiver_permits
+  }
+}
+
+///|
+async fn SingleConsumer::request_one(self : SingleConsumer) -> Unit {
+  if self.receiver_permits == 0 &&
+    !self.demand_active &&
+    self.buffered_messages == 0 {
+    self.demand_active = true
+    self.send_flow(1) catch {
+      e => {
+        self.demand_active = false
+        raise e
+      }
+    }
+  }
+}
+
+///|
 fn SingleConsumer::on_frame(
   self : SingleConsumer,
   frame : IncomingFrame,
@@ -482,6 +518,9 @@ fn SingleConsumer::dispatch_message(
   frame : IncomingFrame,
 ) -> Unit raise {
   guard frame.cmd.message is Some(message) else { return }
+  if self.receiver_permits == 0 {
+    self.demand_active = false
+  }
   guard frame.metadata is Some(metadata) && frame.payload is Some(raw_payload) else {
     raise InvalidFrame("MESSAGE without payload")
   }
@@ -489,6 +528,9 @@ fn SingleConsumer::dispatch_message(
   let chunk = self.chunks.accept(metadata, base_id, raw_payload)
   guard chunk.payload is Some(assembled) else {
     if chunk.is_chunk {
+      if self.receiver_permits == 0 {
+        self.demand_active = true
+      }
       self.group.spawn_bg(
         async fn() { self.send_flow(1) catch { _ => () } },
         no_wait=true,
@@ -575,7 +617,9 @@ fn SingleConsumer::push_message(
     on_delivery=fn(m) { self.track_ack(m) },
     nack_scheduler?=scheduler,
   )
-  ignore(self.messages.try_put(message))
+  if self.messages.try_put(message) {
+    self.buffered_messages += 1
+  }
 }
 
 ///|
@@ -776,7 +820,23 @@ async fn SingleConsumer::receive_untracked(self : SingleConsumer) -> Message {
   if self.closed.val {
     raise ConsumerClosed
   }
+  if self.receiver_permits == 0 {
+    self.waiting_receives += 1
+    defer {
+      self.waiting_receives -= 1
+    }
+    self.request_one()
+    let message = self.messages.get()
+    self.buffered_messages -= 1
+    if self.waiting_receives > 1 && self.buffered_messages == 0 {
+      self.request_one() catch {
+        _ => ()
+      }
+    }
+    return message
+  }
   let message = self.messages.get()
+  self.buffered_messages -= 1
   self.available_permits -= 1
   let threshold = self.receiver_permits / 2
   if self.available_permits <= threshold {
@@ -802,6 +862,24 @@ fn SingleConsumer::try_receive_untracked(
   self : SingleConsumer,
 ) -> Message? raise {
   let message = self.messages.try_get() catch { _ => raise ConsumerClosed }
+  if message is Some(_) {
+    self.buffered_messages -= 1
+  }
+  if self.receiver_permits == 0 {
+    if message is None && !self.demand_active {
+      self.demand_active = true
+      self.group.spawn_bg(
+        async fn() {
+          self.send_flow(1) catch {
+            _ => self.demand_active = false
+          }
+        },
+        no_wait=true,
+        allow_failure=true,
+      )
+    }
+    return message
+  }
   if message is Some(_) {
     self.available_permits -= 1
     if self.available_permits <= self.receiver_permits / 2 {
@@ -932,6 +1010,7 @@ pub async fn SingleConsumer::seek(
   while (self.messages.try_get() catch { _ => None }) is Some(_) {
 
   }
+  self.buffered_messages = 0
   self.ack_pending.clear()
   self.chunks.clear()
   self.chunk_acks.clear()
@@ -957,8 +1036,7 @@ pub async fn SingleConsumer::seek(
     raise UnexpectedResponse("expected SUCCESS for re-SUBSCRIBE after SEEK")
   }
   self.seeking.val = false
-  self.send_flow(self.receiver_permits)
-  self.available_permits = self.receiver_permits
+  self.reset_flow()
 }
 
 ///|

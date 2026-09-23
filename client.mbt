@@ -334,8 +334,8 @@ pub async fn Client::create_consumer(
   guard ack_timeout_ms >= 0 else {
     raise InvalidFrame("ack timeout must not be negative")
   }
-  guard receiver_queue_size > 0 else {
-    raise InvalidFrame("receiver queue size must be positive")
+  guard receiver_queue_size >= 0 else {
+    raise InvalidFrame("receiver queue size must not be negative")
   }
   if dead_letter_policy is Some(policy) && policy.topic() == topic {
     raise InvalidFrame("dead-letter topic must differ from source topic")

@@ -794,6 +794,19 @@ async fn main {
     chunk_consumer.close()
     timeout_consumer.close()
     consumer.close()
+    let on_demand_consumer = client.create_consumer(
+      topic_a,
+      "\{prefix}-zero-queue-sub",
+      initial_position=Latest,
+      receiver_queue_size=0,
+    )
+    ignore(producer_a.send(@pulsar.ProducerMessage::new(b"on-demand")))
+    let on_demand_message = @async.with_timeout(10000, async fn() {
+      on_demand_consumer.receive()
+    })
+    assert_eq(on_demand_message.payload(), b"on-demand")
+    on_demand_message.ack()
+    on_demand_consumer.close()
     let bounded_producer = client.create_producer(
       topic_a,
       max_pending_messages=1,
