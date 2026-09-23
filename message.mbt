@@ -87,6 +87,10 @@ pub(all) struct ProducerMessage {
   event_time : UInt64?
   sequence_id : UInt64?
   ordering_key : Bytes?
+  /// absolute epoch-millis at which the broker should deliver the message
+  deliver_at : UInt64?
+  /// relative delay in milliseconds after which to deliver
+  deliver_after : UInt64?
 }
 
 ///|
@@ -98,8 +102,19 @@ pub fn ProducerMessage::new(
   event_time? : UInt64,
   sequence_id? : UInt64,
   ordering_key? : Bytes,
+  deliver_at? : UInt64,
+  deliver_after? : UInt64,
 ) -> ProducerMessage {
-  { payload, key, properties, event_time, sequence_id, ordering_key, }
+  {
+    payload,
+    key,
+    properties,
+    event_time,
+    sequence_id,
+    ordering_key,
+    deliver_at,
+    deliver_after,
+  }
 }
 
 ///|

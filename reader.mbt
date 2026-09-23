@@ -13,7 +13,8 @@ priv enum ReaderEvent {
 pub struct SingleReader {
   priv conn : Connection
   priv topic : String
-  priv consumer_id : UInt64
+  priv sub_name : String
+  priv mut consumer_id : UInt64
   priv events : @aqueue.Queue[ReaderEvent]
   priv conn_ref : Ref[Connection]
   priv receiver_permits : Int
@@ -39,6 +40,10 @@ pub async fn SingleReader::create(
   let reader : SingleReader = {
     conn,
     topic,
+    // unique per process and reader: non-durable subscriptions linger
+    // briefly on the broker after disconnect, and a name collision would
+    // inherit the previous cursor position
+    sub_name: "reader-" + consumer_id.to_string() + "-" + @async.now().to_string(),
     consumer_id,
     events: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
     conn_ref: { val: conn, },
@@ -49,19 +54,29 @@ pub async fn SingleReader::create(
   }
   conn.message_handlers[consumer_id] = fn(frame) { reader.on_frame(frame) }
   errdefer conn.message_handlers.remove(consumer_id)
+  let cmd = reader.subscribe_command(request_id, start_message_id)
+  let reply = conn.request(cmd)
+  guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
+    raise UnexpectedResponse("expected SUCCESS for reader SUBSCRIBE")
+  }
+  reader.send_flow(receiver_queue_size)
+  reader.available_permits = receiver_queue_size
+  reader
+}
+
+///|
+fn SingleReader::subscribe_command(
+  self : SingleReader,
+  request_id : UInt64,
+  start_message_id : MessageId?,
+) -> @proto.BaseCommand {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::SUBSCRIBE
   let subscribe = @proto.CommandSubscribe::default()
-  subscribe.topic = topic
-  // unique per process and reader: non-durable subscriptions linger briefly
-  // on the broker after disconnect, and a name collision would inherit
-  // the previous cursor position
-  subscribe.subscription = "reader-" +
-    consumer_id.to_string() +
-    "-" +
-    @async.now().to_string()
+  subscribe.topic = self.topic
+  subscribe.subscription = self.sub_name
   subscribe.sub_type = @proto.CommandSubscribe_SubType::Exclusive
-  subscribe.consumer_id = consumer_id
+  subscribe.consumer_id = self.consumer_id
   subscribe.request_id = request_id
   subscribe.durable = Some(false)
   match start_message_id {
@@ -85,13 +100,38 @@ pub async fn SingleReader::create(
     },
   )
   cmd.subscribe = Some(subscribe)
-  let reply = conn.request(cmd)
+  cmd
+}
+
+///|
+/// Drop the current subscription and re-subscribe under the same name.
+/// After a broker-side seek (or to start at an explicit message id) the
+/// broker disconnects consumers anyway; re-subscribing reattaches at the
+/// (reset) cursor position.
+async fn SingleReader::resubscribe(
+  self : SingleReader,
+  start_message_id : MessageId?,
+) -> Unit {
+  let conn = self.conn_ref.val
+  conn.message_handlers.remove(self.consumer_id)
+  // best-effort close of the old consumer
+  let close_cmd = @proto.BaseCommand::default()
+  close_cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
+  let close = @proto.CommandCloseConsumer::default()
+  close.consumer_id = self.consumer_id
+  close.request_id = conn.next_request_id()
+  close_cmd.close_consumer = Some(close)
+  ignore(conn.request(close_cmd) catch { _ => @proto.BaseCommand::default() })
+  self.consumer_id = conn.next_request_id()
+  conn.message_handlers[self.consumer_id] = fn(frame) { self.on_frame(frame) }
+  let reply = conn.request(
+    self.subscribe_command(conn.next_request_id(), start_message_id),
+  )
   guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
-    raise UnexpectedResponse("expected SUCCESS for reader SUBSCRIBE")
+    raise UnexpectedResponse("expected SUCCESS for reader re-SUBSCRIBE")
   }
-  reader.send_flow(receiver_queue_size)
-  reader.available_permits = receiver_queue_size
-  reader
+  self.send_flow(self.receiver_permits)
+  self.available_permits = self.receiver_permits
 }
 
 ///|
@@ -257,33 +297,51 @@ fn SingleReader::requeue_front(
 }
 
 ///|
-/// Reposition the reader after `message_id`. Buffered messages are dropped.
+/// A position a reader can seek to.
+pub(all) enum SeekPosition {
+  PositionId(MessageId)
+  PositionTimestamp(UInt64)
+}
+
+///|
+/// Reposition the reader. Buffered messages are dropped.
+///
+/// PositionId seeks re-subscribe starting at the given message id.
+/// Timestamp seeks issue a broker-side cursor reset; the broker
+/// disconnects the consumer during the reset, so the reader re-subscribes
+/// to the (reset) cursor afterwards.
 pub async fn SingleReader::seek(
   self : SingleReader,
-  message_id : MessageId,
+  position : SeekPosition,
 ) -> Unit {
   if self.closed.val {
     raise ConsumerClosed
   }
-  let cmd = @proto.BaseCommand::default()
-  cmd.type_ = @proto.BaseCommand_Type::SEEK
-  let seek = @proto.CommandSeek::default()
-  seek.consumer_id = self.consumer_id
-  seek.request_id = self.conn.next_request_id()
-  seek.message_id = Some(message_id.to_proto())
-  cmd.seek = Some(seek)
-  let reply = self.conn.request(cmd)
-  guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
-    raise UnexpectedResponse("expected SUCCESS for SEEK")
-  }
   // drop everything buffered before the seek
   while (self.events.try_get() catch { _ => None }) is Some(_) {
-
   }
-  self.last_seen.val = Some(message_id)
-  self.available_permits = 0
-  self.send_flow(self.receiver_permits)
-  self.available_permits = self.receiver_permits
+  match position {
+    PositionId(id) => {
+      self.resubscribe(Some(id))
+      self.last_seen.val = Some(id)
+    }
+    PositionTimestamp(ts) => {
+      let cmd = @proto.BaseCommand::default()
+      cmd.type_ = @proto.BaseCommand_Type::SEEK
+      let seek = @proto.CommandSeek::default()
+      seek.consumer_id = self.consumer_id
+      seek.request_id = self.conn.next_request_id()
+      seek.message_publish_time = Some(ts)
+      cmd.seek = Some(seek)
+      let reply = self.conn.request(cmd)
+      guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
+        raise UnexpectedResponse("expected SUCCESS for SEEK")
+      }
+      // the broker disconnected us during the cursor reset; reattach
+      self.resubscribe(None)
+      self.last_seen.val = None
+    }
+  }
 }
 
 ///|
@@ -419,13 +477,13 @@ fn PartitionedReaderState::queue_front_push(
 }
 
 ///|
-/// Reposition all partition readers after `message_id`.
-pub async fn Reader::seek(self : Reader, message_id : MessageId) -> Unit {
+/// Reposition all partition readers.
+pub async fn Reader::seek(self : Reader, position : SeekPosition) -> Unit {
   match self.inner {
-    ReaderImpl::One(r) => r.seek(message_id)
+    ReaderImpl::One(r) => r.seek(position)
     ReaderImpl::Many(state) =>
       for r in state.readers {
-        r.seek(message_id)
+        r.seek(position)
       }
   }
 }

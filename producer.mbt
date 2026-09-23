@@ -274,6 +274,12 @@ fn SingleProducer::build_metadata(
   if msg.ordering_key is Some(k) {
     metadata.ordering_key = Some(k)
   }
+  if msg.deliver_at is Some(t) {
+    metadata.deliver_at_time = Some(t.reinterpret_as_int64())
+  } else if msg.deliver_after is Some(delay) {
+    let now = @async.now()
+    metadata.deliver_at_time = Some(now + delay.reinterpret_as_int64())
+  }
   metadata
 }
 
