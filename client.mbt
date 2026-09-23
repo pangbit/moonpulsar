@@ -120,6 +120,7 @@ pub async fn Client::create_producer(
   self : Client,
   topic : String,
   name? : String,
+  access_mode? : ProducerAccessMode = Shared,
   batching? : BatchingConfig,
   compression? : CompressionCodec = None,
   chunk_size? : Int,
@@ -145,6 +146,7 @@ pub async fn Client::create_producer(
       conn,
       topic,
       name?,
+      access_mode~,
       batching?,
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
       compression~,
@@ -162,6 +164,7 @@ pub async fn Client::create_producer(
         conn,
         partition_topic,
         name?,
+        access_mode~,
         batching?,
         reconnect_with=async fn() {
           lookup_topic(manager, addr, partition_topic)

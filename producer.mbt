@@ -6,6 +6,27 @@
 // replays every message that has not received a receipt yet.
 
 ///|
+/// How a producer acquires permission to publish to a topic.
+pub(all) enum ProducerAccessMode {
+  Shared
+  Exclusive
+  WaitForExclusive
+  ExclusiveWithFencing
+} derive(Eq, Debug)
+
+///|
+fn ProducerAccessMode::to_proto(
+  self : ProducerAccessMode,
+) -> @proto.ProducerAccessMode {
+  match self {
+    Shared => @proto.ProducerAccessMode::Shared
+    Exclusive => @proto.ProducerAccessMode::Exclusive
+    WaitForExclusive => @proto.ProducerAccessMode::WaitForExclusive
+    ExclusiveWithFencing => @proto.ProducerAccessMode::ExclusiveWithFencing
+  }
+}
+
+///|
 /// Batching configuration for a producer.
 pub(all) struct BatchingConfig {
   /// flush the batch after this many messages
@@ -41,6 +62,8 @@ pub struct SingleProducer {
   priv topic : String
   priv producer_id : UInt64
   priv requested_name : String?
+  priv access_mode : ProducerAccessMode
+  priv mut topic_epoch : UInt64?
   priv mut name : String
   priv mut sequence_id : UInt64
   priv pending : Map[UInt64, @aqueue.Queue[SendReceipt]]
@@ -77,6 +100,7 @@ pub async fn SingleProducer::create(
   conn : Connection,
   topic : String,
   name? : String,
+  access_mode? : ProducerAccessMode = Shared,
   batching? : BatchingConfig,
   reconnect_with? : async () -> Connection,
   compression? : CompressionCodec = None,
@@ -97,6 +121,8 @@ pub async fn SingleProducer::create(
     topic,
     producer_id,
     requested_name: name,
+    access_mode,
+    topic_epoch: None,
     name: name.unwrap_or(""),
     sequence_id: 0,
     pending: {},
@@ -122,6 +148,7 @@ pub async fn SingleProducer::create(
     raise UnexpectedResponse("expected PRODUCER_SUCCESS")
   }
   producer.name = success.producer_name
+  producer.topic_epoch = success.topic_epoch
   if success.last_sequence_id is Some(last) && last >= 0 {
     producer.sequence_id = (last + 1).reinterpret_as_uint64()
   }
@@ -140,6 +167,8 @@ fn SingleProducer::producer_command(
   produce.producer_id = self.producer_id
   produce.request_id = request_id
   produce.producer_name = self.requested_name
+  produce.producer_access_mode = Some(self.access_mode.to_proto())
+  produce.topic_epoch = self.topic_epoch
   if self.schema is Some(schema) {
     produce.schema = Some(schema.to_proto())
   }
@@ -235,9 +264,10 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
     self.attach(conn)
     let request_id = conn.next_request_id()
     let reply = conn.request(self.producer_command(request_id))
-    guard reply.producer_success is Some(_) else {
+    guard reply.producer_success is Some(success) else {
       raise UnexpectedResponse("expected PRODUCER_SUCCESS")
     }
+    self.topic_epoch = success.topic_epoch
     // swap the connection, then replay unconfirmed messages in order
     self.conn = conn
     let seqs = self.payloads.keys().collect()

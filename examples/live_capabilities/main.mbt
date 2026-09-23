@@ -169,6 +169,43 @@ async fn main {
       let volatile_topic = "non-persistent://public/default/\{prefix}-admin-volatile"
       admin.create_topic(admin_topic)
       admin.create_topic(table_topic)
+      let exclusive_producer = client.create_producer(
+        admin_topic,
+        access_mode=Exclusive,
+      )
+      let conflict : Result[@pulsar.Producer, Error] = Ok(
+        client.create_producer(admin_topic),
+      ) catch {
+        e => Err(e)
+      }
+      assert_true(conflict is Err(_))
+      let waiting : @aqueue.Queue[@pulsar.Producer] = @aqueue.Queue::Queue(
+        kind=@aqueue.Kind::Unbounded,
+      )
+      group.spawn_bg(
+        async fn() {
+          let producer = client.create_producer(
+            admin_topic,
+            access_mode=WaitForExclusive,
+          ) catch {
+            e => {
+              waiting.close(error=e, clear=true)
+              return
+            }
+          }
+          waiting.put(producer)
+        },
+        no_wait=true,
+        allow_failure=true,
+      )
+      @async.sleep(100)
+      assert_true((waiting.try_get() catch { _ => None }) is None)
+      exclusive_producer.close()
+      let waiting_producer = @async.with_timeout(10000, async fn() {
+        waiting.get()
+      })
+      ignore(waiting_producer.send(@pulsar.ProducerMessage::new(b"ready")))
+      waiting_producer.close()
       admin.create_topic(volatile_topic)
       assert_true(
         admin

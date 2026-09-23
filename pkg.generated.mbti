@@ -114,7 +114,7 @@ pub async fn Client::connect_tls_insecure(@async.TaskGroup[Unit], String, auth? 
 pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
-pub async fn Client::create_producer(Self, String, name? : String, batching? : BatchingConfig, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Producer
+pub async fn Client::create_producer(Self, String, name? : String, access_mode? : ProducerAccessMode, batching? : BatchingConfig, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Producer
 pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, partition_refresh_ms? : Int) -> Reader
 pub async fn Client::create_table_view(Self, String, partition_refresh_ms? : Int) -> TableView
 pub async fn Client::partitions_of(Self, String) -> Int
@@ -238,6 +238,13 @@ pub async fn Producer::send_async(Self, ProducerMessage) -> ReceiptFuture
 pub async fn Producer::send_txn(Self, Transaction, ProducerMessage) -> SendReceipt
 pub fn Producer::topic(Self) -> String
 
+pub(all) enum ProducerAccessMode {
+  Shared
+  Exclusive
+  WaitForExclusive
+  ExclusiveWithFencing
+} derive(Eq, @debug.Debug)
+
 pub(all) struct ProducerMessage {
   payload : Bytes
   key : String?
@@ -317,7 +324,7 @@ pub struct SingleProducer {
   // private fields
 }
 pub async fn SingleProducer::close(Self) -> Unit
-pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo) -> Self
+pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, access_mode? : ProducerAccessMode, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo) -> Self
 pub async fn SingleProducer::flush(Self) -> Unit
 pub fn SingleProducer::name(Self) -> String
 pub async fn SingleProducer::send(Self, ProducerMessage) -> SendReceipt

@@ -327,26 +327,37 @@ pub async fn Connection::request(
     raise UnexpectedResponse("command carries no request id")
   }
   let pending : PendingRequest = {
-    reply: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
+    reply: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
   }
   // register before sending: send_command awaits internally, and the reader
   // task may dispatch the response during those awaits
   self.pending[id] = pending
+  defer self.pending.remove(id)
   self.send_command(cmd)
-  let reply = @async.with_timeout(timeout_ms, async fn() { pending.reply.get() }) catch {
-    @async.TimeoutError => {
-      self.pending.remove(id)
-      raise RequestTimeout
+  let mut waiting_for_exclusive = false
+  while true {
+    let reply = if waiting_for_exclusive {
+      pending.reply.get()
+    } else {
+      @async.with_timeout(timeout_ms, async fn() { pending.reply.get() }) catch {
+        @async.TimeoutError => raise RequestTimeout
+        e => raise e
+      }
     }
-    e => raise e
+    if reply.producer_success is Some(success) &&
+      success.producer_ready == Some(false) {
+      waiting_for_exclusive = true
+      continue
+    }
+    if reply.type_ is @proto.BaseCommand_Type::ERROR && reply.error is Some(err) {
+      raise ServerError(
+        code=err.error.to_enum().0.reinterpret_as_int(),
+        message=err.message,
+      )
+    }
+    return reply
   }
-  if reply.type_ is @proto.BaseCommand_Type::ERROR && reply.error is Some(err) {
-    raise ServerError(
-      code=err.error.to_enum().0.reinterpret_as_int(),
-      message=err.message,
-    )
-  }
-  reply
+  raise UnexpectedResponse("unreachable request state")
 }
 
 ///|
@@ -515,7 +526,10 @@ async fn Connection::dispatch(self : Connection, frame : IncomingFrame) -> Unit 
       }
     _ =>
       if request_id_of(cmd) is Some(id) && self.pending.get(id) is Some(pending) {
-        self.pending.remove(id)
+        if !(cmd.producer_success is Some(success) &&
+          success.producer_ready == Some(false)) {
+          self.pending.remove(id)
+        }
         ignore(pending.reply.try_put(cmd))
       }
   }
