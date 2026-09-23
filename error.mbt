@@ -17,6 +17,8 @@ pub(all) suberror PulsarError {
   TooManyRedirects
   /// Operation attempted on a closed producer.
   ProducerClosed
+  /// The configured producer pending-message limit has been reached.
+  ProducerQueueFull
   /// Operation attempted on a closed consumer.
   ConsumerClosed
   /// CRC32-C checksum of an incoming message frame did not match.
@@ -39,6 +41,7 @@ pub impl Show for PulsarError with fn output(self, logger) {
     LookupFailed(msg) => "lookup failed: \{msg}"
     TooManyRedirects => "too many lookup redirects"
     ProducerClosed => "producer closed"
+    ProducerQueueFull => "producer pending-message queue is full"
     ConsumerClosed => "consumer closed"
     ChecksumMismatch => "message checksum mismatch"
     InvalidFrame(msg) => "invalid frame: \{msg}"

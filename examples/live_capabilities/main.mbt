@@ -783,6 +783,15 @@ async fn main {
     chunk_consumer.close()
     timeout_consumer.close()
     consumer.close()
+    let bounded_producer = client.create_producer(
+      topic_a,
+      max_pending_messages=1,
+      block_if_queue_full=true,
+      send_timeout_ms=10000,
+    )
+    ignore(bounded_producer.send(@pulsar.ProducerMessage::new(b"bounded-1")))
+    ignore(bounded_producer.send(@pulsar.ProducerMessage::new(b"bounded-2")))
+    bounded_producer.close()
     producer_a.close()
     producer_b.close()
     producer_c.close()

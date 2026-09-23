@@ -171,6 +171,9 @@ pub async fn Client::create_producer(
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
   routing? : ProducerRoutingMode = KeyHash,
+  max_pending_messages? : Int,
+  block_if_queue_full? : Bool = false,
+  send_timeout_ms? : Int,
 ) -> Producer {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -200,6 +203,9 @@ pub async fn Client::create_producer(
       automatic_chunking~,
       schema?,
       reconnect_policy=self.reconnect_policy,
+      max_pending_messages?,
+      block_if_queue_full~,
+      send_timeout_ms?,
     )
     return Producer::single(single)
   }
@@ -223,6 +229,9 @@ pub async fn Client::create_producer(
         automatic_chunking~,
         schema?,
         reconnect_policy=self.reconnect_policy,
+        max_pending_messages?,
+        block_if_queue_full~,
+        send_timeout_ms?,
       ),
     )
   }

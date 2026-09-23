@@ -80,11 +80,16 @@ pub struct SingleProducer {
   priv mut sequence_id : UInt64
   priv mut last_confirmed_sequence_id : UInt64?
   priv pending : Map[UInt64, @aqueue.Queue[SendReceipt]]
+  priv timeout_generation : Map[UInt64, UInt64]
+  priv mut next_timeout_generation : UInt64
   /// encoded SEND frames awaiting a receipt, for replay after reconnect
   priv payloads : Map[UInt64, Bytes]
   priv reconnect_with : (async () -> Connection)?
   priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
+  priv pending_slots : @aqueue.Queue[Unit]?
+  priv block_if_queue_full : Bool
+  priv send_timeout_ms : Int?
   priv compression : CompressionCodec
   priv chunk_size : Int?
   priv automatic_chunking : Bool
@@ -125,7 +130,16 @@ pub async fn SingleProducer::create(
   automatic_chunking? : Bool = false,
   schema? : SchemaInfo,
   reconnect_policy? : RetryPolicy = RetryPolicy::default(),
+  max_pending_messages? : Int,
+  block_if_queue_full? : Bool = false,
+  send_timeout_ms? : Int,
 ) -> SingleProducer {
+  if max_pending_messages is Some(limit) && limit <= 0 {
+    raise InvalidFrame("max pending messages must be positive")
+  }
+  if send_timeout_ms is Some(timeout) && timeout <= 0 {
+    raise InvalidFrame("send timeout must be positive")
+  }
   if chunk_size is Some(size) && size <= 0 {
     raise InvalidFrame("chunk size must be positive")
   }
@@ -134,6 +148,18 @@ pub async fn SingleProducer::create(
   }
   let request_id = conn.next_request_id()
   let producer_id = conn.next_request_id()
+  let pending_slots : @aqueue.Queue[Unit]? = match max_pending_messages {
+    Some(limit) => {
+      let slots : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
+        kind=@aqueue.Kind::Blocking(limit),
+      )
+      for _ in 0..<limit {
+        ignore(slots.try_put(()))
+      }
+      Some(slots)
+    }
+    None => None
+  }
   let producer : SingleProducer = {
     group,
     conn,
@@ -148,10 +174,15 @@ pub async fn SingleProducer::create(
     sequence_id: 0,
     last_confirmed_sequence_id: None,
     pending: {},
+    timeout_generation: {},
+    next_timeout_generation: 0UL,
     payloads: {},
     reconnect_with,
     reconnect_policy,
     reconnecting: { val: false, },
+    pending_slots,
+    block_if_queue_full,
+    send_timeout_ms,
     compression,
     chunk_size,
     automatic_chunking,
@@ -233,6 +264,7 @@ fn SingleProducer::on_command(
         self.last_confirmed_sequence_id = Some(receipt.sequence_id)
       }
       self.pending.remove(receipt.sequence_id)
+      self.timeout_generation.remove(receipt.sequence_id)
       self.payloads.remove(receipt.sequence_id)
       let message_id = match receipt.message_id {
         Some(data) => MessageId::from_proto(data)
@@ -249,6 +281,7 @@ fn SingleProducer::on_command(
   } else if cmd.send_error is Some(err) {
     if self.pending.get(err.sequence_id) is Some(waiter) {
       self.pending.remove(err.sequence_id)
+      self.timeout_generation.remove(err.sequence_id)
       self.payloads.remove(err.sequence_id)
       waiter.close(
         error=ServerError(
@@ -352,10 +385,14 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
 
 ///|
 fn SingleProducer::fail_all(self : SingleProducer, error : PulsarError) -> Unit {
+  if self.pending_slots is Some(slots) {
+    slots.close(error~, clear=true)
+  }
   for _, waiter in self.pending {
     waiter.close(error~, clear=true)
   }
   self.pending.clear()
+  self.timeout_generation.clear()
   self.payloads.clear()
   for waiter in self.batch_waiters {
     waiter.close(error~, clear=true)
@@ -410,6 +447,54 @@ pub async fn SingleProducer::send(
 /// Send a message without waiting for the receipt; the returned future
 /// resolves once the broker confirms.
 pub async fn SingleProducer::send_async(
+  self : SingleProducer,
+  msg : ProducerMessage,
+) -> ReceiptFuture {
+  if self.closed {
+    raise ProducerClosed
+  }
+  guard self.pending_slots is Some(slots) else {
+    return self.send_async_unbounded(msg)
+  }
+  if self.block_if_queue_full {
+    slots.get() catch {
+      _ => raise ProducerClosed
+    }
+  } else if slots.try_get() is None {
+    raise ProducerQueueFull
+  }
+  if self.closed {
+    ignore(slots.try_put(()))
+    raise ProducerClosed
+  }
+  let inner = self.send_async_unbounded(msg) catch {
+    e => {
+      ignore(slots.try_put(()))
+      raise e
+    }
+  }
+  let reply : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
+    kind=@aqueue.Kind::Blocking(1),
+  )
+  self.group.spawn_bg(
+    async fn() {
+      defer ignore(slots.try_put(()))
+      let receipt = inner.wait() catch {
+        e => {
+          reply.close(error=e, clear=true)
+          return
+        }
+      }
+      ignore(reply.try_put(receipt))
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
+  { reply, }
+}
+
+///|
+async fn SingleProducer::send_async_unbounded(
   self : SingleProducer,
   msg : ProducerMessage,
 ) -> ReceiptFuture {
@@ -561,6 +646,24 @@ async fn SingleProducer::send_encoded(
   )
   self.pending[sequence_id] = waiter
   self.payloads[sequence_id] = frame
+  if self.send_timeout_ms is Some(timeout) {
+    self.next_timeout_generation += 1UL
+    let generation = self.next_timeout_generation
+    self.timeout_generation[sequence_id] = generation
+    self.group.spawn_bg(
+      async fn() {
+        @async.sleep(timeout)
+        if self.timeout_generation.get(sequence_id) == Some(generation) {
+          self.pending.remove(sequence_id)
+          self.payloads.remove(sequence_id)
+          self.timeout_generation.remove(sequence_id)
+          waiter.close(error=RequestTimeout, clear=true)
+        }
+      },
+      no_wait=true,
+      allow_failure=true,
+    )
+  }
   if !self.reconnecting.val {
     self.conn.send_bytes(frame)
   }
@@ -630,6 +733,17 @@ pub async fn SingleProducer::send_txn(
   txn : Transaction,
   msg : ProducerMessage,
 ) -> SendReceipt {
+  let slots = self.pending_slots
+  if slots is Some(slots) {
+    if self.block_if_queue_full {
+      slots.get() catch {
+        _ => raise ProducerClosed
+      }
+    } else if slots.try_get() is None {
+      raise ProducerQueueFull
+    }
+  }
+  defer (if slots is Some(slots) { ignore(slots.try_put(())) })
   if self.chunk_size is Some(_) || self.automatic_chunking {
     return self.send_chunked(msg, txn~)
   }
@@ -763,6 +877,9 @@ pub async fn SingleProducer::close(self : SingleProducer) -> Unit {
     return
   }
   self.closed = true
+  if self.pending_slots is Some(slots) {
+    slots.close(error=ProducerClosed, clear=true)
+  }
   self.flush() catch {
     _ => ()
   }
