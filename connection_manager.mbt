@@ -7,6 +7,7 @@ pub struct ConnectionManager {
   priv auth : AuthData?
   priv connections : Map[String, Connection]
   priv default_tls : Bool
+  priv tls_insecure : Bool
   priv mut closed : Bool
 }
 
@@ -15,8 +16,9 @@ pub fn ConnectionManager::new(
   group : @async.TaskGroup[Unit],
   auth? : AuthData,
   tls? : Bool = false,
+  tls_insecure? : Bool = false,
 ) -> ConnectionManager {
-  { group, auth, connections: {}, default_tls: tls, closed: false, }
+  { group, auth, connections: {}, default_tls: tls, tls_insecure, closed: false, }
 }
 
 ///|
@@ -44,6 +46,7 @@ pub async fn ConnectionManager::get(
     addr,
     auth?=self.auth,
     tls=self.default_tls,
+    tls_insecure=self.tls_insecure,
   )
   self.connections[key] = conn
   conn

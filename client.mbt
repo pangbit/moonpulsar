@@ -58,6 +58,28 @@ pub async fn Client::connect(
 }
 
 ///|
+/// Connect with TLS certificate verification disabled
+/// (for testing against self-signed broker certificates).
+pub async fn Client::connect_tls_insecure(
+  group : @async.TaskGroup[Unit],
+  service_url : String,
+  auth? : &Authentication,
+) -> Client {
+  let auth_data = auth.map(fn(a) {
+    { method_name: a.method_name(), data: a.auth_data(), }
+  })
+  let (addr, tls) = broker_addr_of(service_url)
+  let manager = ConnectionManager::new(
+    group,
+    auth?=auth_data,
+    tls~,
+    tls_insecure=true,
+  )
+  ignore(manager.get(addr))
+  { manager, service_addr: addr }
+}
+
+///|
 /// Close all connections opened by this client.
 pub fn Client::close(self : Client) -> Unit {
   self.manager.close()
