@@ -86,6 +86,7 @@ pub struct SingleProducer {
   priv reconnecting : Ref[Bool]
   priv compression : CompressionCodec
   priv chunk_size : Int?
+  priv automatic_chunking : Bool
   priv chunk_mu : @async.Mutex
   priv schema : SchemaInfo?
   priv batching : BatchingConfig?
@@ -119,12 +120,13 @@ pub async fn SingleProducer::create(
   reconnect_with? : async () -> Connection,
   compression? : CompressionCodec = None,
   chunk_size? : Int,
+  automatic_chunking? : Bool = false,
   schema? : SchemaInfo,
 ) -> SingleProducer {
   if chunk_size is Some(size) && size <= 0 {
     raise InvalidFrame("chunk size must be positive")
   }
-  if chunk_size is Some(_) && batching is Some(_) {
+  if (chunk_size is Some(_) || automatic_chunking) && batching is Some(_) {
     raise InvalidFrame("chunking and batching cannot be combined")
   }
   let request_id = conn.next_request_id()
@@ -148,6 +150,7 @@ pub async fn SingleProducer::create(
     reconnecting: { val: false, },
     compression,
     chunk_size,
+    automatic_chunking,
     chunk_mu: @async.Mutex::Mutex(),
     schema,
     batching,
@@ -390,7 +393,7 @@ pub async fn SingleProducer::send_async(
   if self.closed {
     raise ProducerClosed
   }
-  if self.chunk_size is Some(_) {
+  if self.chunk_size is Some(_) || self.automatic_chunking {
     let reply : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
       kind=@aqueue.Kind::Blocking(1),
     )
@@ -432,12 +435,6 @@ async fn SingleProducer::send_chunked(
   if self.closed {
     raise ProducerClosed
   }
-  guard self.chunk_size is Some(size) else {
-    raise InvalidFrame("chunking is not configured")
-  }
-  if msg.payload.length() <= size {
-    return self.send_messages([msg], txn?).get()
-  }
   let sequence_id = self.next_sequence_id()
   let metadata = self.build_metadata(msg, sequence_id)
   let payload = if self.compression is None {
@@ -449,10 +446,66 @@ async fn SingleProducer::send_chunked(
     )
     compress(self.compression, msg.payload)
   }
-  let count = (payload.length() + size - 1) / size
+  let cmd = @proto.BaseCommand::default()
+  cmd.type_ = @proto.BaseCommand_Type::SEND
+  let send = @proto.CommandSend::default()
+  send.producer_id = self.producer_id
+  send.sequence_id = sequence_id
+  match txn {
+    Some(t) => {
+      let (most, least) = t.id()
+      send.txnid_least_bits = Some(least)
+      send.txnid_most_bits = Some(most)
+      metadata.txnid_least_bits = Some(least)
+      metadata.txnid_most_bits = Some(most)
+    }
+    None => {
+      send.txnid_least_bits = None
+      send.txnid_most_bits = None
+      metadata.txnid_least_bits = None
+      metadata.txnid_most_bits = None
+    }
+  }
+  cmd.send = Some(send)
+  let limit = self.conn.max_message_size()
+  if self.automatic_chunking && self.chunk_size is None && limit is None {
+    raise InvalidFrame("broker did not advertise a max message size")
+  }
+  let whole = encode_send_frame(cmd, metadata, payload)
+  if (self.chunk_size is None || payload.length() <= self.chunk_size.unwrap()) &&
+    (limit is None || whole.length() <= limit.unwrap()) {
+    return self.send_encoded(sequence_id, whole).get()
+  }
+  guard self.chunk_size is Some(_) || limit is Some(_) else {
+    raise InvalidFrame("broker did not advertise a max message size")
+  }
+  guard !payload.is_empty() else {
+    raise InvalidFrame("message metadata exceeds the broker max size")
+  }
   metadata.uuid = Some("\{self.name}-\{sequence_id}")
-  metadata.num_chunks_from_msg = Some(count)
   metadata.total_chunk_msg_size = Some(payload.length())
+  let mut size = self.chunk_size.unwrap_or(payload.length())
+  if limit is Some(max_size) {
+    while true {
+      let count = (payload.length() - 1) / size + 1
+      metadata.num_chunks_from_msg = Some(count)
+      metadata.chunk_id = Some(count - 1)
+      let overhead = encode_send_frame(cmd, metadata, b"").length()
+      let allowed = max_size - overhead
+      guard allowed > 0 else {
+        raise InvalidFrame("message metadata exceeds the broker max size")
+      }
+      if size <= allowed {
+        break
+      }
+      size = allowed
+    }
+  }
+  let count = (payload.length() - 1) / size + 1
+  guard count <= 10000 else {
+    raise InvalidFrame("message requires too many chunks")
+  }
+  metadata.num_chunks_from_msg = Some(count)
   let mut last : SendReceipt? = None
   for index in 0..<count {
     if self.closed {
@@ -465,39 +518,30 @@ async fn SingleProducer::send_chunked(
     } else {
       payload.length()
     }
-    let cmd = @proto.BaseCommand::default()
-    cmd.type_ = @proto.BaseCommand_Type::SEND
-    let send = @proto.CommandSend::default()
-    send.producer_id = self.producer_id
-    send.sequence_id = sequence_id
-    match txn {
-      Some(t) => {
-        let (most, least) = t.id()
-        send.txnid_least_bits = Some(least)
-        send.txnid_most_bits = Some(most)
-        metadata.txnid_least_bits = Some(least)
-        metadata.txnid_most_bits = Some(most)
-      }
-      None => {
-        send.txnid_least_bits = None
-        send.txnid_most_bits = None
-        metadata.txnid_least_bits = None
-        metadata.txnid_most_bits = None
-      }
-    }
-    cmd.send = Some(send)
     let frame = encode_send_frame(cmd, metadata, payload[start:end].to_owned())
-    let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
-      kind=@aqueue.Kind::Blocking(1),
-    )
-    self.pending[sequence_id] = waiter
-    self.payloads[sequence_id] = frame
-    if !self.reconnecting.val {
-      self.conn.send_bytes(frame)
+    if limit is Some(max_size) && frame.length() > max_size {
+      raise InvalidFrame("chunk exceeds the broker max size")
     }
-    last = Some(waiter.get())
+    last = Some(self.send_encoded(sequence_id, frame).get())
   }
   last.unwrap()
+}
+
+///|
+async fn SingleProducer::send_encoded(
+  self : SingleProducer,
+  sequence_id : UInt64,
+  frame : Bytes,
+) -> @aqueue.Queue[SendReceipt] {
+  let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
+    kind=@aqueue.Kind::Blocking(1),
+  )
+  self.pending[sequence_id] = waiter
+  self.payloads[sequence_id] = frame
+  if !self.reconnecting.val {
+    self.conn.send_bytes(frame)
+  }
+  waiter
 }
 
 ///|
@@ -509,9 +553,6 @@ async fn SingleProducer::send_messages(
   txn? : Transaction,
 ) -> @aqueue.Queue[SendReceipt] {
   let sequence_id = self.next_sequence_id()
-  let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
-    kind=@aqueue.Kind::Blocking(1),
-  )
   let metadata = self.build_metadata(messages[0], sequence_id)
   let payload = if messages.length() > 1 {
     metadata.num_messages_in_batch = Some(messages.length())
@@ -553,15 +594,10 @@ async fn SingleProducer::send_messages(
   }
   cmd.send = Some(send)
   let frame = encode_send_frame(cmd, metadata, payload)
-  self.pending[sequence_id] = waiter
-  self.payloads[sequence_id] = frame
-  // while reconnecting the frame stays queued for replay; a write failure
-  // is handled by the connection close handler which fails or replays
-  // every pending waiter
-  if !self.reconnecting.val {
-    self.conn.send_bytes(frame)
+  if self.conn.max_message_size() is Some(max_size) && frame.length() > max_size {
+    raise InvalidFrame("message exceeds broker max size; enable chunking")
   }
-  waiter
+  self.send_encoded(sequence_id, frame)
 }
 
 ///|
@@ -571,7 +607,7 @@ pub async fn SingleProducer::send_txn(
   txn : Transaction,
   msg : ProducerMessage,
 ) -> SendReceipt {
-  if self.chunk_size is Some(_) {
+  if self.chunk_size is Some(_) || self.automatic_chunking {
     return self.send_chunked(msg, txn~)
   }
   self.send_messages([msg], txn~).get()

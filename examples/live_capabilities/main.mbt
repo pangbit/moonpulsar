@@ -154,6 +154,35 @@ async fn main {
     })
     assert_eq(compressed_message.payload(), original)
     compressed_message.ack()
+    let auto_chunk_topic = "persistent://public/default/\{prefix}-auto-chunk"
+    let auto_chunk_producer = client.create_producer(
+      auto_chunk_topic,
+      automatic_chunking=true,
+    )
+    let auto_chunk_consumer = client.create_consumer(
+      auto_chunk_topic,
+      "\{prefix}-auto-chunk-sub",
+      initial_position=Earliest,
+    )
+    let block = @buffer.Buffer()
+    for _ in 0..<1024 {
+      block.write_byte(b'x')
+    }
+    let large_payload = @buffer.Buffer()
+    for _ in 0..<6200 {
+      large_payload.write_bytes(block.to_bytes())
+    }
+    let large_bytes = large_payload.to_bytes()
+    ignore(auto_chunk_producer.send(@pulsar.ProducerMessage::new(large_bytes)))
+    let auto_chunked = @async.with_timeout(30000, async fn() {
+      auto_chunk_consumer.receive()
+    })
+    assert_eq(auto_chunked.payload().length(), large_bytes.length())
+    assert_eq(
+      @pulsar.xxhash32(auto_chunked.payload()),
+      @pulsar.xxhash32(large_bytes),
+    )
+    auto_chunked.ack()
     let coord = client.transaction_coordinator(0UL)
     let txn = coord.new_transaction()
     txn.abort()
@@ -610,6 +639,7 @@ async fn main {
       admin.delete_partitioned_topic(partitioned_topic, force=true)
     }
     compressed_consumer.close()
+    auto_chunk_consumer.close()
     chunk_reader.close()
     chunk_consumer.close()
     timeout_consumer.close()
@@ -619,12 +649,14 @@ async fn main {
     producer_c.close()
     chunk_producer.close()
     compressed_producer.close()
+    auto_chunk_producer.close()
     if @env.get_env_var("PULSAR_ADMIN_URL") is Some(admin_url) {
       let admin = @pulsar.Admin::new(
         admin_url,
         token?=@env.get_env_var("PULSAR_TOKEN"),
       )
-      for topic in [topic_a, topic_b, topic_c, topic_d, topic_e] {
+      for
+        topic in [topic_a, topic_b, topic_c, topic_d, topic_e, auto_chunk_topic] {
         admin.delete_topic(topic, force=true)
       }
     }

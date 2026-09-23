@@ -109,6 +109,7 @@ pub(all) struct IncomingFrame {
   cmd : @proto.BaseCommand
   metadata : @proto.MessageMetadata?
   payload : Bytes?
+  wire_size : Int
 } derive(Debug)
 
 ///|
@@ -123,7 +124,7 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
   }
   let rest = body[4 + cmd_size:]
   if rest.length() == 0 {
-    return { cmd, metadata: None, payload: None, }
+    return { cmd, metadata: None, payload: None, wire_size: body.length() + 4, }
   }
   let mut offset = 0
   // Payload frames carry a CRC32-C checksum guarded by a magic number.
@@ -151,5 +152,6 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
     cmd,
     metadata: Some(metadata),
     payload: Some(rest[offset + 4 + metadata_size:].to_owned()),
+    wire_size: body.length() + 4,
   }
 }

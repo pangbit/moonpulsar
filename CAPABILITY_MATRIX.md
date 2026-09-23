@@ -15,7 +15,7 @@ repository on 2026-09-23.
 | Async auth provider and rotating token file | Implemented | Local file rotation and broker challenge mock tests; no live token rotation run yet |
 | Producer send, async receipt, batching, compression, delayed delivery | Implemented | Mock broker and prior live broker scenarios |
 | Producer access modes, metadata, reconnect epoch, and last confirmed sequence | Implemented | Mock wire, broker-history sequence, wait-ready, and reconnect tests; live exclusive conflict and wait-for-exclusive takeover |
-| Producer chunking and compressed chunking | Implemented with explicit size | Wire-level mock and live Pulsar 4.2.4 |
+| Producer chunking and compressed chunking | Explicit or broker-limit-driven automatic chunking implemented; oversize frames fail before write | Wire-size and failure-path mocks; 6 MiB auto-chunk roundtrip on Pulsar 4.2.4 and 3.3.9 |
 | Partition routing and producer expansion | Key hash, round-robin, single-partition, and custom callback routing implemented for initially partitioned topics, including one-partition topics | Mock routing and invalid-index tests, one-to-two and live two-to-three partition expansion; custom routing on 4.2.4 and 3.3.9 |
 | Single, partitioned, and explicit multi-topic consumption | Implemented; initially partitioned consumers discover added partitions | Mock one-to-two expansion and bounded slow-consumer forwarding; live two-to-three expansion |
 | KeyShared auto-split and sticky hash ranges | Implemented | Range validation and SUBSCRIBE wire mock; sticky policy live broker |

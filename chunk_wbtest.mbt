@@ -46,6 +46,109 @@ async test "producer sends sequential chunks under one message identity" {
 }
 
 ///|
+async test "automatic chunking fits the broker's negotiated max message size" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(
+      group,
+      async fn(_addr, peer) {
+        expect_producer(peer)
+        let first = peer.next()
+        guard first.metadata is Some(first_meta) else {
+          fail("expected chunk metadata")
+        }
+        let count = first_meta.num_chunks_from_msg.unwrap_or(0)
+        assert_true(count > 1)
+        let assembled = @buffer.Buffer()
+        let mut sequence_id : UInt64? = None
+        for index in 0..<count {
+          let frame = if index == 0 { first } else { peer.next() }
+          guard frame.cmd.send is Some(send) &&
+            frame.metadata is Some(meta) &&
+            frame.payload is Some(body) else {
+            fail("expected chunk SEND")
+          }
+          assert_true(frame.wire_size <= 256)
+          assert_eq(meta.chunk_id, Some(index))
+          if index == 0 {
+            sequence_id = Some(send.sequence_id)
+          } else {
+            assert_eq(Some(send.sequence_id), sequence_id)
+          }
+          assembled.write_bytes(body)
+          send_receipt(peer, send.producer_id, send.sequence_id)
+        }
+        assert_eq(assembled.to_bytes().length(), 600)
+      },
+      max_message_size=256,
+    )
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let producer = SingleProducer::create(
+      group,
+      conn,
+      "persistent://public/default/automatic-chunk",
+      automatic_chunking=true,
+    )
+    let payload = @buffer.Buffer()
+    for _ in 0..<600 {
+      payload.write_byte(b'x')
+    }
+    ignore(producer.send(ProducerMessage::new(payload.to_bytes())))
+    producer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "producer rejects oversize unchunked messages and unknown auto limits" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(
+      group,
+      async fn(_addr, peer) { expect_producer(peer) },
+      max_message_size=128,
+    )
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let producer = SingleProducer::create(
+      group, conn, "persistent://public/default/too-large",
+    )
+    let payload = @buffer.Buffer()
+    for _ in 0..<256 {
+      payload.write_byte(b'x')
+    }
+    let result : Result[SendReceipt, Error] = Ok(
+      producer.send(ProducerMessage::new(payload.to_bytes())),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(InvalidFrame(_)))
+    producer.close()
+    manager.close()
+  })
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_producer(peer)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let producer = SingleProducer::create(
+      group,
+      conn,
+      "persistent://public/default/no-max",
+      automatic_chunking=true,
+    )
+    let result : Result[SendReceipt, Error] = Ok(
+      producer.send(ProducerMessage::new(b"small")),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(InvalidFrame(_)))
+    producer.close()
+    manager.close()
+  })
+}
+
+///|
 async test "consumer reassembles chunks and acknowledges every chunk" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {

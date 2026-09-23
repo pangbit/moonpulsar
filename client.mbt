@@ -166,6 +166,7 @@ pub async fn Client::create_producer(
   batching? : BatchingConfig,
   compression? : CompressionCodec = None,
   chunk_size? : Int,
+  automatic_chunking? : Bool = false,
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
   routing? : ProducerRoutingMode = KeyHash,
@@ -176,7 +177,7 @@ pub async fn Client::create_producer(
   if chunk_size is Some(size) && size <= 0 {
     raise InvalidFrame("chunk size must be positive")
   }
-  if chunk_size is Some(_) && batching is Some(_) {
+  if (chunk_size is Some(_) || automatic_chunking) && batching is Some(_) {
     raise InvalidFrame("chunking and batching cannot be combined")
   }
   let manager = self.manager
@@ -195,6 +196,7 @@ pub async fn Client::create_producer(
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
       compression~,
       chunk_size?,
+      automatic_chunking~,
       schema?,
     )
     return Producer::single(single)
@@ -216,6 +218,7 @@ pub async fn Client::create_producer(
         },
         compression~,
         chunk_size?,
+        automatic_chunking~,
         schema?,
       ),
     )
