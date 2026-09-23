@@ -1,6 +1,9 @@
 // SingleConsumer: subscribes to a topic and receives messages with flow control.
 
 ///|
+const COMPOSITE_CONSUMER_QUEUE_CAPACITY : Int = 1000
+
+///|
 /// Subscription mode, mirroring `CommandSubscribe.SubType`.
 pub(all) enum SubscriptionType {
   Exclusive
@@ -990,7 +993,9 @@ pub fn Consumer::partitioned(
     source_ids: [],
     next_source_id: 0,
     active_sources: {},
-    queue: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
+    queue: @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(COMPOSITE_CONSUMER_QUEUE_CAPACITY),
+    ),
     closed: { val: false, },
     topic_label,
     subscription_label,
@@ -1009,7 +1014,9 @@ fn Consumer::pattern(pattern : String, subscription : String) -> Consumer {
       source_ids: [],
       next_source_id: 0,
       active_sources: {},
-      queue: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
+      queue: @aqueue.Queue::Queue(
+        kind=@aqueue.Kind::Blocking(COMPOSITE_CONSUMER_QUEUE_CAPACITY),
+      ),
       closed: { val: false, },
       topic_label: pattern,
       subscription_label: subscription,
@@ -1033,7 +1040,15 @@ fn PartitionedConsumerState::add_source(
       try {
         while true {
           let msg = sub.receive_untracked()
-          self.queue.put({ source_id, message: msg, })
+          while self.active_sources.contains(source_id) && !self.closed.val {
+            if self.queue.try_put({ source_id, message: msg, }) {
+              break
+            }
+            @async.sleep(5)
+          }
+          if !self.active_sources.contains(source_id) || self.closed.val {
+            return
+          }
         }
       } catch {
         _ => ()

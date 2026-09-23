@@ -3,6 +3,9 @@
 // and can seek freely.
 
 ///|
+const COMPOSITE_READER_QUEUE_CAPACITY : Int = 1000
+
+///|
 priv enum ReaderEvent {
   Msg(Message)
   EndOfTopic(UInt64)
@@ -32,6 +35,7 @@ pub struct SingleReader {
   /// last message seen, for `has_message_available`
   priv last_seen : Ref[MessageId?]
   priv closed : Ref[Bool]
+  priv close_error : Ref[Error?]
   priv chunks : ChunkAssembler
 }
 
@@ -68,6 +72,7 @@ pub async fn SingleReader::create(
     available_permits: 0,
     last_seen: { val: start_message_id, },
     closed: { val: false, },
+    close_error: { val: None, },
     chunks: ChunkAssembler::new(),
   }
   conn.message_handlers[consumer_id] = fn(frame) { reader.on_frame(frame) }
@@ -79,7 +84,24 @@ pub async fn SingleReader::create(
   }
   reader.send_flow(receiver_queue_size)
   reader.available_permits = receiver_queue_size
+  conn.on_close(fn(_error) { reader.on_connection_closed() })
+  if conn.is_closed() {
+    reader.on_connection_closed()
+    raise ConnectionClosed
+  }
   reader
+}
+
+///|
+fn SingleReader::on_connection_closed(self : SingleReader) -> Unit {
+  if self.closed.val {
+    return
+  }
+  self.closed.val = true
+  self.close_error.val = Some(ConnectionClosed)
+  self.conn.message_handlers.remove(self.consumer_id)
+  self.chunks.clear()
+  self.events.close(error=ConnectionClosed, clear=true)
 }
 
 ///|
@@ -269,6 +291,9 @@ pub async fn SingleReader::next(self : SingleReader) -> Message? {
 ///|
 async fn SingleReader::next_event(self : SingleReader) -> ReaderEvent {
   if self.closed.val {
+    if self.close_error.val is Some(error) {
+      raise error
+    }
     raise ConsumerClosed
   }
   let event = self.events.get()
@@ -292,9 +317,15 @@ async fn SingleReader::next_event(self : SingleReader) -> ReaderEvent {
 
 ///|
 /// True when there are buffered messages or the broker reports unseen
-/// messages beyond the last one read.
+/// messages beyond the last one read. Query failures are raised.
 pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
-  if (self.events.try_get() catch { _ => None }) is Some(event) {
+  if self.closed.val {
+    if self.close_error.val is Some(error) {
+      raise error
+    }
+    raise ConsumerClosed
+  }
+  if self.events.try_get() is Some(event) {
     // put it back conceptually: peeking is not supported by the queue,
     // so push the event back through a fresh front slot
     self.requeue_front(event)
@@ -306,8 +337,10 @@ pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
   req.consumer_id = self.consumer_id
   req.request_id = self.conn.next_request_id()
   cmd.get_last_message_id = Some(req)
-  let reply = self.conn.request(cmd) catch { _ => return false }
-  guard reply.get_last_message_id_response is Some(resp) else { return false }
+  let reply = self.conn.request(cmd)
+  guard reply.get_last_message_id_response is Some(resp) else {
+    raise UnexpectedResponse("expected GET_LAST_MESSAGE_ID_RESPONSE")
+  }
   let last = MessageId::from_proto(resp.last_message_id)
   if last.ledger_id == 18446744073709551615 &&
     last.entry_id == 18446744073709551615 {
@@ -442,6 +475,7 @@ priv struct PartitionedReaderState {
   mut total : Int
   readers : Array[SingleReader]
   closed : Ref[Bool]
+  mut peeked : PartitionedReaderEvent?
 }
 
 ///|
@@ -463,12 +497,15 @@ pub fn Reader::partitioned(
   readers : Array[SingleReader],
 ) -> Reader {
   let state : PartitionedReaderState = {
-    queue: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
+    queue: @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(COMPOSITE_READER_QUEUE_CAPACITY),
+    ),
     ended: 0,
     ended_sources: {},
     total: readers.length(),
     readers,
     closed: { val: false, },
+    peeked: None,
   }
   for source, r in readers {
     state.forward_source(group, source, r)
@@ -486,7 +523,13 @@ fn PartitionedReaderState::forward_source(
   group.spawn_bg(
     async fn() {
       while true {
-        let event = reader.next_event()
+        let event = reader.next_event() catch {
+          e => {
+            self.peeked = None
+            self.queue.close(error=e, clear=true)
+            return
+          }
+        }
         if event.consumer_id() == reader.consumer_id {
           self.queue.put({ source, event, })
         }
@@ -541,7 +584,13 @@ pub async fn Reader::next(self : Reader) -> Message? {
     ReaderImpl::One(r) => r.next()
     ReaderImpl::Many(state) =>
       for ;; {
-        let item = state.queue.get()
+        let item = match state.peeked {
+          Some(saved) => {
+            state.peeked = None
+            saved
+          }
+          None => state.queue.get()
+        }
         if !state.is_current(item) {
           continue
         }
@@ -569,25 +618,21 @@ pub async fn Reader::next(self : Reader) -> Message? {
 
 ///|
 /// True when there are buffered messages or the broker reports unseen
-/// messages beyond the last one read (any partition).
+/// messages beyond the last one read (any partition). Query failures are raised.
 pub async fn Reader::has_message_available(self : Reader) -> Bool {
   match self.inner {
     ReaderImpl::One(r) => r.has_message_available()
     ReaderImpl::Many(state) => {
-      let retained = []
-      let mut has_message = false
-      while state.queue.try_get() is Some(item) {
-        if state.is_current(item) {
-          if item.event is Msg(_) {
-            has_message = true
-          }
-          retained.push(item)
+      if state.peeked is Some(item) && !state.is_current(item) {
+        state.peeked = None
+      }
+      while state.peeked is None {
+        match state.queue.try_get() {
+          Some(item) => if state.is_current(item) { state.peeked = Some(item) }
+          None => break
         }
       }
-      for item in retained {
-        ignore(state.queue.try_put(item))
-      }
-      if has_message {
+      if state.peeked is Some(item) && item.event is Msg(_) {
         return true
       }
       for r in state.readers {
@@ -611,6 +656,7 @@ pub async fn Reader::seek(self : Reader, position : SeekPosition) -> Unit {
       }
       state.ended = 0
       state.ended_sources.clear()
+      state.peeked = None
     }
   }
 }
@@ -622,6 +668,7 @@ pub async fn Reader::close(self : Reader) -> Unit {
     ReaderImpl::One(r) => r.close()
     ReaderImpl::Many(state) => {
       state.closed.val = true
+      state.peeked = None
       for r in state.readers {
         r.close()
       }

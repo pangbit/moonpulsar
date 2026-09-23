@@ -1,6 +1,63 @@
 // Reader tests: non-durable subscription, end-of-topic, seek.
 
 ///|
+async test "single reader wakes next on broker disconnect" {
+  @async.with_task_group(async fn(group) {
+    let disconnect : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      ignore(disconnect.get())
+      peer.tcp.close()
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let reader = SingleReader::create(
+      group, conn, "persistent://public/default/reader-disconnect",
+    )
+    disconnect.put(true)
+    let result : Result[Message?, Error] = Ok(
+      @async.with_timeout(3000, async fn() { reader.next() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConnectionClosed))
+    assert_true(reader.closed.val)
+    manager.close()
+  })
+}
+
+///|
+async test "partitioned reader wakes next when a source disconnects" {
+  @async.with_task_group(async fn(group) {
+    let disconnect : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      ignore(disconnect.get())
+      peer.tcp.close()
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let source = SingleReader::create(
+      group, conn, "persistent://public/default/reader-disconnect-partition-0",
+    )
+    let reader = Reader::partitioned(group, [source])
+    disconnect.put(true)
+    let result : Result[Message?, Error] = Ok(
+      @async.with_timeout(3000, async fn() { reader.next() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConnectionClosed))
+    reader.close()
+    manager.close()
+  })
+}
+
+///|
 async test "reader reads until end of topic" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {

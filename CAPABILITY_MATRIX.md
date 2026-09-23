@@ -15,18 +15,18 @@ repository on 2026-09-23.
 | Producer access modes, metadata, and reconnect epoch | Implemented | Mock wire, wait-ready, and reconnect tests; live exclusive conflict and wait-for-exclusive takeover |
 | Producer chunking and compressed chunking | Implemented with explicit size | Wire-level mock and live Pulsar 4.2.4 |
 | Partition routing and producer expansion | Implemented for initially partitioned topics, including one-partition topics | Mock one-to-two and live two-to-three partition expansion |
-| Single, partitioned, and explicit multi-topic consumption | Implemented; initially partitioned consumers discover added partitions | Mock one-to-two and live two-to-three partition expansion |
+| Single, partitioned, and explicit multi-topic consumption | Implemented; initially partitioned consumers discover added partitions | Mock one-to-two expansion and bounded slow-consumer forwarding; live two-to-three expansion |
 | KeyShared auto-split and sticky hash ranges | Implemented | Range validation and SUBSCRIBE wire mock; sticky policy live broker |
 | Pattern subscriptions | Topic additions and removals implemented | Addition: mock and live broker; removal and stale-queue filtering: mock |
 | Consumer options, ack/nack, ack timeout, seek, unsubscribe | Implemented | Mock tests; ack timeout and ID seek live |
 | Exponential negative-ack backoff | Implemented for `Message::nack` | Timing and close-cancellation mock tests; live broker redelivery |
 | Chunk reassembly and ACK | Implemented with bounded memory | Mock wire tests and live consumer/reader replay |
-| Reader, seek, replay, and added-partition discovery | Implemented for initially partitioned topics | Mock one-to-two and live two-to-three partition expansion |
+| Reader, seek, replay, and added-partition discovery | Implemented for initially partitioned topics | Mock one-to-two expansion, bounded slow-reader forwarding, and disconnect wakeup; live two-to-three expansion |
 | Transaction coordinator lookup and transaction lifecycle | Implemented | Mock tests and live coordinator/abort; prior live commit/read-back |
 | Admin topic and subscription operations | Selected endpoints implemented | Mock HTTP tests and live create/expand/query/delete |
 | Schema declaration | Implemented | Existing mock/live schema scenario; typed serialization is open |
 | Dead-letter/retry policy | Open | No implementation or coverage |
-| TableView (raw payload values) | Implemented | Mock initial replay/live updates/empty topic; live broker update, tombstone, and added partition |
+| TableView (raw payload values) | Implemented | Mock initial replay/live updates/empty topic/query failure; live broker update, tombstone, and added partition |
 | Conversion of existing non-partitioned handles | Open | No implementation or coverage |
 | OAuth2, Athenz, TLS certificate authentication | Open | No implementation or coverage |
 | Encryption, interceptors, tracing, metrics | Open | No implementation or coverage |

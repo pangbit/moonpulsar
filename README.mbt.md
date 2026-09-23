@@ -9,6 +9,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 - Producer: synchronous and asynchronous send, shared/exclusive/wait-for-exclusive/fencing access modes, producer metadata, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation
 - Consumer: Exclusive / Shared / Failover / KeyShared subscriptions (including auto-split and sticky hash-range policies), individual & cumulative ack, negative ack with optional exponential redelivery backoff, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), batched message unpacking
 - Explicit multi-topic consumers and pattern consumers that discover added topics and close removed sources in a namespace
+- Bounded merge queues for composite consumers and readers, so slow applications stop source forwarding
 - Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks
 - Binary-protocol authentication: pluggable `Authentication` trait, token and basic auth built in; refresh auth data on broker challenge
 - TLS via `pulsar+ssl://` service URLs

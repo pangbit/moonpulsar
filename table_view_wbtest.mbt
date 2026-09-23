@@ -158,3 +158,45 @@ async test "table view of an empty topic is ready without an end event" {
     client.close()
   })
 }
+
+///|
+async test "table view fails when initial last-message query fails" {
+  @async.with_task_group(async fn(group) {
+    let topic = "persistent://public/default/table-query-error"
+    let addr = start_partitioned_broker(group, 0, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.subscribe is Some(sub) else {
+        fail("expected reader SUBSCRIBE")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = sub.request_id
+      reply.success = Some(success)
+      peer.send_command(reply)
+      assert_true(peer.next().cmd.flow is Some(_))
+      let frame = peer.next()
+      guard frame.cmd.get_last_message_id is Some(req) else {
+        fail("expected last-message query")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::ERROR
+      let error = @proto.CommandError::default()
+      error.request_id = req.request_id
+      error.error = @proto.ServerError::MetadataError
+      error.message = "last-message query failed"
+      reply.error = Some(error)
+      peer.send_command(reply)
+    })
+    let client = Client::connect(group, "pulsar://\{addr}")
+    let result : Result[TableView, Error] = Ok(
+      @async.with_timeout(3000, async fn() { client.create_table_view(topic) }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      result is Err(ServerError(message="last-message query failed", ..)),
+    )
+    client.close()
+  })
+}

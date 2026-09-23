@@ -495,6 +495,7 @@ pub async fn Client::create_reader(
 ///|
 /// Build a live raw-bytes view of a compacted topic from its earliest message.
 /// Messages without keys are ignored; an empty payload removes the key.
+/// Initial last-message queries must succeed before the view is returned.
 pub async fn Client::create_table_view(
   self : Client,
   topic : String,
