@@ -61,6 +61,7 @@ pub async fn Connection::connect(
   tls? : Bool = false,
   /// skip certificate verification (self-signed / testing only)
   tls_insecure? : Bool = false,
+  tls_trust? : @tls.TrustedRoot,
   keepalive_interval_ms? : Int = KEEPALIVE_INTERVAL_MS,
   timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
 ) -> Connection {
@@ -73,7 +74,16 @@ pub async fn Connection::connect(
     _ => raise ConnectFailed(addr)
   }
   let (reader, writer, close_transport) : (&@io.Reader, &@io.Writer, () -> Unit) = if tls {
-    let tls_conn = @tls.Tls::client(tcp, host~, verify=!tls_insecure) catch {
+    let trust = match tls_trust {
+      Some(root) => root
+      None =>
+        if tls_insecure {
+          @tls.TrustedRoot::NoVerification
+        } else {
+          @tls.TrustedRoot::SystemRoot
+        }
+    }
+    let tls_conn = @tls.Tls::client(tcp, host~, trust~) catch {
       e => raise ConnectFailed("TLS handshake with \{addr} failed: \{e}")
     }
     (tls_conn, tls_conn, fn() { tls_conn.close() })

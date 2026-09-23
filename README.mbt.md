@@ -18,7 +18,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 - Bounded merge queues for composite consumers and readers, so slow applications stop source forwarding
 - Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks
 - Binary-protocol authentication: pluggable `Authentication` trait, token and basic auth built in; refresh auth data on broker challenge
-- TLS via `pulsar+ssl://` service URLs
+- TLS via `pulsar+ssl://` service URLs, with system roots or a custom PEM CA through `Client::connect_tls_with_ca`
 - Payload compression: LZ4 (frame format), Zlib, Zstd
 - Partitioned topics: keyed messages route by `xxhash32(key) % partitions`, keyless round-robin; consumers aggregate all partitions and both producers and consumers discover added partitions (60-second default polling interval)
 - Optional producer chunking and consumer/reader chunk reassembly, including compressed payloads
@@ -36,7 +36,7 @@ Not yet / known gaps:
 - Clients created when a topic was non-partitioned do not convert that handle into a partitioned handle.
 - Retry-letter handling uses a separate `create_retry_consumer` constructor; the standard multi-topic and pattern constructors do not automatically add retry topics. OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
 - Chunking requires an explicit `chunk_size`; broker maximum-message-size discovery and configurable chunk expiry are not implemented.
-- `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; this capability run used plain TCP with token auth.
+- `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; custom CA handshake and reconnection are covered by a local TLS mock, while the live broker run used plain TCP with token auth. The current TLS client API does not expose a client certificate for mutual TLS.
 
 ## Verified against a real broker
 

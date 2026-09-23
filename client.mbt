@@ -108,6 +108,34 @@ pub async fn Client::connect_tls_insecure(
 }
 
 ///|
+/// Connect to a TLS broker using a PEM file as the trusted root. The same
+/// trust root is used for topic lookup redirects and reconnects.
+pub async fn Client::connect_tls_with_ca(
+  group : @async.TaskGroup[Unit],
+  service_url : String,
+  ca_pem_file : String,
+  auth? : &Authentication,
+) -> Client {
+  let (addr, tls) = broker_addr_of(service_url)
+  guard tls && ca_pem_file != "" else {
+    raise InvalidFrame(
+      "TLS CA connection requires a pulsar+ssl URL and PEM file",
+    )
+  }
+  let auth_provider = auth.map(fn(a) {
+    fn() -> AuthData { { method_name: a.method_name(), data: a.auth_data(), } }
+  })
+  let manager = ConnectionManager::new(
+    group,
+    auth_provider?,
+    tls=true,
+    tls_trust=@tls.TrustedRoot::CustomPemFile(ca_pem_file),
+  )
+  ignore(manager.get(addr))
+  { manager, service_addr: addr, }
+}
+
+///|
 /// Close all connections opened by this client.
 pub fn Client::close(self : Client) -> Unit {
   self.manager.close()

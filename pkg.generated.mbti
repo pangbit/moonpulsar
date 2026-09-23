@@ -4,6 +4,7 @@ package "pangbit/moonpulsar"
 import {
   "moonbitlang/async",
   "moonbitlang/async/io",
+  "moonbitlang/async/tls",
   "moonbitlang/core/debug",
   "pangbit/moonpulsar/proto",
 }
@@ -111,6 +112,7 @@ pub struct Client {
 pub fn Client::close(Self) -> Unit
 pub async fn Client::connect(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
 pub async fn Client::connect_tls_insecure(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
+pub async fn Client::connect_tls_with_ca(@async.TaskGroup[Unit], String, String, auth? : &Authentication) -> Self
 pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
@@ -134,7 +136,7 @@ pub struct Connection {
   // private fields
 }
 pub fn Connection::close(Self) -> Unit
-pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, keepalive_interval_ms? : Int, timeout_ms? : Int) -> Self
+pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, keepalive_interval_ms? : Int, timeout_ms? : Int) -> Self
 pub fn Connection::is_closed(Self) -> Bool
 pub fn Connection::next_request_id(Self) -> UInt64
 pub fn Connection::on_close(Self, (Error?) -> Unit) -> Unit
@@ -150,7 +152,7 @@ pub struct ConnectionManager {
 pub fn ConnectionManager::close(Self) -> Unit
 pub async fn ConnectionManager::get(Self, String) -> Connection
 pub fn ConnectionManager::is_closed(Self) -> Bool
-pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool) -> Self
+pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot) -> Self
 pub fn ConnectionManager::uses_tls(Self) -> Bool
 
 pub struct Consumer {

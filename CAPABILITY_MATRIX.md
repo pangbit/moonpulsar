@@ -8,7 +8,7 @@ repository on 2026-09-23.
 | Capability | Status | Verification |
 | --- | --- | --- |
 | TCP handshake, lookup, pooling, keepalive, reconnection | Implemented | Mock broker; prior real-broker restart scenario |
-| TLS service URL | Implemented, limited verification | URL parsing unit test and runnable TLS example; excluded from this token-authenticated live run |
+| TLS service URL and custom PEM CA | Implemented, limited live verification | TLS mock validates a private CA, rejects an untrusted certificate, and reconnects with the same CA; runnable TLS example; excluded from the token-authenticated live run |
 | Binary-protocol token and basic auth | Implemented | Token: live broker; basic: unit test; Admin REST supports bearer token |
 | Auth challenge refresh | Implemented for data refresh | Handshake and post-handshake mock tests; challenge-specific algorithms remain open |
 | Producer send, async receipt, batching, compression, delayed delivery | Implemented | Mock broker and prior live broker scenarios |
@@ -29,7 +29,7 @@ repository on 2026-09-23.
 | Retry-letter topic policy | Implemented through explicit `create_retry_consumer` and `reconsume_later` for a source topic; standard multi-topic/pattern constructors do not auto-add retry topics | Mock retry then DLQ publish-before-ACK, send-failure NACK; live Shared subscription delayed retry and DLQ escalation |
 | TableView (raw payload values) | Implemented | Mock initial replay/live updates/empty topic/query failure; live broker update, tombstone, and added partition |
 | Conversion of existing non-partitioned handles | Open | No implementation or coverage |
-| OAuth2, Athenz, TLS certificate authentication | Open | No implementation or coverage |
+| OAuth2, Athenz, TLS client-certificate authentication | Open | No implementation or coverage; the current `moonbitlang/async/tls` client API does not expose a client certificate |
 | Encryption, interceptors, tracing, metrics | Open | No implementation or coverage |
 | Full Admin REST surface | Open | Only listed topic/subscription endpoints are implemented |
 

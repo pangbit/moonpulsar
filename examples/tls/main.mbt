@@ -1,6 +1,5 @@
-// TLS roundtrip against a broker with a self-signed certificate.
-// For real deployments use Client::connect with a trusted CA instead of
-// connect_tls_insecure.
+// TLS roundtrip. Set PULSAR_TLS_CA_FILE to verify a private broker CA.
+// Without it this example skips certificate verification for local testing.
 
 ///|
 async fn main {
@@ -8,7 +7,10 @@ async fn main {
     "pulsar+ssl://127.0.0.1:6651",
   )
   @async.with_task_group(async fn(group) {
-    let client = @pulsar.Client::connect_tls_insecure(group, url)
+    let client = match @env.get_env_var("PULSAR_TLS_CA_FILE") {
+      Some(ca_file) => @pulsar.Client::connect_tls_with_ca(group, url, ca_file)
+      None => @pulsar.Client::connect_tls_insecure(group, url)
+    }
     let topic = "persistent://public/default/moonpulsar-tls"
     let producer = client.create_producer(topic)
     ignore(producer.send(@pulsar.ProducerMessage::new(b"over TLS")))
