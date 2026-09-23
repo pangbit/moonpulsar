@@ -85,10 +85,13 @@ pub async fn Admin::list_topics(Self, String, String, domain? : String) -> Array
 pub fn Admin::new(String, token? : String) -> Self
 pub async fn Admin::partition_count(Self, String) -> Int
 pub async fn Admin::partitioned_topic_stats(Self, String, per_partition? : Bool) -> Json
+pub async fn Admin::remove_topic_property(Self, String, String) -> Unit
 pub async fn Admin::skip_all_messages(Self, String, String) -> Unit
 pub async fn Admin::skip_messages(Self, String, String, Int) -> Unit
+pub async fn Admin::topic_properties(Self, String) -> Map[String, String]
 pub async fn Admin::topic_stats(Self, String) -> Json
 pub async fn Admin::update_partitioned_topic(Self, String, Int) -> Unit
+pub async fn Admin::update_topic_properties(Self, String, Map[String, String]) -> Unit
 
 pub(all) struct AuthData {
   method_name : String

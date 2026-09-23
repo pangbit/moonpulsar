@@ -273,6 +273,59 @@ pub async fn Admin::topic_stats(self : Admin, topic : String) -> Json {
 }
 
 ///|
+/// Read user-defined properties of a topic.
+pub async fn Admin::topic_properties(
+  self : Admin,
+  topic : String,
+) -> Map[String, String] {
+  let name = TopicName::parse(topic)
+  let (_, payload) = self.request(Get, topic_path(name) + "/properties")
+  let text = @utf8.decode(payload) catch {
+    _ => raise InvalidFrame("admin: response is not UTF-8")
+  }
+  let json = @json.parse(text) catch {
+    _ => raise InvalidFrame("admin: invalid JSON response")
+  }
+  @json.from_json(json) catch {
+    _ => raise InvalidFrame("admin: expected string topic properties")
+  }
+}
+
+///|
+/// Replace user-defined properties of a topic.
+pub async fn Admin::update_topic_properties(
+  self : Admin,
+  topic : String,
+  properties : Map[String, String],
+) -> Unit {
+  let name = TopicName::parse(topic)
+  ignore(
+    self.request(
+      Put,
+      topic_path(name) + "/properties",
+      body=@utf8.encode(properties.to_json().stringify()),
+    ),
+  )
+}
+
+///|
+/// Remove one user-defined topic property.
+pub async fn Admin::remove_topic_property(
+  self : Admin,
+  topic : String,
+  key : String,
+) -> Unit {
+  guard safe_admin_segment(key) &&
+    !key.contains("&") &&
+    !key.contains("=") &&
+    !key.contains("+") else {
+    raise LookupFailed("invalid topic property key")
+  }
+  let name = TopicName::parse(topic)
+  ignore(self.request(Delete, topic_path(name) + "/properties?key=" + key))
+}
+
+///|
 /// Partitioned topic statistics as raw JSON. Include per-partition detail
 /// when `per_partition` is true.
 pub async fn Admin::partitioned_topic_stats(

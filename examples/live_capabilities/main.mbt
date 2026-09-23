@@ -177,6 +177,13 @@ async fn main {
       let json_schema_topic = "persistent://public/default/\{prefix}-schema-json"
       let admin_backlog_topic = "persistent://public/default/\{prefix}-admin-backlog"
       admin.create_topic(admin_topic)
+      admin.update_topic_properties(admin_topic, {
+        "owner": "moonpulsar",
+        "run": prefix,
+      })
+      assert_eq(admin.topic_properties(admin_topic).get("run"), Some(prefix))
+      admin.remove_topic_property(admin_topic, "owner")
+      assert_true(admin.topic_properties(admin_topic).get("owner") is None)
       admin.create_topic(admin_backlog_topic)
       admin.create_topic(string_schema_topic)
       admin.create_topic(json_schema_topic)
@@ -579,7 +586,7 @@ async fn main {
     }
     client.close()
     println(
-      "live multi-topic, pattern discovery, dead-letter/retry, schema codecs, admin backlog, ack timeout, chunking, partition expansion, and coordinator lookup OK",
+      "live multi-topic, pattern discovery, dead-letter/retry, schema codecs, admin properties/backlog, ack timeout, chunking, partition expansion, and coordinator lookup OK",
     )
   })
 }
