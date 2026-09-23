@@ -146,6 +146,7 @@ pub struct Message {
   priv chunk_ids : Array[MessageId]?
   priv chunk_tracker : Map[MessageId, Array[MessageId]]?
   priv on_delivery : ((Message) -> Unit)?
+  priv nack_scheduler : ((Message) -> Unit)?
 }
 
 ///|
@@ -249,6 +250,10 @@ pub async fn Message::nack(self : Message) -> Unit {
   }
   if self.chunk_tracker is Some(chunks) {
     chunks.remove(self.id)
+  }
+  if self.nack_scheduler is Some(schedule) {
+    schedule(self)
+    return
   }
   send_redeliver(
     self.conn_ref.val,

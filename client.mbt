@@ -124,7 +124,11 @@ pub async fn Client::create_producer(
   compression? : CompressionCodec = None,
   chunk_size? : Int,
   schema? : SchemaInfo,
+  partition_refresh_ms? : Int = 60000,
 ) -> Producer {
+  guard partition_refresh_ms > 0 else {
+    raise InvalidFrame("partition refresh interval must be positive")
+  }
   if chunk_size is Some(size) && size <= 0 {
     raise InvalidFrame("chunk size must be positive")
   }
@@ -134,7 +138,7 @@ pub async fn Client::create_producer(
   let manager = self.manager
   let addr = self.service_addr
   let partitions = get_partition_count(manager, addr, topic)
-  if partitions <= 1 {
+  if partitions == 0 {
     let conn = lookup_topic(manager, addr, topic)
     let single = SingleProducer::create(
       self.manager.group,
@@ -149,29 +153,64 @@ pub async fn Client::create_producer(
     )
     return Producer::single(single)
   }
-  let subs = []
-  for i in 0..<partitions {
+  let create_partition = async fn(i : Int) -> Producer {
     let partition_topic = "\{topic}-partition-\{i}"
     let conn = lookup_topic(manager, addr, partition_topic)
-    subs.push(
-      Producer::single(
-        SingleProducer::create(
-          self.manager.group,
-          conn,
-          partition_topic,
-          name?,
-          batching?,
-          reconnect_with=async fn() {
-            lookup_topic(manager, addr, partition_topic)
-          },
-          compression~,
-          chunk_size?,
-          schema?,
-        ),
+    Producer::single(
+      SingleProducer::create(
+        self.manager.group,
+        conn,
+        partition_topic,
+        name?,
+        batching?,
+        reconnect_with=async fn() {
+          lookup_topic(manager, addr, partition_topic)
+        },
+        compression~,
+        chunk_size?,
+        schema?,
       ),
     )
   }
-  Producer::partitioned(subs)
+  let subs : Array[Producer] = []
+  for i in 0..<partitions {
+    let partition = create_partition(i) catch {
+      e => {
+        for existing in subs {
+          existing.close() catch {
+            _ => ()
+          }
+        }
+        raise e
+      }
+    }
+    subs.push(partition)
+  }
+  let producer = Producer::partitioned(subs)
+  self.manager.group.spawn_bg(
+    async fn() {
+      while !producer.is_closed() && !manager.is_closed() {
+        @async.sleep(partition_refresh_ms)
+        if producer.is_closed() || manager.is_closed() {
+          break
+        }
+        let count = get_partition_count(manager, addr, topic) catch {
+          _ => continue
+        }
+        while producer.partition_count() < count && !producer.is_closed() {
+          let partition = create_partition(producer.partition_count()) catch {
+            _ => break
+          }
+          producer.add_partition(partition) catch {
+            _ => break
+          }
+        }
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
+  producer
 }
 
 ///|
@@ -190,8 +229,13 @@ pub async fn Client::create_consumer(
   subscription_properties? : Map[String, String] = {},
   receiver_queue_size? : Int = 1000,
   ack_timeout_ms? : Int = 0,
+  nack_backoff? : NackBackoff,
   schema? : SchemaInfo,
+  partition_refresh_ms? : Int = 60000,
 ) -> Consumer {
+  guard partition_refresh_ms > 0 else {
+    raise InvalidFrame("partition refresh interval must be positive")
+  }
   guard ack_timeout_ms >= 0 else {
     raise InvalidFrame("ack timeout must not be negative")
   }
@@ -201,7 +245,7 @@ pub async fn Client::create_consumer(
   let manager = self.manager
   let addr = self.service_addr
   let partitions = get_partition_count(manager, addr, topic)
-  if partitions <= 1 {
+  if partitions == 0 {
     let conn = lookup_topic(manager, addr, topic)
     let single = SingleConsumer::create(
       self.manager.group,
@@ -218,41 +262,78 @@ pub async fn Client::create_consumer(
       subscription_properties~,
       receiver_queue_size~,
       ack_timeout_ms~,
+      nack_backoff?,
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
       schema?,
     )
     return Consumer::single(single)
   }
-  let subs = []
-  for i in 0..<partitions {
+  let create_partition = async fn(i : Int) -> Consumer {
     let partition_topic = "\{topic}-partition-\{i}"
     let conn = lookup_topic(manager, addr, partition_topic)
-    subs.push(
-      Consumer::single(
-        SingleConsumer::create(
-          self.manager.group,
-          conn,
-          partition_topic,
-          subscription,
-          sub_type~,
-          consumer_name?,
-          initial_position~,
-          priority_level~,
-          durable~,
-          read_compacted~,
-          properties~,
-          subscription_properties~,
-          receiver_queue_size~,
-          ack_timeout_ms~,
-          reconnect_with=async fn() {
-            lookup_topic(manager, addr, partition_topic)
-          },
-          schema?,
-        ),
+    Consumer::single(
+      SingleConsumer::create(
+        self.manager.group,
+        conn,
+        partition_topic,
+        subscription,
+        sub_type~,
+        consumer_name?,
+        initial_position~,
+        priority_level~,
+        durable~,
+        read_compacted~,
+        properties~,
+        subscription_properties~,
+        receiver_queue_size~,
+        ack_timeout_ms~,
+        nack_backoff?,
+        reconnect_with=async fn() {
+          lookup_topic(manager, addr, partition_topic)
+        },
+        schema?,
       ),
     )
   }
-  Consumer::partitioned(self.manager.group, subs)
+  let subs : Array[Consumer] = []
+  for i in 0..<partitions {
+    let sub = create_partition(i) catch {
+      e => {
+        for existing in subs {
+          existing.close() catch {
+            _ => ()
+          }
+        }
+        raise e
+      }
+    }
+    subs.push(sub)
+  }
+  let consumer = Consumer::partitioned(self.manager.group, subs)
+  let known : Ref[Int] = { val: partitions, }
+  self.manager.group.spawn_bg(
+    async fn() {
+      while !consumer.is_closed() && !manager.is_closed() {
+        @async.sleep(partition_refresh_ms)
+        if consumer.is_closed() || manager.is_closed() {
+          break
+        }
+        let count = get_partition_count(manager, addr, topic) catch {
+          _ => continue
+        }
+        while known.val < count && !consumer.is_closed() {
+          let sub = create_partition(known.val) catch { _ => break }
+          consumer.add_source(self.manager.group, sub) catch {
+            _ => break
+          }
+          known.val += 1
+        }
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
+  consumer
 }
 
 ///|
@@ -272,7 +353,9 @@ pub async fn Client::create_multi_topic_consumer(
   subscription_properties? : Map[String, String] = {},
   receiver_queue_size? : Int = 1000,
   ack_timeout_ms? : Int = 0,
+  nack_backoff? : NackBackoff,
   schema? : SchemaInfo,
+  partition_refresh_ms? : Int = 60000,
 ) -> Consumer {
   guard !topics.is_empty() else {
     raise InvalidFrame("multi-topic consumer requires at least one topic")
@@ -295,7 +378,9 @@ pub async fn Client::create_multi_topic_consumer(
         subscription_properties~,
         receiver_queue_size~,
         ack_timeout_ms~,
+        nack_backoff?,
         schema?,
+        partition_refresh_ms~,
       ) catch {
         e => {
           for existing in consumers {
@@ -321,11 +406,15 @@ pub async fn Client::create_reader(
   topic : String,
   start_message_id? : MessageId,
   receiver_queue_size? : Int = 1000,
+  partition_refresh_ms? : Int = 60000,
 ) -> Reader {
+  guard partition_refresh_ms > 0 else {
+    raise InvalidFrame("partition refresh interval must be positive")
+  }
   let manager = self.manager
   let addr = self.service_addr
   let partitions = get_partition_count(manager, addr, topic)
-  if partitions <= 1 {
+  if partitions == 0 {
     let conn = lookup_topic(manager, addr, topic)
     return Reader::one(
       SingleReader::create(
@@ -337,21 +426,56 @@ pub async fn Client::create_reader(
       ),
     )
   }
-  let subs = []
-  for i in 0..<partitions {
+  let create_partition = async fn(i : Int) -> SingleReader {
     let partition_topic = "\{topic}-partition-\{i}"
     let conn = lookup_topic(manager, addr, partition_topic)
-    subs.push(
-      SingleReader::create(
-        self.manager.group,
-        conn,
-        partition_topic,
-        start_message_id?,
-        receiver_queue_size~,
-      ),
+    SingleReader::create(
+      self.manager.group,
+      conn,
+      partition_topic,
+      start_message_id?,
+      receiver_queue_size~,
     )
   }
-  Reader::partitioned(self.manager.group, subs)
+  let subs : Array[SingleReader] = []
+  for i in 0..<partitions {
+    let sub = create_partition(i) catch {
+      e => {
+        for existing in subs {
+          existing.close() catch {
+            _ => ()
+          }
+        }
+        raise e
+      }
+    }
+    subs.push(sub)
+  }
+  let reader = Reader::partitioned(self.manager.group, subs)
+  let known : Ref[Int] = { val: partitions, }
+  self.manager.group.spawn_bg(
+    async fn() {
+      while !reader.is_closed() && !manager.is_closed() {
+        @async.sleep(partition_refresh_ms)
+        if reader.is_closed() || manager.is_closed() {
+          break
+        }
+        let count = get_partition_count(manager, addr, topic) catch {
+          _ => continue
+        }
+        while known.val < count && !reader.is_closed() {
+          let sub = create_partition(known.val) catch { _ => break }
+          reader.add_partition(self.manager.group, sub) catch {
+            _ => break
+          }
+          known.val += 1
+        }
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
+  reader
 }
 
 ///|
@@ -397,19 +521,28 @@ pub async fn Client::create_pattern_consumer(
   subscription_properties? : Map[String, String] = {},
   receiver_queue_size? : Int = 1000,
   ack_timeout_ms? : Int = 0,
+  nack_backoff? : NackBackoff,
   schema? : SchemaInfo,
+  partition_refresh_ms? : Int = 60000,
 ) -> Consumer {
   guard refresh_interval_ms > 0 else {
     raise InvalidFrame("topic refresh interval must be positive")
+  }
+  guard partition_refresh_ms > 0 else {
+    raise InvalidFrame("partition refresh interval must be positive")
   }
   let regex = @string.Regex::Regex(pattern)
   let consumer = Consumer::pattern(pattern, subscription)
   let seen : Map[String, Bool] = {}
   let refresh = async fn() -> Unit {
     let discovered = self.topics_of_namespace(namespace)
+    let current : Map[String, Bool] = {}
     for name in discovered {
       let topic = base_topic_name(name)
-      if regex.execute(topic) is Some(_) && !seen.contains(topic) {
+      if regex.execute(topic) is Some(_) {
+        current[topic] = true
+      }
+      if current.contains(topic) && !seen.contains(topic) {
         let sub = self.create_consumer(
           topic,
           subscription,
@@ -423,11 +556,23 @@ pub async fn Client::create_pattern_consumer(
           subscription_properties~,
           receiver_queue_size~,
           ack_timeout_ms~,
+          nack_backoff?,
           schema?,
+          partition_refresh_ms~,
         )
         consumer.add_source(self.manager.group, sub)
         seen[topic] = true
       }
+    }
+    let removed = []
+    for topic, _ in seen {
+      if !current.contains(topic) {
+        removed.push(topic)
+      }
+    }
+    for topic in removed {
+      consumer.remove_source(topic)
+      seen.remove(topic)
     }
   }
   refresh() catch {

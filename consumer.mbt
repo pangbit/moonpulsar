@@ -29,6 +29,44 @@ pub(all) enum SubscriptionInitialPosition {
 } derive(Eq, Debug)
 
 ///|
+/// Exponential delay before redelivering negatively acknowledged messages.
+pub struct NackBackoff {
+  priv initial_ms : Int
+  priv max_ms : Int
+}
+
+///|
+pub fn NackBackoff::new(
+  initial_ms : Int,
+  max_ms : Int,
+) -> NackBackoff raise PulsarError {
+  guard initial_ms > 0 && max_ms >= initial_ms else {
+    raise InvalidFrame("invalid negative-acknowledgment backoff")
+  }
+  { initial_ms, max_ms, }
+}
+
+///|
+/// Default to one second initially, capped at ten minutes.
+pub fn NackBackoff::default() -> NackBackoff {
+  { initial_ms: 1000, max_ms: 600000, }
+}
+
+///|
+pub fn NackBackoff::delay_ms(
+  self : NackBackoff,
+  redelivery_count : UInt,
+) -> Int {
+  let mut delay = self.initial_ms
+  let mut remaining = redelivery_count
+  while remaining > 0U && delay < self.max_ms {
+    delay = if delay > self.max_ms / 2 { self.max_ms } else { delay * 2 }
+    remaining -= 1U
+  }
+  delay
+}
+
+///|
 /// A consumer bound to a topic subscription.
 pub struct SingleConsumer {
   /// current connection; swapped on reconnect (shared with `Message` acks)
@@ -49,6 +87,8 @@ pub struct SingleConsumer {
   priv receiver_permits : Int
   priv mut available_permits : Int
   priv ack_timeout_ms : Int
+  priv nack_backoff : NackBackoff?
+  priv nack_epoch : Ref[Int]
   priv ack_pending : Map[MessageId, Int]
   priv mut next_ack_token : Int
   priv chunks : ChunkAssembler
@@ -78,6 +118,7 @@ pub async fn SingleConsumer::create(
   subscription_properties? : Map[String, String] = {},
   receiver_queue_size? : Int = 1000,
   ack_timeout_ms? : Int = 0,
+  nack_backoff? : NackBackoff,
   reconnect_with? : async () -> Connection,
   schema? : SchemaInfo,
 ) -> SingleConsumer {
@@ -107,6 +148,8 @@ pub async fn SingleConsumer::create(
     receiver_permits: receiver_queue_size,
     available_permits: 0,
     ack_timeout_ms,
+    nack_backoff,
+    nack_epoch: { val: 0, },
     ack_pending: {},
     next_ack_token: 0,
     chunks: ChunkAssembler::new(),
@@ -199,6 +242,7 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
       raise UnexpectedResponse("expected SUCCESS for SUBSCRIBE")
     }
     self.conn_ref.val = conn
+    self.nack_epoch.val += 1
     self.ack_pending.clear()
     self.chunks.clear()
     self.chunk_acks.clear()
@@ -223,6 +267,7 @@ fn SingleConsumer::on_connection_closed(
   error : Error?,
 ) -> Unit {
   ignore(error)
+  self.nack_epoch.val += 1
   if self.closed.val || self.reconnect_with is None {
     if !self.closed.val {
       self.closed.val = true
@@ -360,6 +405,10 @@ fn SingleConsumer::push_message(
   redelivery_count : UInt,
   chunk_ids? : Array[MessageId],
 ) -> Unit raise {
+  let scheduler : ((Message) -> Unit)? = match self.nack_backoff {
+    Some(_) => Some(fn(m) { self.schedule_nack(m) })
+    None => None
+  }
   let message = build_message(
     self.conn_ref,
     self.consumer_id,
@@ -374,6 +423,7 @@ fn SingleConsumer::push_message(
     chunk_ids?,
     chunk_tracker=self.chunk_acks,
     on_delivery=fn(m) { self.track_ack(m) },
+    nack_scheduler?=scheduler,
   )
   ignore(self.messages.try_put(message))
 }
@@ -393,6 +443,7 @@ fn build_message(
   chunk_ids? : Array[MessageId],
   chunk_tracker? : Map[MessageId, Array[MessageId]],
   on_delivery? : (Message) -> Unit,
+  nack_scheduler? : (Message) -> Unit,
 ) -> Message {
   {
     conn_ref,
@@ -438,6 +489,7 @@ fn build_message(
     chunk_ids,
     chunk_tracker,
     on_delivery,
+    nack_scheduler,
   }
 }
 
@@ -456,6 +508,29 @@ fn SingleConsumer::track_ack(self : SingleConsumer, message : Message) -> Unit {
       @async.sleep(self.ack_timeout_ms)
       if !self.closed.val && self.ack_pending.get(id) == Some(token) {
         self.ack_pending.remove(id)
+        send_redeliver(self.conn_ref.val, self.consumer_id, ids) catch {
+          _ => ()
+        }
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
+}
+
+///|
+fn SingleConsumer::schedule_nack(
+  self : SingleConsumer,
+  message : Message,
+) -> Unit {
+  guard self.nack_backoff is Some(policy) else { return }
+  let delay = policy.delay_ms(message.redelivery_count())
+  let ids = message.chunk_ids.unwrap_or([message.id()])
+  let epoch = self.nack_epoch.val
+  self.group.spawn_bg(
+    async fn() {
+      @async.sleep(delay)
+      if !self.closed.val && self.nack_epoch.val == epoch {
         send_redeliver(self.conn_ref.val, self.consumer_id, ids) catch {
           _ => ()
         }
@@ -689,6 +764,7 @@ pub async fn SingleConsumer::seek(
   self.ack_pending.clear()
   self.chunks.clear()
   self.chunk_acks.clear()
+  self.nack_epoch.val += 1
   conn.message_handlers.remove(self.consumer_id)
   let close_cmd = @proto.BaseCommand::default()
   close_cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
@@ -721,6 +797,7 @@ pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
     return
   }
   self.closed.val = true
+  self.nack_epoch.val += 1
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
   let close = @proto.CommandCloseConsumer::default()
@@ -760,6 +837,7 @@ pub async fn SingleConsumer::unsubscribe(
     raise UnexpectedResponse("expected SUCCESS for UNSUBSCRIBE")
   }
   self.closed.val = true
+  self.nack_epoch.val += 1
   self.conn_ref.val.message_handlers.remove(self.consumer_id)
   self.ack_pending.clear()
   self.chunks.clear()
@@ -791,10 +869,19 @@ priv enum ConsumerImpl {
 ///|
 priv struct PartitionedConsumerState {
   consumers : Array[Consumer]
-  queue : @aqueue.Queue[Message]
+  source_ids : Array[Int]
+  mut next_source_id : Int
+  active_sources : Map[Int, Bool]
+  queue : @aqueue.Queue[ForwardedMessage]
   closed : Ref[Bool]
   topic_label : String
   subscription_label : String
+}
+
+///|
+priv struct ForwardedMessage {
+  source_id : Int
+  message : Message
 }
 
 ///|
@@ -827,6 +914,9 @@ pub fn Consumer::partitioned(
   }
   let state : PartitionedConsumerState = {
     consumers: [],
+    source_ids: [],
+    next_source_id: 0,
+    active_sources: {},
     queue: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
     closed: { val: false, },
     topic_label,
@@ -843,6 +933,9 @@ fn Consumer::pattern(pattern : String, subscription : String) -> Consumer {
   {
     inner: ConsumerImpl::Partitioned({
       consumers: [],
+      source_ids: [],
+      next_source_id: 0,
+      active_sources: {},
       queue: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
       closed: { val: false, },
       topic_label: pattern,
@@ -857,13 +950,17 @@ fn PartitionedConsumerState::add_source(
   group : @async.TaskGroup[Unit],
   sub : Consumer,
 ) -> Unit {
+  let source_id = self.next_source_id
+  self.next_source_id += 1
+  self.source_ids.push(source_id)
+  self.active_sources[source_id] = true
   self.consumers.push(sub)
   group.spawn_bg(
     async fn() {
       try {
         while true {
           let msg = sub.receive_untracked()
-          self.queue.put(msg)
+          self.queue.put({ source_id, message: msg, })
         }
       } catch {
         _ => ()
@@ -872,6 +969,26 @@ fn PartitionedConsumerState::add_source(
     no_wait=true,
     allow_failure=true,
   )
+}
+
+///|
+async fn Consumer::remove_source(self : Consumer, topic : String) -> Unit {
+  match self.inner {
+    ConsumerImpl::Single(_) => raise InvalidFrame("not a composite consumer")
+    ConsumerImpl::Partitioned(state) => {
+      let mut index = 0
+      while index < state.consumers.length() {
+        if base_topic_name(state.consumers[index].topic()) == topic {
+          let removed = state.consumers.remove(index)
+          let source_id = state.source_ids.remove(index)
+          state.active_sources.remove(source_id)
+          removed.close()
+        } else {
+          index += 1
+        }
+      }
+    }
+  }
 }
 
 ///|
@@ -896,7 +1013,15 @@ async fn Consumer::add_source(
 async fn Consumer::receive_untracked(self : Consumer) -> Message {
   match self.inner {
     ConsumerImpl::Single(c) => c.receive_untracked()
-    ConsumerImpl::Partitioned(state) => state.queue.get()
+    ConsumerImpl::Partitioned(state) => {
+      while true {
+        let item = state.queue.get()
+        if state.active_sources.contains(item.source_id) {
+          return item.message
+        }
+      }
+      raise ConsumerClosed
+    }
   }
 }
 
@@ -913,10 +1038,22 @@ pub async fn Consumer::receive(self : Consumer) -> Message {
 pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
   let message = match self.inner {
     ConsumerImpl::Single(c) => c.try_receive_untracked()
-    ConsumerImpl::Partitioned(state) =>
-      state.queue.try_get() catch {
-        _ => raise ConsumerClosed
+    ConsumerImpl::Partitioned(state) => {
+      let mut result : Message? = None
+      let mut done = false
+      while !done {
+        let next = state.queue.try_get() catch { _ => raise ConsumerClosed }
+        match next {
+          Some(item) =>
+            if state.active_sources.contains(item.source_id) {
+              result = Some(item.message)
+              done = true
+            }
+          None => done = true
+        }
       }
+      result
+    }
   }
   if message is Some(msg) {
     msg.mark_delivered()

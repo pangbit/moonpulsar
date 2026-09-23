@@ -428,7 +428,7 @@ priv struct PartitionedReaderState {
   queue : @aqueue.Queue[PartitionedReaderEvent]
   mut ended : Int
   ended_sources : Map[Int, Bool]
-  total : Int
+  mut total : Int
   readers : Array[SingleReader]
   closed : Ref[Bool]
 }
@@ -460,20 +460,59 @@ pub fn Reader::partitioned(
     closed: { val: false, },
   }
   for source, r in readers {
-    group.spawn_bg(
-      async fn() {
-        while true {
-          let event = r.next_event()
-          if event.consumer_id() == r.consumer_id {
-            state.queue.put({ source, event, })
-          }
-        }
-      },
-      no_wait=true,
-      allow_failure=true,
-    )
+    state.forward_source(group, source, r)
   }
   { inner: ReaderImpl::Many(state), }
+}
+
+///|
+fn PartitionedReaderState::forward_source(
+  self : PartitionedReaderState,
+  group : @async.TaskGroup[Unit],
+  source : Int,
+  reader : SingleReader,
+) -> Unit {
+  group.spawn_bg(
+    async fn() {
+      while true {
+        let event = reader.next_event()
+        if event.consumer_id() == reader.consumer_id {
+          self.queue.put({ source, event, })
+        }
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
+}
+
+///|
+async fn Reader::add_partition(
+  self : Reader,
+  group : @async.TaskGroup[Unit],
+  reader : SingleReader,
+) -> Unit {
+  match self.inner {
+    ReaderImpl::One(_) => raise InvalidFrame("not a partitioned reader")
+    ReaderImpl::Many(state) => {
+      if state.closed.val {
+        reader.close()
+        return
+      }
+      let source = state.readers.length()
+      state.readers.push(reader)
+      state.total += 1
+      state.forward_source(group, source, reader)
+    }
+  }
+}
+
+///|
+pub fn Reader::is_closed(self : Reader) -> Bool {
+  match self.inner {
+    ReaderImpl::One(r) => r.closed.val
+    ReaderImpl::Many(state) => state.closed.val
+  }
 }
 
 ///|

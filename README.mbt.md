@@ -7,15 +7,15 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 - Connection management over TCP with the Pulsar binary protocol (`pulsar://`), handshake, keepalive and request/response correlation
 - Topic lookup with redirect following and connection pooling
 - Producer: synchronous and asynchronous send, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation
-- Consumer: Exclusive / Shared / Failover / KeyShared subscriptions, individual & cumulative ack, negative ack with redelivery, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), batched message unpacking
-- Explicit multi-topic consumers and pattern consumers that discover new topics in a namespace
+- Consumer: Exclusive / Shared / Failover / KeyShared subscriptions, individual & cumulative ack, negative ack with optional exponential redelivery backoff, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), batched message unpacking
+- Explicit multi-topic consumers and pattern consumers that discover added topics and close removed sources in a namespace
 - Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks
 - Binary-protocol authentication: pluggable `Authentication` trait, token and basic auth built in; refresh auth data on broker challenge
 - TLS via `pulsar+ssl://` service URLs
 - Payload compression: LZ4 (frame format), Zlib, Zstd
-- Partitioned topics: keyed messages route by `xxhash32(key) % partitions`, keyless round-robin; consumers aggregate all partitions
+- Partitioned topics: keyed messages route by `xxhash32(key) % partitions`, keyless round-robin; consumers aggregate all partitions and both producers and consumers discover added partitions (60-second default polling interval)
 - Optional producer chunking and consumer/reader chunk reassembly, including compressed payloads
-- Reader API: non-durable replay from any message id, `seek`, `has_message_available`, aggregated across partitions
+- Reader API: non-durable replay from any message id, `seek`, `has_message_available`, aggregation and added-partition discovery
 - Transactions: coordinator ownership lookup, `new_transaction` / `commit` / `abort`, transactional send and ack
 - Admin REST API: topic create/delete, partitioned topic create/expand/delete and metadata, list topics/subscriptions, delete subscriptions, topic stats
 - Schema declaration: producers/consumers declare `SchemaInfo` (String/JSON/Avro/Protobuf/raw) on creation
@@ -25,7 +25,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 Not yet / known gaps:
 
 - Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
-- Partitioned producers and consumers do not yet discover added partitions automatically; pattern consumers discover added topics but do not remove deleted topics.
+- Clients created when a topic was non-partitioned do not convert that handle into a partitioned handle.
 - Retry/DLQ policies, TableView, broker-side KeyShared policies, OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
 - Chunking requires an explicit `chunk_size`; broker maximum-message-size discovery and configurable chunk expiry are not implemented.
 - `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; this capability run used plain TCP with token auth.
@@ -40,7 +40,8 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - partitioned topics (admin-created, key routing, merged consumption)
 - transactions: TC channel, transactional produce, commit, read-back
 - automatic reconnection across a broker restart (producer replay + consumer re-subscribe)
-- token-authenticated multi-topic and pattern consumption, ack timeout, consumer seek, chunked produce/consume/reader replay, and coordinator lookup
+- token-authenticated multi-topic and pattern consumption, ack timeout, delayed nack redelivery, consumer seek, chunked produce/consume/reader replay, and coordinator lookup
+- partition expansion from two to three partitions while the producer, consumer, and reader remain open
 - token-authenticated Admin REST topic/subscription operations and partition expansion
 
 ## Requirements

@@ -114,6 +114,24 @@ async test "client rejects invalid consumer and chunking options before lookup" 
       e => Err(e)
     }
     assert_true(batch_chunk is Err(InvalidFrame(_)))
+    let bad_producer_refresh : Result[Producer, Error] = Ok(
+      client.create_producer(topic, partition_refresh_ms=0),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(bad_producer_refresh is Err(InvalidFrame(_)))
+    let bad_consumer_refresh : Result[Consumer, Error] = Ok(
+      client.create_consumer(topic, "sub", partition_refresh_ms=0),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(bad_consumer_refresh is Err(InvalidFrame(_)))
+    let bad_reader_refresh : Result[Reader, Error] = Ok(
+      client.create_reader(topic, partition_refresh_ms=0),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(bad_reader_refresh is Err(InvalidFrame(_)))
     client.close()
   })
 }

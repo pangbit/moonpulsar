@@ -108,7 +108,7 @@ pub async fn lookup_topic(
 }
 
 ///|
-/// Number of partitions of a topic; 0 or 1 means non-partitioned.
+/// Number of partitions of a topic; 0 means non-partitioned.
 pub async fn get_partition_count(
   manager : ConnectionManager,
   addr : String,

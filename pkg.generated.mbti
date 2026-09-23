@@ -111,11 +111,11 @@ pub struct Client {
 pub fn Client::close(Self) -> Unit
 pub async fn Client::connect(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
 pub async fn Client::connect_tls_insecure(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
-pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, schema? : SchemaInfo) -> Consumer
-pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, schema? : SchemaInfo) -> Consumer
-pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, schema? : SchemaInfo) -> Consumer
-pub async fn Client::create_producer(Self, String, name? : String, batching? : BatchingConfig, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo) -> Producer
-pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int) -> Reader
+pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
+pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
+pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
+pub async fn Client::create_producer(Self, String, name? : String, batching? : BatchingConfig, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Producer
+pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int, partition_refresh_ms? : Int) -> Reader
 pub async fn Client::partitions_of(Self, String) -> Int
 pub async fn Client::topics_of_namespace(Self, String, pattern? : String, mode? : NamespaceTopicMode) -> Array[String]
 pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordinator
@@ -202,6 +202,13 @@ pub(all) struct MessageId {
 pub fn MessageId::earliest() -> Self
 pub fn MessageId::latest() -> Self
 
+pub struct NackBackoff {
+  // private fields
+}
+pub fn NackBackoff::default() -> Self
+pub fn NackBackoff::delay_ms(Self, UInt) -> Int
+pub fn NackBackoff::new(Int, Int) -> Self raise PulsarError
+
 pub(all) enum NamespaceTopicMode {
   Persistent
   NonPersistent
@@ -215,7 +222,9 @@ pub struct Producer {
 }
 pub async fn Producer::close(Self) -> Unit
 pub async fn Producer::flush(Self) -> Unit
+pub fn Producer::is_closed(Self) -> Bool
 pub fn Producer::name(Self) -> String
+pub fn Producer::partition_count(Self) -> Int
 pub fn Producer::partitioned(Array[Self]) -> Self
 pub async fn Producer::send(Self, ProducerMessage) -> SendReceipt
 pub async fn Producer::send_async(Self, ProducerMessage) -> ReceiptFuture
@@ -239,6 +248,7 @@ pub struct Reader {
 }
 pub async fn Reader::close(Self) -> Unit
 pub async fn Reader::has_message_available(Self) -> Bool
+pub fn Reader::is_closed(Self) -> Bool
 pub async fn Reader::next(Self) -> Message?
 pub fn Reader::partitioned(@async.TaskGroup[Unit], Array[SingleReader]) -> Self
 pub async fn Reader::seek(Self, SeekPosition) -> Unit
@@ -286,7 +296,7 @@ pub async fn SingleConsumer::ack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::ack_cumulative(Self, MessageId) -> Unit
 pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId) -> Unit
 pub async fn SingleConsumer::close(Self) -> Unit
-pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, reconnect_with? : async () -> Connection, schema? : SchemaInfo) -> Self
+pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, reconnect_with? : async () -> Connection, schema? : SchemaInfo) -> Self
 pub fn SingleConsumer::is_closed(Self) -> Bool
 pub async fn SingleConsumer::nack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::receive(Self) -> Message

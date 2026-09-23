@@ -61,6 +61,24 @@ async fn main {
     })
     assert_eq(replayed_consumer_message.payload(), b"a")
     replayed_consumer_message.ack()
+    let backoff_consumer = client.create_consumer(
+      topic_a,
+      "\{prefix}-backoff-sub",
+      initial_position=Earliest,
+      nack_backoff=@pulsar.NackBackoff::new(200, 1000),
+    )
+    let backoff_first = @async.with_timeout(10000, async fn() {
+      backoff_consumer.receive()
+    })
+    let nack_started = @async.now()
+    backoff_first.nack()
+    let backoff_retry = @async.with_timeout(10000, async fn() {
+      backoff_consumer.receive()
+    })
+    assert_eq(backoff_retry.id(), backoff_first.id())
+    assert_true(@async.now() - nack_started >= 180L)
+    backoff_retry.ack()
+    backoff_consumer.close()
     let pattern_consumer = client.create_pattern_consumer(
       "public/default",
       "^persistent://public/default/\{prefix}-.*$",
@@ -142,8 +160,66 @@ async fn main {
       )
       admin.create_partitioned_topic(partitioned_topic, 2)
       assert_eq(admin.partition_count(partitioned_topic), 2)
+      let scaling_producer = client.create_producer(
+        partitioned_topic,
+        partition_refresh_ms=100,
+      )
+      let scaling_consumer = client.create_consumer(
+        partitioned_topic,
+        "\{prefix}-scaling-sub",
+        initial_position=Earliest,
+        partition_refresh_ms=100,
+      )
+      let scaling_reader = client.create_reader(
+        partitioned_topic,
+        start_message_id=@pulsar.MessageId::earliest(),
+        partition_refresh_ms=100,
+      )
+      assert_eq(scaling_producer.partition_count(), 2)
       admin.update_partitioned_topic(partitioned_topic, 3)
       assert_eq(admin.partition_count(partitioned_topic), 3)
+      @async.with_timeout(10000, async fn() {
+        while scaling_producer.partition_count() != 3 {
+          @async.sleep(20)
+        }
+      })
+      let mut partition_key = ""
+      for i in 0..<100 {
+        let candidate = "partition-key-\{i}"
+        let hash = @pulsar.xxhash32(@utf8.encode(candidate)).reinterpret_as_int() &
+          0x7fffffff
+        if hash % 3 == 2 {
+          partition_key = candidate
+          break
+        }
+      }
+      assert_true(partition_key != "")
+      ignore(
+        scaling_producer.send(
+          @pulsar.ProducerMessage::new(b"expanded", key=partition_key),
+        ),
+      )
+      let expanded = @async.with_timeout(10000, async fn() {
+        scaling_consumer.receive()
+      })
+      assert_eq(expanded.topic(), "\{partitioned_topic}-partition-2")
+      assert_eq(expanded.payload(), b"expanded")
+      expanded.ack()
+      let read_expanded = @async.with_timeout(10000, async fn() {
+        let mut result : @pulsar.Message? = None
+        while result is None {
+          result = scaling_reader.next()
+          if result is None {
+            @async.sleep(20)
+          }
+        }
+        result.unwrap()
+      })
+      assert_eq(read_expanded.topic(), "\{partitioned_topic}-partition-2")
+      assert_eq(read_expanded.payload(), b"expanded")
+      scaling_reader.close()
+      scaling_consumer.close()
+      scaling_producer.close()
       let admin_consumer = client.create_consumer(
         admin_topic,
         "\{prefix}-admin-sub",
@@ -182,7 +258,7 @@ async fn main {
     }
     client.close()
     println(
-      "live multi-topic, pattern discovery, ack timeout, chunking, and coordinator lookup OK",
+      "live multi-topic, pattern discovery, ack timeout, chunking, partition expansion, and coordinator lookup OK",
     )
   })
 }

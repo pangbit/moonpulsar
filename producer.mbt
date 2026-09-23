@@ -671,17 +671,47 @@ priv enum ProducerImpl {
 /// round-robin.
 pub struct Producer {
   priv inner : ProducerImpl
+  priv closed : Ref[Bool]
 }
 
 ///|
 fn Producer::single(p : SingleProducer) -> Producer {
-  { inner: ProducerImpl::Single(p), }
+  { inner: ProducerImpl::Single(p), closed: { val: false, }, }
 }
 
 ///|
 /// Create a producer on a partitioned topic from one producer per partition.
 pub fn Producer::partitioned(partitions : Array[Producer]) -> Producer {
-  { inner: ProducerImpl::Partitioned(partitions, { val: 0, }), }
+  {
+    inner: ProducerImpl::Partitioned(partitions, { val: 0, }),
+    closed: { val: false, },
+  }
+}
+
+///|
+async fn Producer::add_partition(self : Producer, partition : Producer) -> Unit {
+  if self.closed.val {
+    partition.close()
+    return
+  }
+  match self.inner {
+    ProducerImpl::Single(_) => raise InvalidFrame("not a partitioned producer")
+    ProducerImpl::Partitioned(parts, _) => parts.push(partition)
+  }
+}
+
+///|
+/// Number of producer partitions currently available for routing.
+pub fn Producer::partition_count(self : Producer) -> Int {
+  match self.inner {
+    ProducerImpl::Single(_) => 1
+    ProducerImpl::Partitioned(parts, _) => parts.length()
+  }
+}
+
+///|
+pub fn Producer::is_closed(self : Producer) -> Bool {
+  self.closed.val
 }
 
 ///|
@@ -755,6 +785,10 @@ pub async fn Producer::flush(self : Producer) -> Unit {
 ///|
 /// Close the producer (all partitions), flushing pending batches first.
 pub async fn Producer::close(self : Producer) -> Unit {
+  if self.closed.val {
+    return
+  }
+  self.closed.val = true
   match self.inner {
     ProducerImpl::Single(p) => p.close()
     ProducerImpl::Partitioned(partitions, _) =>

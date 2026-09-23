@@ -8,6 +8,7 @@ async fn start_partitioned_broker(
   group : @async.TaskGroup[Unit],
   partitions : Int,
   on_peer : async (String, MockPeer) -> Unit,
+  partitions_ref? : Ref[Int],
 ) -> String {
   // metadata/lookup answers must keep working while the scenario runs,
   // because partition creation interleaves lookups and PRODUCER/SUBSCRIBE
@@ -30,7 +31,11 @@ async fn start_partitioned_broker(
             reply.type_ = @proto.BaseCommand_Type::PARTITIONED_METADATA_RESPONSE
             let resp = @proto.CommandPartitionedTopicMetadataResponse::default()
             resp.request_id = req.request_id
-            resp.partitions = Some(partitions.reinterpret_as_uint())
+            let count = match partitions_ref {
+              Some(current) => current.val
+              None => partitions
+            }
+            resp.partitions = Some(count.reinterpret_as_uint())
             reply.partition_metadata_response = Some(resp)
             peer.send_command(reply)
           } else if frame.cmd.lookup_topic is Some(req) {
