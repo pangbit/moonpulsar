@@ -15,6 +15,16 @@ pub(all) enum ProducerAccessMode {
 } derive(Eq, Debug)
 
 ///|
+/// Choose a partition for a partitioned producer. The default hashes keyed
+/// messages and distributes keyless messages in round-robin order.
+pub(all) enum ProducerRoutingMode {
+  KeyHash
+  RoundRobin
+  SinglePartition
+  Custom((ProducerMessage, Int) -> Int)
+}
+
+///|
 fn ProducerAccessMode::to_proto(
   self : ProducerAccessMode,
 ) -> @proto.ProducerAccessMode {
@@ -68,6 +78,7 @@ pub struct SingleProducer {
   priv mut epoch : UInt64
   priv mut name : String
   priv mut sequence_id : UInt64
+  priv mut last_confirmed_sequence_id : UInt64?
   priv pending : Map[UInt64, @aqueue.Queue[SendReceipt]]
   /// encoded SEND frames awaiting a receipt, for replay after reconnect
   priv payloads : Map[UInt64, Bytes]
@@ -130,6 +141,7 @@ pub async fn SingleProducer::create(
     epoch: 0UL,
     name: name.unwrap_or(""),
     sequence_id: 0,
+    last_confirmed_sequence_id: None,
     pending: {},
     payloads: {},
     reconnect_with,
@@ -156,6 +168,7 @@ pub async fn SingleProducer::create(
   producer.topic_epoch = success.topic_epoch
   if success.last_sequence_id is Some(last) && last >= 0 {
     producer.sequence_id = (last + 1).reinterpret_as_uint64()
+    producer.last_confirmed_sequence_id = Some(last.reinterpret_as_uint64())
   }
   producer
 }
@@ -206,6 +219,10 @@ fn SingleProducer::on_command(
 ) -> Unit raise {
   if cmd.send_receipt is Some(receipt) {
     if self.pending.get(receipt.sequence_id) is Some(waiter) {
+      if self.last_confirmed_sequence_id is None ||
+        self.last_confirmed_sequence_id.unwrap() < receipt.sequence_id {
+        self.last_confirmed_sequence_id = Some(receipt.sequence_id)
+      }
       self.pending.remove(receipt.sequence_id)
       self.payloads.remove(receipt.sequence_id)
       let message_id = match receipt.message_id {
@@ -282,6 +299,16 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
     }
     self.topic_epoch = success.topic_epoch
     self.name = success.producer_name
+    if success.last_sequence_id is Some(last) && last >= 0 {
+      let confirmed = last.reinterpret_as_uint64()
+      if self.last_confirmed_sequence_id is None ||
+        self.last_confirmed_sequence_id.unwrap() < confirmed {
+        self.last_confirmed_sequence_id = Some(confirmed)
+      }
+      if self.sequence_id <= confirmed {
+        self.sequence_id = confirmed + 1UL
+      }
+    }
     // swap the connection, then replay unconfirmed messages in order
     self.conn = conn
     let seqs = self.payloads.keys().collect()
@@ -704,9 +731,16 @@ pub fn SingleProducer::topic(self : SingleProducer) -> String {
 }
 
 ///|
+/// Highest sequence id confirmed by this producer or reported by the broker
+/// when it registered. `None` means that no sequence has been confirmed.
+pub fn SingleProducer::last_sequence_id(self : SingleProducer) -> UInt64? {
+  self.last_confirmed_sequence_id
+}
+
+///|
 priv enum ProducerImpl {
   Single(SingleProducer)
-  Partitioned(Array[Producer], Ref[Int])
+  Partitioned(Array[Producer], Ref[Int], ProducerRoutingMode)
 }
 
 ///|
@@ -725,9 +759,12 @@ fn Producer::single(p : SingleProducer) -> Producer {
 
 ///|
 /// Create a producer on a partitioned topic from one producer per partition.
-pub fn Producer::partitioned(partitions : Array[Producer]) -> Producer {
+pub fn Producer::partitioned(
+  partitions : Array[Producer],
+  routing? : ProducerRoutingMode = KeyHash,
+) -> Producer {
   {
-    inner: ProducerImpl::Partitioned(partitions, { val: 0, }),
+    inner: ProducerImpl::Partitioned(partitions, { val: 0, }, routing),
     closed: { val: false, },
   }
 }
@@ -740,7 +777,7 @@ async fn Producer::add_partition(self : Producer, partition : Producer) -> Unit 
   }
   match self.inner {
     ProducerImpl::Single(_) => raise InvalidFrame("not a partitioned producer")
-    ProducerImpl::Partitioned(parts, _) => parts.push(partition)
+    ProducerImpl::Partitioned(parts, _, _) => parts.push(partition)
   }
 }
 
@@ -749,7 +786,7 @@ async fn Producer::add_partition(self : Producer, partition : Producer) -> Unit 
 pub fn Producer::partition_count(self : Producer) -> Int {
   match self.inner {
     ProducerImpl::Single(_) => 1
-    ProducerImpl::Partitioned(parts, _) => parts.length()
+    ProducerImpl::Partitioned(parts, _, _) => parts.length()
   }
 }
 
@@ -759,22 +796,40 @@ pub fn Producer::is_closed(self : Producer) -> Bool {
 }
 
 ///|
-fn Producer::route(self : Producer, msg : ProducerMessage) -> Producer {
-  guard self.inner is ProducerImpl::Partitioned(partitions, rr) else {
+fn Producer::route(
+  self : Producer,
+  msg : ProducerMessage,
+) -> Producer raise PulsarError {
+  guard self.inner is ProducerImpl::Partitioned(partitions, rr, routing) else {
     return self
   }
   let n = partitions.length()
-  match msg.key {
-    Some(key) => {
-      let h = xxhash32(@utf8.encode(key)).reinterpret_as_int() & 0x7fffffff
-      partitions[h % n]
-    }
-    None => {
-      let i = rr.val % n
-      rr.val += 1
-      partitions[i]
-    }
+  guard n > 0 else {
+    raise InvalidFrame("partitioned producer has no partitions")
   }
+  let index = match routing {
+    KeyHash =>
+      match msg.key {
+        Some(key) =>
+          (xxhash32(@utf8.encode(key)).reinterpret_as_int() & 0x7fffffff) % n
+        None => {
+          let index = rr.val % n
+          rr.val += 1
+          index
+        }
+      }
+    RoundRobin => {
+      let index = rr.val % n
+      rr.val += 1
+      index
+    }
+    SinglePartition => 0
+    Custom(router) => router(msg, n)
+  }
+  guard index >= 0 && index < n else {
+    raise InvalidFrame("producer router returned an invalid partition")
+  }
+  partitions[index]
 }
 
 ///|
@@ -785,7 +840,7 @@ pub async fn Producer::send(
 ) -> SendReceipt {
   match self.inner {
     ProducerImpl::Single(p) => p.send(msg)
-    ProducerImpl::Partitioned(_, _) => self.route(msg).send(msg)
+    ProducerImpl::Partitioned(_, _, _) => self.route(msg).send(msg)
   }
 }
 
@@ -797,7 +852,7 @@ pub async fn Producer::send_async(
 ) -> ReceiptFuture {
   match self.inner {
     ProducerImpl::Single(p) => p.send_async(msg)
-    ProducerImpl::Partitioned(_, _) => self.route(msg).send_async(msg)
+    ProducerImpl::Partitioned(_, _, _) => self.route(msg).send_async(msg)
   }
 }
 
@@ -810,7 +865,7 @@ pub async fn Producer::send_txn(
 ) -> SendReceipt {
   match self.inner {
     ProducerImpl::Single(p) => p.send_txn(txn, msg)
-    ProducerImpl::Partitioned(_, _) => self.route(msg).send_txn(txn, msg)
+    ProducerImpl::Partitioned(_, _, _) => self.route(msg).send_txn(txn, msg)
   }
 }
 
@@ -819,7 +874,7 @@ pub async fn Producer::send_txn(
 pub async fn Producer::flush(self : Producer) -> Unit {
   match self.inner {
     ProducerImpl::Single(p) => p.flush()
-    ProducerImpl::Partitioned(partitions, _) =>
+    ProducerImpl::Partitioned(partitions, _, _) =>
       for p in partitions {
         p.flush()
       }
@@ -835,7 +890,7 @@ pub async fn Producer::close(self : Producer) -> Unit {
   self.closed.val = true
   match self.inner {
     ProducerImpl::Single(p) => p.close()
-    ProducerImpl::Partitioned(partitions, _) =>
+    ProducerImpl::Partitioned(partitions, _, _) =>
       for p in partitions {
         p.close()
       }
@@ -847,7 +902,7 @@ pub async fn Producer::close(self : Producer) -> Unit {
 pub fn Producer::name(self : Producer) -> String {
   match self.inner {
     ProducerImpl::Single(p) => p.name()
-    ProducerImpl::Partitioned(partitions, _) => partitions[0].name()
+    ProducerImpl::Partitioned(partitions, _, _) => partitions[0].name()
   }
 }
 
@@ -856,10 +911,28 @@ pub fn Producer::name(self : Producer) -> String {
 pub fn Producer::topic(self : Producer) -> String {
   match self.inner {
     ProducerImpl::Single(p) => p.topic()
-    ProducerImpl::Partitioned(partitions, _) =>
+    ProducerImpl::Partitioned(partitions, _, _) =>
       match partitions[0].topic().rev_find("-partition-") {
         Some(i) => partitions[0].topic()[:i].to_owned()
         None => partitions[0].topic()
       }
+  }
+}
+
+///|
+/// Highest confirmed sequence id across this producer's partitions.
+pub fn Producer::last_sequence_id(self : Producer) -> UInt64? {
+  match self.inner {
+    ProducerImpl::Single(p) => p.last_sequence_id()
+    ProducerImpl::Partitioned(partitions, _, _) => {
+      let mut highest : UInt64? = None
+      for partition in partitions {
+        if partition.last_sequence_id() is Some(seq) &&
+          (highest is None || highest.unwrap() < seq) {
+          highest = Some(seq)
+        }
+      }
+      highest
+    }
   }
 }

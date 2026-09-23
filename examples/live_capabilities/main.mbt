@@ -557,6 +557,24 @@ async fn main {
       })
       assert_eq(read_expanded.topic(), "\{partitioned_topic}-partition-2")
       assert_eq(read_expanded.payload(), b"expanded")
+      let routed_producer = client.create_producer(
+        partitioned_topic,
+        routing=Custom(fn(_message, _partitions) { 1 }),
+      )
+      let routed_receipt = routed_producer.send(
+        @pulsar.ProducerMessage::new(b"custom-route", key="route-check"),
+      )
+      assert_eq(
+        routed_producer.last_sequence_id(),
+        Some(routed_receipt.sequence_id),
+      )
+      let routed_message = @async.with_timeout(10000, async fn() {
+        scaling_consumer.receive()
+      })
+      assert_eq(routed_message.topic(), "\{partitioned_topic}-partition-1")
+      assert_eq(routed_message.payload(), b"custom-route")
+      routed_message.ack()
+      routed_producer.close()
       assert_true(
         admin.partitioned_topic_stats(partitioned_topic, per_partition=true)
         is Object(_),

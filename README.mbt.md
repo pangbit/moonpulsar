@@ -25,7 +25,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 - Binary-protocol authentication: pluggable `Authentication` trait, token and basic auth built in; refresh auth data on broker challenge
 - TLS via `pulsar+ssl://` service URLs, with system roots or a custom PEM CA through `Client::connect_tls_with_ca`
 - Payload compression: LZ4 (frame format), Zlib, Zstd
-- Partitioned topics: keyed messages route by `xxhash32(key) % partitions`, keyless round-robin; consumers aggregate all partitions and both producers and consumers discover added partitions (60-second default polling interval)
+- Partitioned topics: configurable key hash (default), round-robin, fixed single-partition, or custom callback routing; producers expose the last confirmed sequence ID; consumers aggregate all partitions and both producers and consumers discover added partitions (60-second default polling interval)
 - Optional producer chunking and consumer/reader chunk reassembly, including compressed payloads; `ChunkAssemblyPolicy` limits pending assemblies and expires incomplete chunks even when no further messages arrive
 - Reader API: non-durable replay from any message id, `seek`, `has_message_available`, last-message ID, custom name/properties/subscription, aggregation and added-partition discovery
 - TableView: raw-byte key/value snapshot from a compacted reader, live updates, tombstone deletion, and change listeners

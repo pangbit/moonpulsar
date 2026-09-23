@@ -22,7 +22,7 @@
 - 二进制协议认证：可扩展的 `Authentication` trait，内置 token 与 basic auth；broker 发出认证挑战时刷新认证数据
 - `pulsar+ssl://` TLS 连接：系统信任根或通过 `Client::connect_tls_with_ca` 提供自定义 PEM CA
 - LZ4（帧格式）、Zlib、Zstd 压缩；Snappy 的兼容性限制见下文
-- 分区 Topic：有 key 的消息按 `xxhash32(key) % partitions` 路由，无 key 的消息轮询路由；消费者聚合全部分区，生产者和消费者可发现新增分区（默认每 60 秒轮询）
+- 分区 Topic：可选 key 哈希（默认）、轮询、固定单分区或自定义回调路由；生产者可读取最后确认的序列号；消费者聚合全部分区，生产者和消费者可发现新增分区（默认每 60 秒轮询）
 - 可选的生产者分块和消费者/Reader 分块重组，包括压缩负载；`ChunkAssemblyPolicy` 可限制待组装消息数，并在没有新消息时清理过期分块
 - Reader：从指定消息 ID 开始的非持久回放、seek、`has_message_available`、最后消息 ID、自定义名称/属性/订阅、分区聚合和新增分区发现
 - TableView：从压缩后的 Reader 获取原始字节键值快照、实时更新、墓碑删除和变更监听器

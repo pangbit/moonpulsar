@@ -114,6 +114,81 @@ async test "partitioned producer routes keyed messages consistently" {
 }
 
 ///|
+async fn check_producer_routing(
+  routing : ProducerRoutingMode,
+  expected : Array[Int],
+  rejects_bad_route? : Bool = false,
+) -> Unit {
+  @async.with_task_group(async fn(group) {
+    let got : @aqueue.Queue[Int] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    let addr = start_partitioned_broker(group, 3, async fn(_addr, peer) {
+      let partitions : Map[UInt64, Int] = {}
+      for _ in 0..<(3 + expected.length()) {
+        let frame = peer.next()
+        if frame.cmd.producer is Some(req) {
+          let suffix = req.topic.rev_find("-partition-").unwrap()
+          let partition = match req.topic[suffix + 11:].to_owned() {
+            "0" => 0
+            "1" => 1
+            "2" => 2
+            _ => fail("unexpected partition topic")
+          }
+          partitions[req.producer_id] = partition
+          let reply = @proto.BaseCommand::default()
+          reply.type_ = @proto.BaseCommand_Type::PRODUCER_SUCCESS
+          let success = @proto.CommandProducerSuccess::default()
+          success.request_id = req.request_id
+          success.producer_name = "route-producer"
+          reply.producer_success = Some(success)
+          peer.send_command(reply)
+        } else if frame.cmd.send is Some(send) {
+          got.put(partitions.get(send.producer_id).unwrap_or(-1))
+          send_receipt(peer, send.producer_id, send.sequence_id)
+        }
+      }
+    })
+    let client = Client::connect(group, "pulsar://\{addr}")
+    let producer = client.create_producer(
+      "persistent://public/default/routing",
+      routing~,
+    )
+    for i in 0..<expected.length() {
+      ignore(producer.send(ProducerMessage::new(b"m", key="same")))
+      assert_eq(got.get(), expected[i])
+    }
+    if rejects_bad_route {
+      let result : Result[SendReceipt, Error] = Ok(
+        producer.send(ProducerMessage::new(b"m", key="bad")),
+      ) catch {
+        e => Err(e)
+      }
+      assert_true(result is Err(InvalidFrame(_)))
+    }
+    producer.close()
+    client.close()
+  })
+}
+
+///|
+async test "partitioned producer supports round robin single and custom routing" {
+  check_producer_routing(ProducerRoutingMode::RoundRobin, [0, 1, 2, 0])
+  check_producer_routing(ProducerRoutingMode::SinglePartition, [0, 0, 0])
+  check_producer_routing(
+    ProducerRoutingMode::Custom(fn(message, count) {
+      if message.key == Some("bad") {
+        count
+      } else {
+        2
+      }
+    }),
+    [2, 2, 2],
+    rejects_bad_route=true,
+  )
+}
+
+///|
 async test "partitioned consumer merges all partitions" {
   @async.with_task_group(async fn(group) {
     let addr = start_partitioned_broker(group, 2, async fn(_addr, peer) {

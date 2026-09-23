@@ -168,6 +168,7 @@ pub async fn Client::create_producer(
   chunk_size? : Int,
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
+  routing? : ProducerRoutingMode = KeyHash,
 ) -> Producer {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -233,7 +234,7 @@ pub async fn Client::create_producer(
     }
     subs.push(partition)
   }
-  let producer = Producer::partitioned(subs)
+  let producer = Producer::partitioned(subs, routing~)
   self.manager.group.spawn_bg(
     async fn() {
       while !producer.is_closed() && !manager.is_closed() {

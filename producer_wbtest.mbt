@@ -6,6 +6,7 @@
 async fn expect_producer(
   peer : MockPeer,
   producer_name? : String = "mock-producer",
+  last_sequence_id? : Int64,
 ) -> Unit {
   let frame = peer.next()
   guard frame.cmd.producer is Some(req) else { fail("expected PRODUCER") }
@@ -14,6 +15,7 @@ async fn expect_producer(
   let success = @proto.CommandProducerSuccess::default()
   success.request_id = req.request_id
   success.producer_name = producer_name
+  success.last_sequence_id = last_sequence_id
   reply.producer_success = Some(success)
   peer.send_command(reply)
 }
@@ -61,9 +63,34 @@ async test "producer send waits for send receipt" {
       group, conn, "persistent://public/default/t",
     )
     assert_eq(producer.name(), "mock-producer")
+    assert_eq(producer.last_sequence_id(), None)
     let receipt = producer.send(ProducerMessage::new(b"hello", key="k1"))
     assert_eq(receipt.message_id.ledger_id, 10)
     assert_eq(receipt.message_id.entry_id, 20)
+    assert_eq(producer.last_sequence_id(), Some(receipt.sequence_id))
+    producer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "producer resumes the broker's last confirmed sequence id" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_producer(peer, last_sequence_id=41L)
+      let frame = peer.next()
+      guard frame.cmd.send is Some(send) else { fail("expected SEND") }
+      assert_eq(send.sequence_id, 42UL)
+      send_receipt(peer, send.producer_id, send.sequence_id)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let producer = SingleProducer::create(
+      group, conn, "persistent://public/default/t",
+    )
+    assert_eq(producer.last_sequence_id(), Some(41UL))
+    ignore(producer.send(ProducerMessage::new(b"next")))
+    assert_eq(producer.last_sequence_id(), Some(42UL))
     producer.close()
     manager.close()
   })
