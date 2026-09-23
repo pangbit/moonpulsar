@@ -136,6 +136,7 @@ pub struct Message {
   priv topic : String
   priv payload : Bytes
   priv key : String?
+  priv ordering_key : Bytes?
   priv properties : Map[String, String]
   publish_time : UInt64
   priv event_time : UInt64?
@@ -146,6 +147,8 @@ pub struct Message {
   priv chunk_ids : Array[MessageId]?
   priv chunk_tracker : Map[MessageId, Array[MessageId]]?
   priv on_delivery : ((Message) -> Unit)?
+  priv mut on_ack : ((Message) -> Unit)?
+  priv mut on_nack : ((Message) -> Unit)?
   priv nack_scheduler : ((Message) -> Unit)?
 }
 
@@ -174,6 +177,11 @@ pub fn Message::payload(self : Message) -> Bytes {
 ///|
 pub fn Message::key(self : Message) -> String? {
   self.key
+}
+
+///|
+pub fn Message::ordering_key(self : Message) -> Bytes? {
+  self.ordering_key
 }
 
 ///|
@@ -222,6 +230,9 @@ pub async fn Message::ack(self : Message) -> Unit {
     @proto.CommandAck_AckType::Individual,
     self.chunk_ids.unwrap_or([self.id]),
   )
+  if self.on_ack is Some(callback) {
+    callback(self)
+  }
 }
 
 ///|
@@ -240,6 +251,9 @@ pub async fn Message::ack_txn(self : Message, txn : Transaction) -> Unit {
     self.chunk_ids.unwrap_or([self.id]),
     txn~,
   )
+  if self.on_ack is Some(callback) {
+    callback(self)
+  }
 }
 
 ///|
@@ -253,13 +267,16 @@ pub async fn Message::nack(self : Message) -> Unit {
   }
   if self.nack_scheduler is Some(schedule) {
     schedule(self)
-    return
+  } else {
+    send_redeliver(
+      self.conn_ref.val,
+      self.consumer_id,
+      self.chunk_ids.unwrap_or([self.id]),
+    )
   }
-  send_redeliver(
-    self.conn_ref.val,
-    self.consumer_id,
-    self.chunk_ids.unwrap_or([self.id]),
-  )
+  if self.on_nack is Some(callback) {
+    callback(self)
+  }
 }
 
 ///|

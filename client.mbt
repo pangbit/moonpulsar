@@ -237,6 +237,7 @@ pub async fn Client::create_consumer(
   receiver_queue_size? : Int = 1000,
   ack_timeout_ms? : Int = 0,
   nack_backoff? : NackBackoff,
+  dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
 ) -> Consumer {
@@ -248,6 +249,9 @@ pub async fn Client::create_consumer(
   }
   guard receiver_queue_size > 0 else {
     raise InvalidFrame("receiver queue size must be positive")
+  }
+  if dead_letter_policy is Some(policy) && policy.topic() == topic {
+    raise InvalidFrame("dead-letter topic must differ from source topic")
   }
   let manager = self.manager
   let addr = self.service_addr
@@ -274,7 +278,7 @@ pub async fn Client::create_consumer(
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
       schema?,
     )
-    return Consumer::single(single)
+    return self.with_dead_letter(Consumer::single(single), dead_letter_policy)
   }
   let create_partition = async fn(i : Int) -> Consumer {
     let partition_topic = "\{topic}-partition-\{i}"
@@ -342,6 +346,26 @@ pub async fn Client::create_consumer(
     no_wait=true,
     allow_failure=true,
   )
+  self.with_dead_letter(consumer, dead_letter_policy)
+}
+
+///|
+async fn Client::with_dead_letter(
+  self : Client,
+  consumer : Consumer,
+  policy : DeadLetterPolicy?,
+) -> Consumer {
+  if policy is Some(config) {
+    let producer = self.create_producer(config.topic()) catch {
+      e => {
+        consumer.close() catch {
+          _ => ()
+        }
+        raise e
+      }
+    }
+    consumer.set_dead_letter(config, producer, self.manager.group)
+  }
   consumer
 }
 
@@ -364,6 +388,7 @@ pub async fn Client::create_multi_topic_consumer(
   receiver_queue_size? : Int = 1000,
   ack_timeout_ms? : Int = 0,
   nack_backoff? : NackBackoff,
+  dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
 ) -> Consumer {
@@ -390,6 +415,7 @@ pub async fn Client::create_multi_topic_consumer(
         receiver_queue_size~,
         ack_timeout_ms~,
         nack_backoff?,
+        dead_letter_policy?,
         schema?,
         partition_refresh_ms~,
       ) catch {
@@ -562,6 +588,7 @@ pub async fn Client::create_pattern_consumer(
   receiver_queue_size? : Int = 1000,
   ack_timeout_ms? : Int = 0,
   nack_backoff? : NackBackoff,
+  dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
 ) -> Consumer {
@@ -598,6 +625,7 @@ pub async fn Client::create_pattern_consumer(
           receiver_queue_size~,
           ack_timeout_ms~,
           nack_backoff?,
+          dead_letter_policy?,
           schema?,
           partition_refresh_ms~,
         )

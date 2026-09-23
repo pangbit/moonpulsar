@@ -165,10 +165,63 @@ async fn main {
       )
       let admin_topic = "persistent://public/default/\{prefix}-admin"
       let table_topic = "persistent://public/default/\{prefix}-table-view"
+      let dead_letter_source = "persistent://public/default/\{prefix}-dlq-source"
+      let dead_letter_topic = "persistent://public/default/\{prefix}-dlq"
       let partitioned_topic = "persistent://public/default/\{prefix}-admin-partitioned"
       let volatile_topic = "non-persistent://public/default/\{prefix}-admin-volatile"
       admin.create_topic(admin_topic)
       admin.create_topic(table_topic)
+      admin.create_topic(dead_letter_source)
+      admin.create_topic(dead_letter_topic)
+      let dead_letter_producer = client.create_producer(dead_letter_source)
+      let dead_letter_consumer = client.create_consumer(
+        dead_letter_topic,
+        "\{prefix}-dlq-sub",
+      )
+      let source_consumer = client.create_consumer(
+        dead_letter_source,
+        "\{prefix}-source-sub",
+        dead_letter_policy=@pulsar.DeadLetterPolicy::new(1U, dead_letter_topic),
+      )
+      let dlq_properties : Map[String, String] = { "reason": "test" }
+      ignore(
+        dead_letter_producer.send(
+          @pulsar.ProducerMessage::new(
+            b"dead-letter-payload",
+            key="dead-letter-key",
+            properties=dlq_properties,
+            event_time=123UL,
+          ),
+        ),
+      )
+      let initial = @async.with_timeout(10000, async fn() {
+        source_consumer.receive()
+      })
+      assert_eq(initial.redelivery_count(), 0U)
+      initial.nack()
+      let next_source : @aqueue.Queue[@pulsar.Message] = @aqueue.Queue::Queue(
+        kind=@aqueue.Kind::Unbounded,
+      )
+      group.spawn_bg(
+        async fn() { next_source.put(source_consumer.receive()) },
+        no_wait=true,
+        allow_failure=true,
+      )
+      let dead_lettered = @async.with_timeout(10000, async fn() {
+        dead_letter_consumer.receive()
+      })
+      assert_eq(dead_lettered.payload(), b"dead-letter-payload")
+      assert_eq(dead_lettered.key(), Some("dead-letter-key"))
+      assert_eq(dead_lettered.properties().get("reason"), Some("test"))
+      assert_eq(dead_lettered.event_time(), Some(123UL))
+      dead_lettered.ack()
+      ignore(dead_letter_producer.send(@pulsar.ProducerMessage::new(b"next")))
+      let next = @async.with_timeout(10000, async fn() { next_source.get() })
+      assert_eq(next.payload(), b"next")
+      next.ack()
+      source_consumer.close()
+      dead_letter_consumer.close()
+      dead_letter_producer.close()
       let exclusive_producer = client.create_producer(
         admin_topic,
         access_mode=Exclusive,
@@ -326,6 +379,8 @@ async fn main {
       )
       admin.delete_topic(admin_topic, force=true)
       admin.delete_topic(table_topic, force=true)
+      admin.delete_topic(dead_letter_source, force=true)
+      admin.delete_topic(dead_letter_topic, force=true)
       admin.delete_topic(volatile_topic, force=true)
       admin.delete_partitioned_topic(partitioned_topic, force=true)
     }

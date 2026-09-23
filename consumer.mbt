@@ -134,6 +134,38 @@ pub fn NackBackoff::delay_ms(
 }
 
 ///|
+/// Route a message to a dead-letter topic after `max_deliveries`
+/// application deliveries. For example, one delivery permits the initial
+/// attempt and routes the next redelivery.
+pub struct DeadLetterPolicy {
+  priv max_deliveries : UInt
+  priv topic : String
+}
+
+///|
+pub fn DeadLetterPolicy::new(
+  max_deliveries : UInt,
+  topic : String,
+) -> DeadLetterPolicy raise PulsarError {
+  guard max_deliveries > 0U && topic != "" else {
+    raise InvalidFrame(
+      "dead-letter policy requires a positive delivery limit and topic",
+    )
+  }
+  { max_deliveries, topic, }
+}
+
+///|
+pub fn DeadLetterPolicy::topic(self : DeadLetterPolicy) -> String {
+  self.topic
+}
+
+///|
+pub fn DeadLetterPolicy::max_deliveries(self : DeadLetterPolicy) -> UInt {
+  self.max_deliveries
+}
+
+///|
 /// A consumer bound to a topic subscription.
 pub struct SingleConsumer {
   /// current connection; swapped on reconnect (shared with `Message` acks)
@@ -536,6 +568,15 @@ fn build_message(
         }
       None => metadata.partition_key
     },
+    ordering_key: match single {
+      Some(s) =>
+        if s.ordering_key is Some(_) {
+          s.ordering_key
+        } else {
+          metadata.ordering_key
+        }
+      None => metadata.ordering_key
+    },
     properties: match single {
       Some(s) =>
         if s.properties.is_empty() {
@@ -565,6 +606,8 @@ fn build_message(
     chunk_ids,
     chunk_tracker,
     on_delivery,
+    on_ack: None,
+    on_nack: None,
     nack_scheduler,
   }
 }
@@ -965,11 +1008,98 @@ priv struct ForwardedMessage {
 /// the message streams of every partition.
 pub struct Consumer {
   priv inner : ConsumerImpl
+  priv mut dead_letter : DeadLetterState?
+}
+
+///|
+priv struct DeadLetterState {
+  policy : DeadLetterPolicy
+  producer : Producer
+  group : @async.TaskGroup[Unit]
+  nacked : Map[(String, MessageId), UInt]
+}
+
+///|
+fn Consumer::set_dead_letter(
+  self : Consumer,
+  policy : DeadLetterPolicy,
+  producer : Producer,
+  group : @async.TaskGroup[Unit],
+) -> Unit {
+  self.dead_letter = Some({ policy, producer, group, nacked: {}, })
+}
+
+///|
+fn dead_letter_key(message : Message) -> (String, MessageId) {
+  (message.topic(), message.id())
+}
+
+///|
+fn DeadLetterState::note_nack(
+  self : DeadLetterState,
+  message : Message,
+) -> Unit {
+  let key = dead_letter_key(message)
+  self.nacked[key] = self.nacked.get(key).unwrap_or(0U) + 1U
+}
+
+///|
+fn DeadLetterState::note_nack_id(
+  self : DeadLetterState,
+  topic : String,
+  id : MessageId,
+) -> Unit {
+  let key = (topic, id)
+  self.nacked[key] = self.nacked.get(key).unwrap_or(0U) + 1U
+}
+
+///|
+fn DeadLetterState::clear(self : DeadLetterState, message : Message) -> Unit {
+  self.nacked.remove(dead_letter_key(message))
+}
+
+///|
+fn DeadLetterState::should_route(
+  self : DeadLetterState,
+  message : Message,
+) -> Bool {
+  let nacks = self.nacked.get(dead_letter_key(message)).unwrap_or(0U)
+  message.redelivery_count() >= self.policy.max_deliveries ||
+  nacks >= self.policy.max_deliveries
+}
+
+///|
+fn DeadLetterState::watch(self : DeadLetterState, message : Message) -> Unit {
+  message.on_nack = Some(fn(m) { self.note_nack(m) })
+  message.on_ack = Some(fn(m) { self.clear(m) })
+}
+
+///|
+async fn DeadLetterState::route(
+  self : DeadLetterState,
+  message : Message,
+) -> Unit {
+  let outgoing = ProducerMessage::new(
+    message.payload(),
+    key?=message.key(),
+    ordering_key?=message.ordering_key(),
+    properties=message.properties(),
+    event_time?=message.event_time(),
+  )
+  let receipt = self.producer.send(outgoing) catch {
+    _ => {
+      message.nack()
+      return
+    }
+  }
+  ignore(receipt)
+  message.ack()
+  self.clear(message)
 }
 
 ///|
 fn Consumer::single(c : SingleConsumer) -> Consumer {
-  { inner: ConsumerImpl::Single(c), }
+  { inner: ConsumerImpl::Single(c), dead_letter: None, }
 }
 
 ///|
@@ -1003,7 +1133,7 @@ pub fn Consumer::partitioned(
   for sub in consumers {
     state.add_source(group, sub)
   }
-  { inner: ConsumerImpl::Partitioned(state), }
+  { inner: ConsumerImpl::Partitioned(state), dead_letter: None, }
 }
 
 ///|
@@ -1021,6 +1151,7 @@ fn Consumer::pattern(pattern : String, subscription : String) -> Consumer {
       topic_label: pattern,
       subscription_label: subscription,
     }),
+    dead_letter: None,
   }
 }
 
@@ -1098,7 +1229,7 @@ async fn Consumer::add_source(
 
 ///|
 /// Receive a message without starting its application ack deadline.
-async fn Consumer::receive_untracked(self : Consumer) -> Message {
+async fn Consumer::receive_raw(self : Consumer) -> Message {
   match self.inner {
     ConsumerImpl::Single(c) => c.receive_untracked()
     ConsumerImpl::Partitioned(state) => {
@@ -1111,6 +1242,22 @@ async fn Consumer::receive_untracked(self : Consumer) -> Message {
       raise ConsumerClosed
     }
   }
+}
+
+///|
+async fn Consumer::receive_untracked(self : Consumer) -> Message {
+  while true {
+    let message = self.receive_raw()
+    if self.dead_letter is Some(dlq) {
+      if dlq.should_route(message) {
+        dlq.route(message)
+        continue
+      }
+      dlq.watch(message)
+    }
+    return message
+  }
+  raise ConsumerClosed
 }
 
 ///|
@@ -1144,6 +1291,17 @@ pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
     }
   }
   if message is Some(msg) {
+    if self.dead_letter is Some(dlq) {
+      if dlq.should_route(msg) {
+        dlq.group.spawn_bg(
+          async fn() { dlq.route(msg) catch { _ => () } },
+          no_wait=true,
+          allow_failure=true,
+        )
+        return None
+      }
+      dlq.watch(msg)
+    }
     msg.mark_delivered()
   }
   message
@@ -1153,7 +1311,12 @@ pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
 /// Acknowledge a message individually.
 pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
   match self.inner {
-    ConsumerImpl::Single(c) => c.ack(id)
+    ConsumerImpl::Single(c) => {
+      c.ack(id)
+      if self.dead_letter is Some(dlq) {
+        dlq.nacked.remove((c.topic(), id))
+      }
+    }
     ConsumerImpl::Partitioned(_) =>
       raise InvalidFrame(
         "ack by id needs the message's own consumer; use message.ack()",
@@ -1165,7 +1328,21 @@ pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
 /// Acknowledge cumulatively: this message and all before it.
 pub async fn Consumer::ack_cumulative(self : Consumer, id : MessageId) -> Unit {
   match self.inner {
-    ConsumerImpl::Single(c) => c.ack_cumulative(id)
+    ConsumerImpl::Single(c) => {
+      c.ack_cumulative(id)
+      if self.dead_letter is Some(dlq) {
+        let cleared : Array[(String, MessageId)] = []
+        for key, _ in dlq.nacked {
+          let (topic, pending_id) = key
+          if topic == c.topic() && pending_id <= id {
+            cleared.push(key)
+          }
+        }
+        for key in cleared {
+          dlq.nacked.remove(key)
+        }
+      }
+    }
     ConsumerImpl::Partitioned(_) =>
       raise InvalidFrame(
         "cumulative ack needs the message's own consumer; use message.ack()",
@@ -1181,7 +1358,12 @@ pub async fn Consumer::ack_txn(
   id : MessageId,
 ) -> Unit {
   match self.inner {
-    ConsumerImpl::Single(c) => c.ack_txn(txn, id)
+    ConsumerImpl::Single(c) => {
+      c.ack_txn(txn, id)
+      if self.dead_letter is Some(dlq) {
+        dlq.nacked.remove((c.topic(), id))
+      }
+    }
     ConsumerImpl::Partitioned(_) =>
       raise InvalidFrame(
         "txn ack needs the message's own consumer; use message.ack_txn()",
@@ -1193,7 +1375,12 @@ pub async fn Consumer::ack_txn(
 /// Negatively acknowledge a message, triggering redelivery.
 pub async fn Consumer::nack(self : Consumer, id : MessageId) -> Unit {
   match self.inner {
-    ConsumerImpl::Single(c) => c.nack(id)
+    ConsumerImpl::Single(c) => {
+      c.nack(id)
+      if self.dead_letter is Some(dlq) {
+        dlq.note_nack_id(c.topic(), id)
+      }
+    }
     ConsumerImpl::Partitioned(_) =>
       raise InvalidFrame(
         "nack by id needs the message's own consumer; use message.nack()",
@@ -1246,15 +1433,28 @@ pub async fn Consumer::seek(self : Consumer, position : SeekPosition) -> Unit {
 ///|
 /// Close the consumer (all partitions).
 pub async fn Consumer::close(self : Consumer) -> Unit {
-  match self.inner {
-    ConsumerImpl::Single(c) => c.close()
-    ConsumerImpl::Partitioned(state) => {
-      state.closed.val = true
-      for c in state.consumers {
-        c.close()
+  let mut failure : Error? = None
+  try {
+    match self.inner {
+      ConsumerImpl::Single(c) => c.close()
+      ConsumerImpl::Partitioned(state) => {
+        state.closed.val = true
+        for c in state.consumers {
+          c.close()
+        }
+        state.queue.close(error=ConsumerClosed, clear=true)
       }
-      state.queue.close(error=ConsumerClosed, clear=true)
     }
+  } catch {
+    e => failure = Some(e)
+  }
+  if self.dead_letter is Some(dlq) {
+    dlq.producer.close() catch {
+      e => if failure is None { failure = Some(e) }
+    }
+  }
+  if failure is Some(error) {
+    raise error
   }
 }
 
@@ -1264,21 +1464,34 @@ pub async fn Consumer::unsubscribe(
   self : Consumer,
   force? : Bool = false,
 ) -> Unit {
-  match self.inner {
-    ConsumerImpl::Single(c) => c.unsubscribe(force~)
-    ConsumerImpl::Partitioned(state) => {
-      let mut failure : Error? = None
-      for c in state.consumers {
-        c.unsubscribe(force~) catch {
-          e => if failure is None { failure = Some(e) }
+  let mut failure : Error? = None
+  try {
+    match self.inner {
+      ConsumerImpl::Single(c) => c.unsubscribe(force~)
+      ConsumerImpl::Partitioned(state) => {
+        let mut failure : Error? = None
+        for c in state.consumers {
+          c.unsubscribe(force~) catch {
+            e => if failure is None { failure = Some(e) }
+          }
+        }
+        state.closed.val = true
+        state.queue.close(error=ConsumerClosed, clear=true)
+        if failure is Some(error) {
+          raise error
         }
       }
-      state.closed.val = true
-      state.queue.close(error=ConsumerClosed, clear=true)
-      if failure is Some(error) {
-        raise error
-      }
     }
+  } catch {
+    e => failure = Some(e)
+  }
+  if self.dead_letter is Some(dlq) {
+    dlq.producer.close() catch {
+      e => if failure is None { failure = Some(e) }
+    }
+  }
+  if failure is Some(error) {
+    raise error
   }
 }
 
