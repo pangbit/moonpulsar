@@ -24,18 +24,14 @@ async fn main {
       start_message_id=@pulsar.MessageId::earliest(),
     )
     while true {
-      if @async.with_timeout_opt(2000, async fn() { reader.next() })
-        is Some(result) {
-        match result {
-          Some(message) => println("read: \{@utf8.decode(message.payload())}")
-          None => {
-            println("reached end of topic")
-            break
-          }
-        }
-      } else {
-        println("no message within 2s")
+      // has_message_available asks the broker for the last message id
+      if !reader.has_message_available() {
+        println("reached end of topic")
         break
+      }
+      match reader.next() {
+        Some(message) => println("read: \{@utf8.decode(message.payload())} id=\{message.id().ledger_id}:\{message.id().entry_id}")
+        None => println("reached end of topic (broker signalled)")
       }
     }
     reader.close()

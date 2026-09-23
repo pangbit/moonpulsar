@@ -53,22 +53,37 @@ pub async fn SingleReader::create(
   cmd.type_ = @proto.BaseCommand_Type::SUBSCRIBE
   let subscribe = @proto.CommandSubscribe::default()
   subscribe.topic = topic
-  subscribe.subscription = "reader-" + consumer_id.to_string()
+  // unique per process and reader: non-durable subscriptions linger briefly
+  // on the broker after disconnect, and a name collision would inherit
+  // the previous cursor position
+  subscribe.subscription = "reader-" +
+    consumer_id.to_string() +
+    "-" +
+    @async.now().to_string()
   subscribe.sub_type = @proto.CommandSubscribe_SubType::Exclusive
   subscribe.consumer_id = consumer_id
   subscribe.request_id = request_id
   subscribe.durable = Some(false)
-  subscribe.start_message_id = Some(
-    start_message_id.unwrap_or(MessageId::latest()).to_proto(),
-  )
-  subscribe.read_compacted = Some(false)
   match start_message_id {
-    Some(_) =>
-      subscribe.initial_position = Some(
-        @proto.CommandSubscribe_InitialPosition::Latest,
-      )
-    None => ()
+    Some(id) => subscribe.start_message_id = Some(id.to_proto())
+    None =>
+      // omitting start_message_id entirely: the broker starts at the
+      // subscription's initial position instead
+      ()
   }
+  subscribe.read_compacted = Some(false)
+  subscribe.initial_position = Some(
+    match start_message_id {
+      Some(id) =>
+        if id.ledger_id == 18446744073709551615 &&
+          id.entry_id == 18446744073709551615 {
+          @proto.CommandSubscribe_InitialPosition::Earliest
+        } else {
+          @proto.CommandSubscribe_InitialPosition::Latest
+        }
+      None => @proto.CommandSubscribe_InitialPosition::Earliest
+    },
+  )
   cmd.subscribe = Some(subscribe)
   let reply = conn.request(cmd)
   guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
@@ -141,7 +156,6 @@ fn SingleReader::dispatch_message(
         body,
         redelivery_count,
       )
-      self.last_seen.val = Some(msg.id())
       ignore(self.events.try_put(Msg(msg)))
     }
   } else {
@@ -156,7 +170,6 @@ fn SingleReader::dispatch_message(
       payload,
       redelivery_count,
     )
-    self.last_seen.val = Some(msg.id())
     ignore(self.events.try_put(Msg(msg)))
   }
 }
@@ -171,6 +184,7 @@ pub async fn SingleReader::next(self : SingleReader) -> Message? {
   }
   match self.events.get() {
     Msg(msg) => {
+      self.last_seen.val = Some(msg.id())
       self.available_permits -= 1
       let threshold = self.receiver_permits / 2
       if self.available_permits <= threshold {
@@ -206,7 +220,14 @@ pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
   guard reply.get_last_message_id_response is Some(resp) else { return false }
   let last = MessageId::from_proto(resp.last_message_id)
   match self.last_seen.val {
-    Some(seen) => message_id_before(seen, last)
+    Some(seen) =>
+      // the "earliest" wire marker is (max, max): always before anything
+      if seen.ledger_id == 18446744073709551615 &&
+        seen.entry_id == 18446744073709551615 {
+        true
+      } else {
+        message_id_before(seen, last)
+      }
     None => true
   }
 }
