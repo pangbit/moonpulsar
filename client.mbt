@@ -120,6 +120,7 @@ pub async fn Client::create_producer(
   self : Client,
   topic : String,
   name? : String,
+  properties? : Map[String, String] = {},
   access_mode? : ProducerAccessMode = Shared,
   batching? : BatchingConfig,
   compression? : CompressionCodec = None,
@@ -146,6 +147,7 @@ pub async fn Client::create_producer(
       conn,
       topic,
       name?,
+      properties~,
       access_mode~,
       batching?,
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
@@ -164,6 +166,7 @@ pub async fn Client::create_producer(
         conn,
         partition_topic,
         name?,
+        properties~,
         access_mode~,
         batching?,
         reconnect_with=async fn() {

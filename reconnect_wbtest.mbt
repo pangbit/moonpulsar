@@ -39,7 +39,29 @@ async test "producer reconnects and replays unconfirmed message" {
   @async.with_task_group(async fn(group) {
     // B2: receives the re-registered producer and the replayed SEND
     let b2 = start_mock_broker(group, async fn(_addr, peer) {
-      expect_producer(peer)
+      let frame = peer.next()
+      guard frame.cmd.producer is Some(req) else {
+        fail("expected re-registered PRODUCER")
+      }
+      assert_eq(req.producer_name, Some("mock-producer"))
+      assert_eq(req.user_provided_producer_name, Some(false))
+      assert_eq(req.epoch, Some(1UL))
+      assert_eq(req.topic_epoch, Some(42UL))
+      assert_eq(
+        req.producer_access_mode,
+        Some(@proto.ProducerAccessMode::Exclusive),
+      )
+      assert_eq(req.metadata.length(), 1)
+      assert_eq(req.metadata[0].key, "owner")
+      assert_eq(req.metadata[0].value, "test")
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::PRODUCER_SUCCESS
+      let success = @proto.CommandProducerSuccess::default()
+      success.request_id = req.request_id
+      success.producer_name = "mock-producer"
+      success.topic_epoch = Some(43UL)
+      reply.producer_success = Some(success)
+      peer.send_command(reply)
       let frame = peer.next()
       guard frame.cmd.send is Some(send) else { fail("expected replayed SEND") }
       guard frame.payload is Some(payload) else { fail("no payload") }
@@ -48,7 +70,20 @@ async test "producer reconnects and replays unconfirmed message" {
     })
     // B1: accepts the producer, receives the SEND, then drops the connection
     let b1 = start_mock_broker(group, async fn(_addr, peer) {
-      expect_producer(peer)
+      let frame = peer.next()
+      guard frame.cmd.producer is Some(req) else {
+        fail("expected initial PRODUCER")
+      }
+      assert_eq(req.epoch, Some(0UL))
+      assert_eq(req.topic_epoch, None)
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::PRODUCER_SUCCESS
+      let success = @proto.CommandProducerSuccess::default()
+      success.request_id = req.request_id
+      success.producer_name = "mock-producer"
+      success.topic_epoch = Some(42UL)
+      reply.producer_success = Some(success)
+      peer.send_command(reply)
       let frame = peer.next()
       guard frame.cmd.send is Some(_) else { fail("expected SEND") }
       // never answer the receipt; kill the connection instead
@@ -59,7 +94,11 @@ async test "producer reconnects and replays unconfirmed message" {
       two_stage_lookup(peer, b1, b2)
     })
     let client = Client::connect(group, "pulsar://\{lookup_addr}")
-    let producer = client.create_producer("persistent://public/default/t")
+    let producer = client.create_producer(
+      "persistent://public/default/t",
+      properties={ "owner": "test" },
+      access_mode=Exclusive,
+    )
     let future = producer.send_async(ProducerMessage::new(b"important"))
     let receipt = @async.with_timeout(10000, async fn() { future.wait() })
     assert_eq(receipt.message_id.ledger_id, 10)

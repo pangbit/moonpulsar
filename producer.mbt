@@ -62,8 +62,10 @@ pub struct SingleProducer {
   priv topic : String
   priv producer_id : UInt64
   priv requested_name : String?
+  priv properties : Map[String, String]
   priv access_mode : ProducerAccessMode
   priv mut topic_epoch : UInt64?
+  priv mut epoch : UInt64
   priv mut name : String
   priv mut sequence_id : UInt64
   priv pending : Map[UInt64, @aqueue.Queue[SendReceipt]]
@@ -100,6 +102,7 @@ pub async fn SingleProducer::create(
   conn : Connection,
   topic : String,
   name? : String,
+  properties? : Map[String, String] = {},
   access_mode? : ProducerAccessMode = Shared,
   batching? : BatchingConfig,
   reconnect_with? : async () -> Connection,
@@ -121,8 +124,10 @@ pub async fn SingleProducer::create(
     topic,
     producer_id,
     requested_name: name,
+    properties,
     access_mode,
     topic_epoch: None,
+    epoch: 0UL,
     name: name.unwrap_or(""),
     sequence_id: 0,
     pending: {},
@@ -166,7 +171,14 @@ fn SingleProducer::producer_command(
   produce.topic = self.topic
   produce.producer_id = self.producer_id
   produce.request_id = request_id
-  produce.producer_name = self.requested_name
+  produce.producer_name = if self.name == "" {
+    self.requested_name
+  } else {
+    Some(self.name)
+  }
+  produce.metadata = key_values_of(self.properties)
+  produce.epoch = Some(self.epoch)
+  produce.user_provided_producer_name = Some(self.requested_name is Some(_))
   produce.producer_access_mode = Some(self.access_mode.to_proto())
   produce.topic_epoch = self.topic_epoch
   if self.schema is Some(schema) {
@@ -263,11 +275,13 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
     let conn = provider()
     self.attach(conn)
     let request_id = conn.next_request_id()
+    self.epoch += 1UL
     let reply = conn.request(self.producer_command(request_id))
     guard reply.producer_success is Some(success) else {
       raise UnexpectedResponse("expected PRODUCER_SUCCESS")
     }
     self.topic_epoch = success.topic_epoch
+    self.name = success.producer_name
     // swap the connection, then replay unconfirmed messages in order
     self.conn = conn
     let seqs = self.payloads.keys().collect()

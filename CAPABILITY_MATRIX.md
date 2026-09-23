@@ -12,7 +12,7 @@ repository on 2026-09-23.
 | Binary-protocol token and basic auth | Implemented | Token: live broker; basic: unit test; Admin REST supports bearer token |
 | Auth challenge refresh | Implemented for data refresh | Handshake and post-handshake mock tests; challenge-specific algorithms remain open |
 | Producer send, async receipt, batching, compression, delayed delivery | Implemented | Mock broker and prior live broker scenarios |
-| Producer access modes and topic epoch | Implemented | Mock wire and wait-ready tests; live exclusive conflict and wait-for-exclusive takeover |
+| Producer access modes, metadata, and reconnect epoch | Implemented | Mock wire, wait-ready, and reconnect tests; live exclusive conflict and wait-for-exclusive takeover |
 | Producer chunking and compressed chunking | Implemented with explicit size | Wire-level mock and live Pulsar 4.2.4 |
 | Partition routing and producer expansion | Implemented for initially partitioned topics, including one-partition topics | Mock one-to-two and live two-to-three partition expansion |
 | Single, partitioned, and explicit multi-topic consumption | Implemented; initially partitioned consumers discover added partitions | Mock one-to-two and live two-to-three partition expansion |
