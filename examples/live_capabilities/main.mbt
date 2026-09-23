@@ -167,12 +167,18 @@ async fn main {
       let table_topic = "persistent://public/default/\{prefix}-table-view"
       let dead_letter_source = "persistent://public/default/\{prefix}-dlq-source"
       let dead_letter_topic = "persistent://public/default/\{prefix}-dlq"
+      let retry_source_topic = "persistent://public/default/\{prefix}-retry-source"
+      let retry_topic = "persistent://public/default/\{prefix}-retry"
+      let retry_dead_letter_topic = "persistent://public/default/\{prefix}-retry-dlq"
       let partitioned_topic = "persistent://public/default/\{prefix}-admin-partitioned"
       let volatile_topic = "non-persistent://public/default/\{prefix}-admin-volatile"
       admin.create_topic(admin_topic)
       admin.create_topic(table_topic)
       admin.create_topic(dead_letter_source)
       admin.create_topic(dead_letter_topic)
+      admin.create_topic(retry_source_topic)
+      admin.create_topic(retry_topic)
+      admin.create_topic(retry_dead_letter_topic)
       let dead_letter_producer = client.create_producer(dead_letter_source)
       let dead_letter_consumer = client.create_consumer(
         dead_letter_topic,
@@ -222,6 +228,50 @@ async fn main {
       source_consumer.close()
       dead_letter_consumer.close()
       dead_letter_producer.close()
+      let retry_producer = client.create_producer(retry_source_topic)
+      let retry_consumer = client.create_retry_consumer(
+        retry_source_topic,
+        "\{prefix}-retry-sub",
+        retry_topic,
+        @pulsar.DeadLetterPolicy::new(1U, retry_dead_letter_topic),
+      )
+      let retry_dlq_consumer = client.create_consumer(
+        retry_dead_letter_topic,
+        "\{prefix}-retry-dlq-sub",
+      )
+      ignore(
+        retry_producer.send(
+          @pulsar.ProducerMessage::new(b"retry-payload", key="retry-key"),
+        ),
+      )
+      let retry_initial = @async.with_timeout(10000, async fn() {
+        retry_consumer.receive()
+      })
+      let retry_started = @async.now()
+      retry_consumer.reconsume_later(retry_initial, delay_ms=5000, custom_properties={
+        "attempt": "one",
+      })
+      let retry_delivered = @async.with_timeout(10000, async fn() {
+        retry_consumer.receive()
+      })
+      assert_eq(retry_delivered.topic(), retry_topic)
+      assert_eq(retry_delivered.properties().get("RECONSUMETIMES"), Some("1"))
+      assert_eq(retry_delivered.properties().get("attempt"), Some("one"))
+      assert_true(@async.now() - retry_started >= 4000L)
+      retry_consumer.reconsume_later(retry_delivered)
+      let retry_dead_lettered = @async.with_timeout(10000, async fn() {
+        retry_dlq_consumer.receive()
+      })
+      assert_eq(retry_dead_lettered.payload(), b"retry-payload")
+      assert_eq(retry_dead_lettered.key(), Some("retry-key"))
+      assert_eq(
+        retry_dead_lettered.properties().get("RECONSUMETIMES"),
+        Some("2"),
+      )
+      retry_dead_lettered.ack()
+      retry_consumer.close()
+      retry_dlq_consumer.close()
+      retry_producer.close()
       let exclusive_producer = client.create_producer(
         admin_topic,
         access_mode=Exclusive,
@@ -381,6 +431,9 @@ async fn main {
       admin.delete_topic(table_topic, force=true)
       admin.delete_topic(dead_letter_source, force=true)
       admin.delete_topic(dead_letter_topic, force=true)
+      admin.delete_topic(retry_source_topic, force=true)
+      admin.delete_topic(retry_topic, force=true)
+      admin.delete_topic(retry_dead_letter_topic, force=true)
       admin.delete_topic(volatile_topic, force=true)
       admin.delete_partitioned_topic(partitioned_topic, force=true)
     }
@@ -406,7 +459,7 @@ async fn main {
     }
     client.close()
     println(
-      "live multi-topic, pattern discovery, ack timeout, chunking, partition expansion, and coordinator lookup OK",
+      "live multi-topic, pattern discovery, dead-letter/retry, ack timeout, chunking, partition expansion, and coordinator lookup OK",
     )
   })
 }

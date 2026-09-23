@@ -1009,6 +1009,7 @@ priv struct ForwardedMessage {
 pub struct Consumer {
   priv inner : ConsumerImpl
   priv mut dead_letter : DeadLetterState?
+  priv mut retry_letter : RetryLetterState?
 }
 
 ///|
@@ -1099,7 +1100,7 @@ async fn DeadLetterState::route(
 
 ///|
 fn Consumer::single(c : SingleConsumer) -> Consumer {
-  { inner: ConsumerImpl::Single(c), dead_letter: None, }
+  { inner: ConsumerImpl::Single(c), dead_letter: None, retry_letter: None, }
 }
 
 ///|
@@ -1133,7 +1134,11 @@ pub fn Consumer::partitioned(
   for sub in consumers {
     state.add_source(group, sub)
   }
-  { inner: ConsumerImpl::Partitioned(state), dead_letter: None, }
+  {
+    inner: ConsumerImpl::Partitioned(state),
+    dead_letter: None,
+    retry_letter: None,
+  }
 }
 
 ///|
@@ -1152,6 +1157,7 @@ fn Consumer::pattern(pattern : String, subscription : String) -> Consumer {
       subscription_label: subscription,
     }),
     dead_letter: None,
+    retry_letter: None,
   }
 }
 
@@ -1453,6 +1459,11 @@ pub async fn Consumer::close(self : Consumer) -> Unit {
       e => if failure is None { failure = Some(e) }
     }
   }
+  if self.retry_letter is Some(retry) {
+    retry.producer.close() catch {
+      e => if failure is None { failure = Some(e) }
+    }
+  }
   if failure is Some(error) {
     raise error
   }
@@ -1487,6 +1498,11 @@ pub async fn Consumer::unsubscribe(
   }
   if self.dead_letter is Some(dlq) {
     dlq.producer.close() catch {
+      e => if failure is None { failure = Some(e) }
+    }
+  }
+  if self.retry_letter is Some(retry) {
+    retry.producer.close() catch {
       e => if failure is None { failure = Some(e) }
     }
   }

@@ -26,7 +26,7 @@ repository on 2026-09-23.
 | Admin topic and subscription operations | Selected endpoints implemented | Mock HTTP tests and live create/expand/query/delete |
 | Schema declaration | Implemented | Existing mock/live schema scenario; typed serialization is open |
 | Dead-letter policy | Implemented for consumer delivery and negative ack; producer created when the consumer is created | Mock publish-before-ACK, send-failure NACK, direct consumer NACK, composite non-blocking receive, and live broker explicit-NACK routing (including a broker that reports redelivery count zero) |
-| Retry-letter topic policy | Open | No implementation or coverage |
+| Retry-letter topic policy | Implemented through explicit `create_retry_consumer` and `reconsume_later` for a source topic; standard multi-topic/pattern constructors do not auto-add retry topics | Mock retry then DLQ publish-before-ACK, send-failure NACK; live Shared subscription delayed retry and DLQ escalation |
 | TableView (raw payload values) | Implemented | Mock initial replay/live updates/empty topic/query failure; live broker update, tombstone, and added partition |
 | Conversion of existing non-partitioned handles | Open | No implementation or coverage |
 | OAuth2, Athenz, TLS certificate authentication | Open | No implementation or coverage |

@@ -370,6 +370,82 @@ async fn Client::with_dead_letter(
 }
 
 ///|
+/// Consume a source and its retry-letter topic as one stream. Call
+/// `Consumer::reconsume_later` to publish a failed message with a delay;
+/// retries beyond the dead-letter limit are sent to the dead-letter topic.
+pub async fn Client::create_retry_consumer(
+  self : Client,
+  topic : String,
+  subscription : String,
+  retry_topic : String,
+  dead_letter_policy : DeadLetterPolicy,
+  sub_type? : SubscriptionType = Shared,
+  key_shared_policy? : KeySharedPolicy,
+  consumer_name? : String,
+  initial_position? : SubscriptionInitialPosition = Latest,
+  priority_level? : Int = 0,
+  durable? : Bool = true,
+  read_compacted? : Bool = false,
+  properties? : Map[String, String] = {},
+  subscription_properties? : Map[String, String] = {},
+  receiver_queue_size? : Int = 1000,
+  ack_timeout_ms? : Int = 0,
+  nack_backoff? : NackBackoff,
+  schema? : SchemaInfo,
+  partition_refresh_ms? : Int = 60000,
+) -> Consumer {
+  guard retry_topic != "" &&
+    retry_topic != topic &&
+    retry_topic != dead_letter_policy.topic() &&
+    topic != dead_letter_policy.topic() else {
+    raise InvalidFrame("source, retry, and dead-letter topics must differ")
+  }
+  let create = async fn(name : String) -> Consumer {
+    self.create_consumer(
+      name,
+      subscription,
+      sub_type~,
+      key_shared_policy?,
+      consumer_name?,
+      initial_position~,
+      priority_level~,
+      durable~,
+      read_compacted~,
+      properties~,
+      subscription_properties~,
+      receiver_queue_size~,
+      ack_timeout_ms~,
+      nack_backoff?,
+      schema?,
+      partition_refresh_ms~,
+    )
+  }
+  let source = create(topic)
+  let retry_source = create(retry_topic) catch {
+    e => {
+      source.close() catch {
+        _ => ()
+      }
+      raise e
+    }
+  }
+  let combined = Consumer::partitioned(self.manager.group, [
+    source, retry_source,
+  ])
+  let combined = self.with_dead_letter(combined, Some(dead_letter_policy))
+  let producer = self.create_producer(retry_topic) catch {
+    e => {
+      combined.close() catch {
+        _ => ()
+      }
+      raise e
+    }
+  }
+  combined.set_retry_letter(retry_topic, producer)
+  combined
+}
+
+///|
 /// Subscribe to an explicit list of topics with one logical consumer.
 /// Received messages retain their source topic in `Message::topic`.
 pub async fn Client::create_multi_topic_consumer(

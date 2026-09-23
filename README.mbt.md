@@ -9,6 +9,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 - Producer: synchronous and asynchronous send, shared/exclusive/wait-for-exclusive/fencing access modes, producer metadata, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation
 - Consumer: Exclusive / Shared / Failover / KeyShared subscriptions (including auto-split and sticky hash-range policies), individual & cumulative ack, negative ack with optional exponential redelivery backoff, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), batched message unpacking
 - Dead-letter policy: route messages after the configured number of unsuccessful deliveries, preserving payload, key, ordering key, properties, and event time; acknowledge the source only after the dead-letter producer receives a broker receipt
+- Explicit retry-letter consumer: merge the source and retry topic, use `reconsume_later` to publish a failed message with a delay, and send it to the dead-letter topic after the configured retry limit
 
 `DeadLetterPolicy::new(1U, dead_letter_topic)` allows one application attempt;
 after a NACK, the next delivery goes to the dead-letter topic. The policy can
@@ -33,7 +34,7 @@ Not yet / known gaps:
 
 - Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
 - Clients created when a topic was non-partitioned do not convert that handle into a partitioned handle.
-- Retry-letter topic policy, OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
+- Retry-letter handling uses a separate `create_retry_consumer` constructor; the standard multi-topic and pattern constructors do not automatically add retry topics. OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
 - Chunking requires an explicit `chunk_size`; broker maximum-message-size discovery and configurable chunk expiry are not implemented.
 - `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; this capability run used plain TCP with token auth.
 
@@ -53,6 +54,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - token-authenticated Admin REST topic/subscription operations and partition expansion
 - producer exclusive access rejects a competing producer; wait-for-exclusive becomes ready after the owner closes
 - dead-letter routing after explicit NACK, with source ACK after publish and preserved message metadata
+- retry-letter delivery through a Shared subscription after a 5-second delay, then transfer to DLQ when the retry limit is exceeded
 
 ## Requirements
 
