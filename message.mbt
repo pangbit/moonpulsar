@@ -224,19 +224,23 @@ pub fn Message::redelivery_count(self : Message) -> UInt {
 
 ///|
 /// Acknowledge this message individually.
-pub async fn Message::ack(self : Message) -> Unit {
+pub async fn Message::ack(
+  self : Message,
+  await_response? : Bool = false,
+) -> Unit {
+  send_ack(
+    self.conn_ref.val,
+    self.consumer_id,
+    @proto.CommandAck_AckType::Individual,
+    self.chunk_ids.unwrap_or([self.id]),
+    await_response~,
+  )
   if self.ack_tracker is Some(pending) {
     pending.remove(self.id)
   }
   if self.chunk_tracker is Some(chunks) {
     chunks.remove(self.id)
   }
-  send_ack(
-    self.conn_ref.val,
-    self.consumer_id,
-    @proto.CommandAck_AckType::Individual,
-    self.chunk_ids.unwrap_or([self.id]),
-  )
   if self.on_ack is Some(callback) {
     callback(self)
   }
@@ -244,20 +248,25 @@ pub async fn Message::ack(self : Message) -> Unit {
 
 ///|
 /// Acknowledge this message as part of a transaction.
-pub async fn Message::ack_txn(self : Message, txn : Transaction) -> Unit {
-  if self.ack_tracker is Some(pending) {
-    pending.remove(self.id)
-  }
-  if self.chunk_tracker is Some(chunks) {
-    chunks.remove(self.id)
-  }
+pub async fn Message::ack_txn(
+  self : Message,
+  txn : Transaction,
+  await_response? : Bool = false,
+) -> Unit {
   send_ack(
     self.conn_ref.val,
     self.consumer_id,
     @proto.CommandAck_AckType::Individual,
     self.chunk_ids.unwrap_or([self.id]),
     txn~,
+    await_response~,
   )
+  if self.ack_tracker is Some(pending) {
+    pending.remove(self.id)
+  }
+  if self.chunk_tracker is Some(chunks) {
+    chunks.remove(self.id)
+  }
   if self.on_ack is Some(callback) {
     callback(self)
   }
@@ -293,13 +302,20 @@ async fn send_ack(
   ack_type : @proto.CommandAck_AckType,
   ids : Array[MessageId],
   txn? : Transaction,
+  await_response? : Bool = false,
 ) -> Unit {
+  if await_response && conn.remote_protocol_version() < 17 {
+    raise InvalidFrame("broker protocol does not support ACK responses")
+  }
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::ACK
   let ack = @proto.CommandAck::default()
   ack.consumer_id = consumer_id
   ack.ack_type = ack_type
   ack.message_id = ids.map(fn(id) { id.to_proto() })
+  if await_response {
+    ack.request_id = Some(conn.next_request_id())
+  }
   match txn {
     Some(t) => {
       let (most, least) = t.id()
@@ -314,7 +330,20 @@ async fn send_ack(
     }
   }
   cmd.ack = Some(ack)
-  conn.send_command(cmd)
+  if await_response {
+    let reply = conn.request(cmd)
+    guard reply.ack_response is Some(response) else {
+      raise UnexpectedResponse("expected ACK_RESPONSE")
+    }
+    if response.error is Some(code) {
+      raise ServerError(
+        code=code.to_enum().0.reinterpret_as_int(),
+        message=response.message.unwrap_or("ACK failed"),
+      )
+    }
+  } else {
+    conn.send_command(cmd)
+  }
 }
 
 ///|

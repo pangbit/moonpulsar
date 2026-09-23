@@ -184,9 +184,9 @@ pub fn ConnectionManager::uses_tls(Self) -> Bool
 pub struct Consumer {
   // private fields
 }
-pub async fn Consumer::ack(Self, MessageId) -> Unit
-pub async fn Consumer::ack_cumulative(Self, MessageId) -> Unit
-pub async fn Consumer::ack_txn(Self, Transaction, MessageId) -> Unit
+pub async fn Consumer::ack(Self, MessageId, await_response? : Bool) -> Unit
+pub async fn Consumer::ack_cumulative(Self, MessageId, await_response? : Bool) -> Unit
+pub async fn Consumer::ack_txn(Self, Transaction, MessageId, await_response? : Bool) -> Unit
 pub async fn Consumer::close(Self) -> Unit
 pub fn Consumer::is_closed(Self) -> Bool
 pub async fn Consumer::nack(Self, MessageId) -> Unit
@@ -224,8 +224,8 @@ pub struct Message {
   publish_time : UInt64
   // private fields
 }
-pub async fn Message::ack(Self) -> Unit
-pub async fn Message::ack_txn(Self, Transaction) -> Unit
+pub async fn Message::ack(Self, await_response? : Bool) -> Unit
+pub async fn Message::ack_txn(Self, Transaction, await_response? : Bool) -> Unit
 pub fn[T] Message::decode(Self, SchemaCodec[T]) -> T raise PulsarError
 pub fn Message::event_time(Self) -> UInt64?
 pub fn Message::id(Self) -> MessageId
@@ -379,9 +379,9 @@ pub(all) struct SendReceipt {
 pub struct SingleConsumer {
   // private fields
 }
-pub async fn SingleConsumer::ack(Self, MessageId) -> Unit
-pub async fn SingleConsumer::ack_cumulative(Self, MessageId) -> Unit
-pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId) -> Unit
+pub async fn SingleConsumer::ack(Self, MessageId, await_response? : Bool) -> Unit
+pub async fn SingleConsumer::ack_cumulative(Self, MessageId, await_response? : Bool) -> Unit
+pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId, await_response? : Bool) -> Unit
 pub async fn SingleConsumer::close(Self) -> Unit
 pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, reconnect_with? : async () -> Connection, schema? : SchemaInfo, reconnect_policy? : RetryPolicy, chunk_policy? : ChunkAssemblyPolicy) -> Self
 pub fn SingleConsumer::is_closed(Self) -> Bool

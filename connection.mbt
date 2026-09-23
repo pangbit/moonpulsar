@@ -538,9 +538,12 @@ async fn Connection::dispatch(self : Connection, frame : IncomingFrame) -> Unit 
         handler(frame)
       }
     @proto.BaseCommand_Type::ACK_RESPONSE =>
-      if cmd.ack_response is Some(resp) &&
-        self.message_handlers.get(resp.consumer_id) is Some(handler) {
-        handler(frame)
+      if cmd.ack_response is Some(resp) {
+        if resp.request_id is Some(id) && self.pending.get(id) is Some(pending) {
+          ignore(pending.reply.try_put(cmd))
+        } else if self.message_handlers.get(resp.consumer_id) is Some(handler) {
+          handler(frame)
+        }
       }
     @proto.BaseCommand_Type::CLOSE_CONSUMER =>
       if cmd.close_consumer is Some(c) &&

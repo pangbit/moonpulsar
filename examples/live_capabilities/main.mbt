@@ -520,7 +520,7 @@ async fn main {
         historical_string_schema.info.type_,
         registered_string_schema.info.type_,
       )
-      string_message.ack()
+      string_message.ack(await_response=true)
       string_consumer.close()
       string_producer.close()
       let json_codec : @pulsar.SchemaCodec[Map[String, Int]] = @pulsar.SchemaCodec::json(

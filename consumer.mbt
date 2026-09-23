@@ -828,16 +828,21 @@ pub fn SingleConsumer::try_receive(self : SingleConsumer) -> Message? raise {
 
 ///|
 /// Acknowledge a message individually.
-pub async fn SingleConsumer::ack(self : SingleConsumer, id : MessageId) -> Unit {
-  self.ack_pending.remove(id)
+pub async fn SingleConsumer::ack(
+  self : SingleConsumer,
+  id : MessageId,
+  await_response? : Bool = false,
+) -> Unit {
   let ids = self.chunk_acks.get(id).unwrap_or([id])
-  self.chunk_acks.remove(id)
   send_ack(
     self.conn_ref.val,
     self.consumer_id,
     @proto.CommandAck_AckType::Individual,
     ids,
+    await_response~,
   )
+  self.ack_pending.remove(id)
+  self.chunk_acks.remove(id)
 }
 
 ///|
@@ -845,14 +850,16 @@ pub async fn SingleConsumer::ack(self : SingleConsumer, id : MessageId) -> Unit 
 pub async fn SingleConsumer::ack_cumulative(
   self : SingleConsumer,
   id : MessageId,
+  await_response? : Bool = false,
 ) -> Unit {
-  self.clear_cumulative_ack(id)
   send_ack(
     self.conn_ref.val,
     self.consumer_id,
     @proto.CommandAck_AckType::Cumulative,
     [id],
+    await_response~,
   )
+  self.clear_cumulative_ack(id)
 }
 
 ///|
@@ -861,17 +868,19 @@ pub async fn SingleConsumer::ack_txn(
   self : SingleConsumer,
   txn : Transaction,
   id : MessageId,
+  await_response? : Bool = false,
 ) -> Unit {
-  self.ack_pending.remove(id)
   let ids = self.chunk_acks.get(id).unwrap_or([id])
-  self.chunk_acks.remove(id)
   send_ack(
     self.conn_ref.val,
     self.consumer_id,
     @proto.CommandAck_AckType::Individual,
     ids,
     txn~,
+    await_response~,
   )
+  self.ack_pending.remove(id)
+  self.chunk_acks.remove(id)
 }
 
 ///|
@@ -1360,10 +1369,14 @@ pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
 
 ///|
 /// Acknowledge a message individually.
-pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
+pub async fn Consumer::ack(
+  self : Consumer,
+  id : MessageId,
+  await_response? : Bool = false,
+) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => {
-      c.ack(id)
+      c.ack(id, await_response~)
       if self.dead_letter is Some(dlq) {
         dlq.nacked.remove((c.topic(), id))
       }
@@ -1377,10 +1390,14 @@ pub async fn Consumer::ack(self : Consumer, id : MessageId) -> Unit {
 
 ///|
 /// Acknowledge cumulatively: this message and all before it.
-pub async fn Consumer::ack_cumulative(self : Consumer, id : MessageId) -> Unit {
+pub async fn Consumer::ack_cumulative(
+  self : Consumer,
+  id : MessageId,
+  await_response? : Bool = false,
+) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => {
-      c.ack_cumulative(id)
+      c.ack_cumulative(id, await_response~)
       if self.dead_letter is Some(dlq) {
         let cleared : Array[(String, MessageId)] = []
         for key, _ in dlq.nacked {
@@ -1407,10 +1424,11 @@ pub async fn Consumer::ack_txn(
   self : Consumer,
   txn : Transaction,
   id : MessageId,
+  await_response? : Bool = false,
 ) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => {
-      c.ack_txn(txn, id)
+      c.ack_txn(txn, id, await_response~)
       if self.dead_letter is Some(dlq) {
         dlq.nacked.remove((c.topic(), id))
       }
