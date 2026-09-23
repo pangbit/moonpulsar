@@ -22,6 +22,70 @@ fn SubscriptionType::to_proto(
 }
 
 ///|
+/// Broker-side dispatch policy for a KeyShared subscription.
+pub struct KeySharedPolicy {
+  priv mode : @proto.KeySharedMode
+  priv ranges : Array[(Int, Int)]
+  priv allow_out_of_order_delivery : Bool
+}
+
+///|
+pub fn KeySharedPolicy::auto_split(
+  allow_out_of_order_delivery? : Bool = false,
+) -> KeySharedPolicy {
+  {
+    mode: @proto.KeySharedMode::AUTO_SPLIT,
+    ranges: [],
+    allow_out_of_order_delivery,
+  }
+}
+
+///|
+/// Reserve non-overlapping inclusive hash ranges within 0..65535.
+pub fn KeySharedPolicy::sticky(
+  ranges : Array[(Int, Int)],
+  allow_out_of_order_delivery? : Bool = false,
+) -> KeySharedPolicy raise PulsarError {
+  guard !ranges.is_empty() else {
+    raise InvalidFrame("sticky KeyShared requires hash ranges")
+  }
+  let checked : Array[(Int, Int)] = []
+  for i, range in ranges {
+    let (start, end) = range
+    guard start >= 0 && start < end && end <= 65535 else {
+      raise InvalidFrame("invalid KeyShared hash range")
+    }
+    for j in 0..<i {
+      let (other_start, other_end) = checked[j]
+      guard end < other_start || start > other_end else {
+        raise InvalidFrame("overlapping KeyShared hash ranges")
+      }
+    }
+    checked.push(range)
+  }
+  {
+    mode: @proto.KeySharedMode::STICKY,
+    ranges: checked,
+    allow_out_of_order_delivery,
+  }
+}
+
+///|
+fn KeySharedPolicy::to_proto(self : KeySharedPolicy) -> @proto.KeySharedMeta {
+  let meta = @proto.KeySharedMeta::default()
+  meta.key_shared_mode = self.mode
+  meta.allow_out_of_order_delivery = Some(self.allow_out_of_order_delivery)
+  for range in self.ranges {
+    let (start, end) = range
+    let proto_range = @proto.IntRange::default()
+    proto_range.start = start
+    proto_range.end = end
+    meta.hash_ranges.push(proto_range)
+  }
+  meta
+}
+
+///|
 /// Where a subscription starts consuming.
 pub(all) enum SubscriptionInitialPosition {
   Latest
@@ -75,6 +139,7 @@ pub struct SingleConsumer {
   priv subscription : String
   priv mut consumer_id : UInt64
   priv sub_type : SubscriptionType
+  priv key_shared_policy : KeySharedPolicy?
   priv schema : SchemaInfo?
   priv consumer_name : String?
   priv initial_position : SubscriptionInitialPosition
@@ -109,6 +174,7 @@ pub async fn SingleConsumer::create(
   topic : String,
   subscription : String,
   sub_type? : SubscriptionType = Exclusive,
+  key_shared_policy? : KeySharedPolicy,
   consumer_name? : String,
   initial_position? : SubscriptionInitialPosition = Latest,
   priority_level? : Int = 0,
@@ -128,6 +194,9 @@ pub async fn SingleConsumer::create(
   guard receiver_queue_size > 0 else {
     raise InvalidFrame("receiver queue size must be positive")
   }
+  if key_shared_policy is Some(_) && sub_type != KeyShared {
+    raise InvalidFrame("KeyShared policy requires KeyShared subscription")
+  }
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
   let consumer : SingleConsumer = {
@@ -136,6 +205,7 @@ pub async fn SingleConsumer::create(
     subscription,
     consumer_id,
     sub_type,
+    key_shared_policy,
     schema,
     consumer_name,
     initial_position,
@@ -184,6 +254,9 @@ fn SingleConsumer::subscribe_command(
   subscribe.topic = self.topic
   subscribe.subscription = self.subscription
   subscribe.sub_type = self.sub_type.to_proto()
+  if self.key_shared_policy is Some(policy) {
+    subscribe.key_shared_meta = Some(policy.to_proto())
+  }
   subscribe.consumer_id = self.consumer_id
   subscribe.request_id = request_id
   subscribe.priority_level = Some(self.priority_level)

@@ -7,7 +7,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 - Connection management over TCP with the Pulsar binary protocol (`pulsar://`), handshake, keepalive and request/response correlation
 - Topic lookup with redirect following and connection pooling
 - Producer: synchronous and asynchronous send, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation
-- Consumer: Exclusive / Shared / Failover / KeyShared subscriptions, individual & cumulative ack, negative ack with optional exponential redelivery backoff, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), batched message unpacking
+- Consumer: Exclusive / Shared / Failover / KeyShared subscriptions (including auto-split and sticky hash-range policies), individual & cumulative ack, negative ack with optional exponential redelivery backoff, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), batched message unpacking
 - Explicit multi-topic consumers and pattern consumers that discover added topics and close removed sources in a namespace
 - Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks
 - Binary-protocol authentication: pluggable `Authentication` trait, token and basic auth built in; refresh auth data on broker challenge
@@ -26,7 +26,7 @@ Not yet / known gaps:
 
 - Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
 - Clients created when a topic was non-partitioned do not convert that handle into a partitioned handle.
-- Retry/DLQ policies, TableView, broker-side KeyShared policies, OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
+- Retry/DLQ policies, TableView, OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
 - Chunking requires an explicit `chunk_size`; broker maximum-message-size discovery and configurable chunk expiry are not implemented.
 - `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; this capability run used plain TCP with token auth.
 

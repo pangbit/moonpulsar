@@ -79,6 +79,21 @@ async fn main {
     assert_true(@async.now() - nack_started >= 180L)
     backoff_retry.ack()
     backoff_consumer.close()
+    let key_shared_consumer = client.create_consumer(
+      topic_a,
+      "\{prefix}-key-shared-sub",
+      sub_type=KeyShared,
+      key_shared_policy=@pulsar.KeySharedPolicy::sticky([(0, 65535)]),
+    )
+    ignore(
+      producer_a.send(@pulsar.ProducerMessage::new(b"key-shared", key="ks")),
+    )
+    let key_shared_message = @async.with_timeout(10000, async fn() {
+      key_shared_consumer.receive()
+    })
+    assert_eq(key_shared_message.payload(), b"key-shared")
+    key_shared_message.ack()
+    key_shared_consumer.close()
     let pattern_consumer = client.create_pattern_consumer(
       "public/default",
       "^persistent://public/default/\{prefix}-.*$",
