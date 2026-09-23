@@ -9,10 +9,11 @@ async fn main {
     println("set PULSAR_TOKEN to run this example")
     return
   }
+  let url = @env.get_env_var("PULSAR_URL").unwrap_or("pulsar://127.0.0.1:6650")
   @async.with_task_group(async fn(group) {
     let client = @pulsar.Client::connect(
       group,
-      "pulsar://127.0.0.1:6650",
+      url,
       auth=@pulsar.TokenAuth::new(token),
     )
     let topic = "persistent://public/default/moonpulsar-auth"
