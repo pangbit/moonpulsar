@@ -76,7 +76,7 @@ pub async fn Client::connect_tls_insecure(
     tls_insecure=true,
   )
   ignore(manager.get(addr))
-  { manager, service_addr: addr }
+  { manager, service_addr: addr, }
 }
 
 ///|
@@ -94,6 +94,7 @@ pub async fn Client::create_producer(
   name? : String,
   batching? : BatchingConfig,
   compression? : CompressionCodec = None,
+  schema? : SchemaInfo,
 ) -> Producer {
   let manager = self.manager
   let addr = self.service_addr
@@ -108,6 +109,7 @@ pub async fn Client::create_producer(
       batching?,
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
       compression~,
+      schema?,
     )
     return Producer::single(single)
   }
@@ -144,6 +146,7 @@ pub async fn Client::create_consumer(
   consumer_name? : String,
   initial_position? : SubscriptionInitialPosition = Latest,
   receiver_queue_size? : Int = 1000,
+  schema? : SchemaInfo,
 ) -> Consumer {
   let manager = self.manager
   let addr = self.service_addr
@@ -160,6 +163,7 @@ pub async fn Client::create_consumer(
       initial_position~,
       receiver_queue_size~,
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
+      schema?,
     )
     return Consumer::single(single)
   }

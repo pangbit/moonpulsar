@@ -94,7 +94,9 @@ async test "reader seek by message id re-subscribes at the position" {
       peer.send_command(close_reply)
       // expect a fresh SUBSCRIBE at the seek position
       let frame = peer.next()
-      guard frame.cmd.subscribe is Some(req) else { fail("expected re-SUBSCRIBE") }
+      guard frame.cmd.subscribe is Some(req) else {
+        fail("expected re-SUBSCRIBE")
+      }
       guard req.start_message_id is Some(mid) else {
         fail("re-SUBSCRIBE without start position")
       }
@@ -106,7 +108,9 @@ async test "reader seek by message id re-subscribes at the position" {
       reply.success = Some(success)
       peer.send_command(reply)
       let flow = peer.next()
-      guard flow.cmd.flow is Some(_) else { fail("expected FLOW after re-SUBSCRIBE") }
+      guard flow.cmd.flow is Some(_) else {
+        fail("expected FLOW after re-SUBSCRIBE")
+      }
       let (cmd1, meta1, p1) = message_frame(
         req.consumer_id,
         100,
@@ -118,7 +122,9 @@ async test "reader seek by message id re-subscribes at the position" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let reader = SingleReader::create(group, conn, "persistent://public/default/t")
+    let reader = SingleReader::create(
+      group, conn, "persistent://public/default/t",
+    )
     let target : MessageId = {
       ledger_id: 100,
       entry_id: 0,
@@ -159,7 +165,9 @@ async test "reader timestamp seek resets cursor and re-subscribes" {
       close_reply.success = Some(cs)
       peer.send_command(close_reply)
       let frame = peer.next()
-      guard frame.cmd.subscribe is Some(req) else { fail("expected re-SUBSCRIBE") }
+      guard frame.cmd.subscribe is Some(req) else {
+        fail("expected re-SUBSCRIBE")
+      }
       let reply = @proto.BaseCommand::default()
       reply.type_ = @proto.BaseCommand_Type::SUCCESS
       let success = @proto.CommandSuccess::default()
@@ -179,7 +187,9 @@ async test "reader timestamp seek resets cursor and re-subscribes" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let reader = SingleReader::create(group, conn, "persistent://public/default/t")
+    let reader = SingleReader::create(
+      group, conn, "persistent://public/default/t",
+    )
     reader.seek(PositionTimestamp(12345))
     let message = @async.with_timeout(5000, async fn() { reader.next() })
     assert_eq(message.map(fn(m) { m.payload() }), Some(b"after-seek"))

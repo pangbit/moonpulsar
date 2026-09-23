@@ -92,8 +92,9 @@ pub struct Client {
 }
 pub fn Client::close(Self) -> Unit
 pub async fn Client::connect(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
-pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int) -> Consumer
-pub async fn Client::create_producer(Self, String, name? : String, batching? : BatchingConfig, compression? : CompressionCodec) -> Producer
+pub async fn Client::connect_tls_insecure(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
+pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int, schema? : SchemaInfo) -> Consumer
+pub async fn Client::create_producer(Self, String, name? : String, batching? : BatchingConfig, compression? : CompressionCodec, schema? : SchemaInfo) -> Producer
 pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int) -> Reader
 pub async fn Client::partitions_of(Self, String) -> Int
 
@@ -109,7 +110,7 @@ pub struct Connection {
   // private fields
 }
 pub fn Connection::close(Self) -> Unit
-pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, tls? : Bool, keepalive_interval_ms? : Int, timeout_ms? : Int) -> Self
+pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, tls? : Bool, tls_insecure? : Bool, keepalive_interval_ms? : Int, timeout_ms? : Int) -> Self
 pub fn Connection::is_closed(Self) -> Bool
 pub fn Connection::next_request_id(Self) -> UInt64
 pub fn Connection::on_close(Self, (Error?) -> Unit) -> Unit
@@ -125,7 +126,7 @@ pub struct ConnectionManager {
 pub fn ConnectionManager::close(Self) -> Unit
 pub async fn ConnectionManager::get(Self, String) -> Connection
 pub fn ConnectionManager::is_closed(Self) -> Bool
-pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, tls? : Bool) -> Self
+pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, tls? : Bool, tls_insecure? : Bool) -> Self
 pub fn ConnectionManager::uses_tls(Self) -> Bool
 
 pub struct Consumer {
@@ -197,8 +198,10 @@ pub(all) struct ProducerMessage {
   event_time : UInt64?
   sequence_id : UInt64?
   ordering_key : Bytes?
+  deliver_at : UInt64?
+  deliver_after : UInt64?
 }
-pub fn ProducerMessage::new(Bytes, key? : String, properties? : Map[String, String], event_time? : UInt64, sequence_id? : UInt64, ordering_key? : Bytes) -> Self
+pub fn ProducerMessage::new(Bytes, key? : String, properties? : Map[String, String], event_time? : UInt64, sequence_id? : UInt64, ordering_key? : Bytes, deliver_at? : UInt64, deliver_after? : UInt64) -> Self
 
 pub struct Reader {
   // private fields
@@ -207,7 +210,7 @@ pub async fn Reader::close(Self) -> Unit
 pub async fn Reader::has_message_available(Self) -> Bool
 pub async fn Reader::next(Self) -> Message?
 pub fn Reader::partitioned(@async.TaskGroup[Unit], Array[SingleReader]) -> Self
-pub async fn Reader::seek(Self, MessageId) -> Unit
+pub async fn Reader::seek(Self, SeekPosition) -> Unit
 
 pub struct ReceiptFuture {
   // private fields
@@ -220,6 +223,23 @@ pub(all) struct RetryPolicy {
   max_backoff_ms : Int
 } derive(@debug.Debug)
 pub fn RetryPolicy::default() -> Self
+
+pub(all) struct SchemaInfo {
+  name : String
+  type_ : @proto.Schema_Type
+  schema_data : Bytes
+  properties : Map[String, String]
+} derive(Eq, @debug.Debug)
+pub fn SchemaInfo::avro(Bytes) -> Self
+pub fn SchemaInfo::bytes() -> Self
+pub fn SchemaInfo::json(Bytes) -> Self
+pub fn SchemaInfo::protobuf(Bytes) -> Self
+pub fn SchemaInfo::string() -> Self
+
+pub(all) enum SeekPosition {
+  PositionId(MessageId)
+  PositionTimestamp(UInt64)
+}
 
 pub(all) struct SendReceipt {
   message_id : MessageId
@@ -235,7 +255,7 @@ pub async fn SingleConsumer::ack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::ack_cumulative(Self, MessageId) -> Unit
 pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId) -> Unit
 pub async fn SingleConsumer::close(Self) -> Unit
-pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int, reconnect_with? : async () -> Connection) -> Self
+pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int, reconnect_with? : async () -> Connection, schema? : SchemaInfo) -> Self
 pub fn SingleConsumer::is_closed(Self) -> Bool
 pub async fn SingleConsumer::nack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::receive(Self) -> Message
@@ -247,7 +267,7 @@ pub struct SingleProducer {
   // private fields
 }
 pub async fn SingleProducer::close(Self) -> Unit
-pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec) -> Self
+pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, schema? : SchemaInfo) -> Self
 pub async fn SingleProducer::flush(Self) -> Unit
 pub fn SingleProducer::name(Self) -> String
 pub async fn SingleProducer::send(Self, ProducerMessage) -> SendReceipt
@@ -262,7 +282,7 @@ pub async fn SingleReader::close(Self) -> Unit
 pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int) -> Self
 pub async fn SingleReader::has_message_available(Self) -> Bool
 pub async fn SingleReader::next(Self) -> Message?
-pub async fn SingleReader::seek(Self, MessageId) -> Unit
+pub async fn SingleReader::seek(Self, SeekPosition) -> Unit
 
 pub(all) enum SubscriptionInitialPosition {
   Latest

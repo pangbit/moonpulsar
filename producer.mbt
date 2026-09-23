@@ -49,6 +49,7 @@ pub struct SingleProducer {
   priv reconnect_with : (async () -> Connection)?
   priv reconnecting : Ref[Bool]
   priv compression : CompressionCodec
+  priv schema : SchemaInfo?
   priv batching : BatchingConfig?
   priv batch_mu : @async.Mutex
   priv mut batch_messages : Array[ProducerMessage]
@@ -77,6 +78,7 @@ pub async fn SingleProducer::create(
   batching? : BatchingConfig,
   reconnect_with? : async () -> Connection,
   compression? : CompressionCodec = None,
+  schema? : SchemaInfo,
 ) -> SingleProducer {
   let request_id = conn.next_request_id()
   let producer_id = conn.next_request_id()
@@ -93,6 +95,7 @@ pub async fn SingleProducer::create(
     reconnect_with,
     reconnecting: { val: false, },
     compression,
+    schema,
     batching,
     batch_mu: @async.Mutex::Mutex(),
     batch_messages: [],
@@ -126,6 +129,9 @@ fn SingleProducer::producer_command(
   produce.producer_id = self.producer_id
   produce.request_id = request_id
   produce.producer_name = self.requested_name
+  if self.schema is Some(schema) {
+    produce.schema = Some(schema.to_proto())
+  }
   cmd.producer = Some(produce)
   cmd
 }

@@ -37,6 +37,7 @@ pub struct SingleConsumer {
   priv subscription : String
   priv consumer_id : UInt64
   priv sub_type : SubscriptionType
+  priv schema : SchemaInfo?
   priv consumer_name : String?
   priv initial_position : SubscriptionInitialPosition
   priv messages : @aqueue.Queue[Message]
@@ -60,6 +61,7 @@ pub async fn SingleConsumer::create(
   initial_position? : SubscriptionInitialPosition = Latest,
   receiver_queue_size? : Int = 1000,
   reconnect_with? : async () -> Connection,
+  schema? : SchemaInfo,
 ) -> SingleConsumer {
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
@@ -69,6 +71,7 @@ pub async fn SingleConsumer::create(
     subscription,
     consumer_id,
     sub_type,
+    schema,
     consumer_name,
     initial_position,
     messages: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
@@ -104,6 +107,9 @@ fn SingleConsumer::subscribe_command(
   subscribe.sub_type = self.sub_type.to_proto()
   subscribe.consumer_id = self.consumer_id
   subscribe.request_id = request_id
+  if self.schema is Some(schema) {
+    subscribe.schema = Some(schema.to_proto())
+  }
   if self.consumer_name is Some(name) {
     subscribe.consumer_name = Some(name)
   }

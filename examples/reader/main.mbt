@@ -1,4 +1,5 @@
 // Broker URL from PULSAR_URL, defaulting to a local standalone.
+
 ///|
 fn service_url() -> String {
   @env.get_env_var("PULSAR_URL").unwrap_or("pulsar://127.0.0.1:6650")
@@ -30,7 +31,10 @@ async fn main {
         break
       }
       match reader.next() {
-        Some(message) => println("read: \{@utf8.decode(message.payload())} id=\{message.id().ledger_id}:\{message.id().entry_id}")
+        Some(message) =>
+          println(
+            "read: \{@utf8.decode(message.payload())} id=\{message.id().ledger_id}:\{message.id().entry_id}",
+          )
         None => println("reached end of topic (broker signalled)")
       }
     }

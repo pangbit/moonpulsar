@@ -18,7 +18,14 @@ pub fn ConnectionManager::new(
   tls? : Bool = false,
   tls_insecure? : Bool = false,
 ) -> ConnectionManager {
-  { group, auth, connections: {}, default_tls: tls, tls_insecure, closed: false, }
+  {
+    group,
+    auth,
+    connections: {},
+    default_tls: tls,
+    tls_insecure,
+    closed: false,
+  }
 }
 
 ///|

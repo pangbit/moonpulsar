@@ -43,7 +43,10 @@ pub async fn SingleReader::create(
     // unique per process and reader: non-durable subscriptions linger
     // briefly on the broker after disconnect, and a name collision would
     // inherit the previous cursor position
-    sub_name: "reader-" + consumer_id.to_string() + "-" + @async.now().to_string(),
+    sub_name: "reader-" +
+    consumer_id.to_string() +
+    "-" +
+    @async.now().to_string(),
     consumer_id,
     events: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
     conn_ref: { val: conn, },
@@ -319,6 +322,7 @@ pub async fn SingleReader::seek(
   }
   // drop everything buffered before the seek
   while (self.events.try_get() catch { _ => None }) is Some(_) {
+
   }
   match position {
     PositionId(id) => {

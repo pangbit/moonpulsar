@@ -16,6 +16,9 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 - Reader API: non-durable replay from any message id, `seek`, `has_message_available`, aggregated across partitions
 - Transactions: coordinator channel, `new_transaction` / `commit` / `abort`, transactional send and ack
 - Admin REST API: partitioned topic create/delete, topic delete, list topics, topic stats
+- Schema declaration: producers/consumers declare `SchemaInfo` (String/JSON/Avro/Protobuf/raw) on creation
+- Delayed delivery: `deliver_at` / `deliver_after` on `ProducerMessage`
+- Timestamp seek for readers
 
 Not yet / known gaps:
 

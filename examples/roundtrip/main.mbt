@@ -1,4 +1,5 @@
 // Broker URL from PULSAR_URL, defaulting to a local standalone.
+
 ///|
 fn service_url() -> String {
   @env.get_env_var("PULSAR_URL").unwrap_or("pulsar://127.0.0.1:6650")
