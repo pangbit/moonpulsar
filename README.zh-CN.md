@@ -24,7 +24,7 @@
 - LZ4（帧格式）、Zlib、Zstd 压缩；Snappy 的兼容性限制见下文
 - 分区 Topic：可选 key 哈希（默认）、轮询、固定单分区或自定义回调路由；生产者可读取最后确认的序列号；消费者聚合全部分区，生产者和消费者可发现新增分区（默认每 60 秒轮询）
 - 可选的生产者分块和消费者/Reader 分块重组，包括压缩负载；`ChunkAssemblyPolicy` 可限制待组装消息数，并在没有新消息时清理过期分块
-- Reader：从指定消息 ID 开始的非持久回放、seek、`has_message_available`、最后消息 ID、自定义名称/属性/订阅、分区聚合和新增分区发现
+- Reader：从指定消息 ID 开始的非持久回放（可选择包含起点）、seek、`has_message_available`、最后消息 ID、自定义名称/属性/订阅、分区聚合和新增分区发现
 - TableView：从压缩后的 Reader 获取原始字节键值快照、实时更新、墓碑删除和变更监听器
 - 事务：协调器归属查找、`new_transaction` / `commit` / `abort`、事务性发送与 ACK
 - Admin REST API：创建/删除 Topic、创建/扩容/删除分区 Topic、查询分区元数据、列出 Topic 与订阅、删除订阅、查询 Topic 及分区 Topic 统计信息

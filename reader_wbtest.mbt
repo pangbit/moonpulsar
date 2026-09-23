@@ -39,6 +39,102 @@ async test "reader name and properties are sent in SUBSCRIBE" {
 }
 
 ///|
+async fn check_reader_start_inclusion(
+  inclusive : Bool,
+  expected_entry : UInt64,
+) -> Unit {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.subscribe is Some(req) else { fail("expected SUBSCRIBE") }
+      guard req.start_message_id is Some(start) else {
+        fail("missing start message id")
+      }
+      assert_eq(start.entry_id, 1UL)
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = req.request_id
+      reply.success = Some(success)
+      peer.send_command(reply)
+      let flow = peer.next()
+      guard flow.cmd.flow is Some(_) else { fail("expected FLOW") }
+      for entry in 1UL..<=2UL {
+        let (cmd, meta, payload) = message_frame(
+          req.consumer_id,
+          9UL,
+          entry,
+          @utf8.encode("entry-\{entry}"),
+          test_metadata(),
+        )
+        peer.send_message(cmd, meta, payload)
+      }
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let start : MessageId = {
+      ledger_id: 9UL,
+      entry_id: 1UL,
+      batch_index: -1,
+      partition: -1,
+    }
+    let reader = SingleReader::create(
+      group,
+      conn,
+      "persistent://public/default/start-inclusive",
+      start_message_id=start,
+      include_start_message_id=inclusive,
+    )
+    let message = @async.with_timeout(3000, async fn() { reader.next() })
+    guard message is Some(found) else { fail("reader reached end") }
+    assert_eq(found.id().entry_id, expected_entry)
+    reader.close()
+    manager.close()
+  })
+}
+
+///|
+async test "reader includes or excludes its starting message id" {
+  check_reader_start_inclusion(false, 2UL)
+  check_reader_start_inclusion(true, 1UL)
+}
+
+///|
+async test "inclusive latest reader leaves an empty topic at its end" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let frame = peer.next()
+      guard frame.cmd.get_last_message_id is Some(req) else {
+        fail("expected GET_LAST_MESSAGE_ID")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
+      let resp = @proto.CommandGetLastMessageIdResponse::default()
+      resp.request_id = req.request_id
+      let empty = @proto.MessageIdData::default()
+      empty.ledger_id = 18446744073709551615
+      empty.entry_id = 18446744073709551615
+      resp.last_message_id = empty
+      reply.get_last_message_id_response = Some(resp)
+      peer.send_command(reply)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let reader = SingleReader::create(
+      group,
+      conn,
+      "persistent://public/default/empty-latest",
+      start_message_id=MessageId::latest(),
+      include_start_message_id=true,
+    )
+    assert_true(reader.start_bound.val is None)
+    reader.close()
+    manager.close()
+  })
+}
+
+///|
 async test "single reader wakes next on broker disconnect" {
   @async.with_task_group(async fn(group) {
     let disconnect : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
@@ -240,7 +336,10 @@ async test "reader seek by message id re-subscribes at the position" {
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let reader = SingleReader::create(
-      group, conn, "persistent://public/default/t",
+      group,
+      conn,
+      "persistent://public/default/t",
+      include_start_message_id=true,
     )
     let target : MessageId = {
       ledger_id: 100,

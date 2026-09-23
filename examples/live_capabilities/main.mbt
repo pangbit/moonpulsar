@@ -183,6 +183,55 @@ async fn main {
       @pulsar.xxhash32(large_bytes),
     )
     auto_chunked.ack()
+    let reader_position_topic = "persistent://public/default/\{prefix}-reader-position"
+    let reader_position_producer = client.create_producer(reader_position_topic)
+    let first_position = reader_position_producer.send(
+      @pulsar.ProducerMessage::new(b"position-first"),
+    )
+    ignore(
+      reader_position_producer.send(
+        @pulsar.ProducerMessage::new(b"position-second"),
+      ),
+    )
+    let exclusive_reader = client.create_reader(
+      reader_position_topic,
+      start_message_id=first_position.message_id,
+    )
+    let exclusive_message = @async.with_timeout(10000, async fn() {
+      exclusive_reader.next()
+    })
+    assert_eq(
+      exclusive_message.map(fn(m) { m.payload() }),
+      Some(b"position-second"),
+    )
+    exclusive_reader.close()
+    let inclusive_reader = client.create_reader(
+      reader_position_topic,
+      start_message_id=first_position.message_id,
+      include_start_message_id=true,
+    )
+    let inclusive_message = @async.with_timeout(10000, async fn() {
+      inclusive_reader.next()
+    })
+    assert_eq(
+      inclusive_message.map(fn(m) { m.payload() }),
+      Some(b"position-first"),
+    )
+    inclusive_reader.close()
+    let latest_inclusive_reader = client.create_reader(
+      reader_position_topic,
+      start_message_id=@pulsar.MessageId::latest(),
+      include_start_message_id=true,
+    )
+    let latest_inclusive_message = @async.with_timeout(10000, async fn() {
+      latest_inclusive_reader.next()
+    })
+    assert_eq(
+      latest_inclusive_message.map(fn(m) { m.payload() }),
+      Some(b"position-second"),
+    )
+    latest_inclusive_reader.close()
+    reader_position_producer.close()
     let coord = client.transaction_coordinator(0UL)
     let txn = coord.new_transaction()
     txn.abort()
@@ -656,7 +705,9 @@ async fn main {
         token?=@env.get_env_var("PULSAR_TOKEN"),
       )
       for
-        topic in [topic_a, topic_b, topic_c, topic_d, topic_e, auto_chunk_topic] {
+        topic in [
+          topic_a, topic_b, topic_c, topic_d, topic_e, auto_chunk_topic, reader_position_topic,
+        ] {
         admin.delete_topic(topic, force=true)
       }
     }

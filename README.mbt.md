@@ -27,7 +27,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 - Payload compression: LZ4 (frame format), Zlib, Zstd
 - Partitioned topics: configurable key hash (default), round-robin, fixed single-partition, or custom callback routing; producers expose the last confirmed sequence ID; consumers aggregate all partitions and both producers and consumers discover added partitions (60-second default polling interval)
 - Optional explicit or broker-limit-driven automatic producer chunking and consumer/reader chunk reassembly, including compressed payloads; `ChunkAssemblyPolicy` limits pending assemblies and expires incomplete chunks even when no further messages arrive
-- Reader API: non-durable replay from any message id, `seek`, `has_message_available`, last-message ID, custom name/properties/subscription, aggregation and added-partition discovery
+- Reader API: non-durable replay from any message id with optional inclusive start/seek, `seek`, `has_message_available`, last-message ID, custom name/properties/subscription, aggregation and added-partition discovery
 - TableView: raw-byte key/value snapshot from a compacted reader, live updates, tombstone deletion, and change listeners
 - Transactions: coordinator ownership lookup, `new_transaction` / `commit` / `abort`, transactional send and ack
 - Admin REST API: topic create/delete and properties, partitioned topic create/expand/delete and metadata, list topics and partitioned topics, create/list/delete subscriptions, skip or expire subscription backlog, topic and partitioned-topic stats

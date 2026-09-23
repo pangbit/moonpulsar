@@ -33,6 +33,8 @@ pub struct SingleReader {
   priv conn_ref : Ref[Connection]
   priv receiver_permits : Int
   priv read_compacted : Bool
+  priv include_start_message_id : Bool
+  priv start_bound : Ref[MessageId?]
   priv mut available_permits : Int
   /// last message seen, for `has_message_available`
   priv last_seen : Ref[MessageId?]
@@ -53,6 +55,7 @@ pub async fn SingleReader::create(
   start_message_id? : MessageId,
   receiver_queue_size? : Int = 1000,
   read_compacted? : Bool = false,
+  include_start_message_id? : Bool = false,
   name? : String,
   properties? : Map[String, String] = {},
   subscription_name? : String,
@@ -85,6 +88,8 @@ pub async fn SingleReader::create(
     conn_ref: { val: conn, },
     receiver_permits: receiver_queue_size,
     read_compacted,
+    include_start_message_id,
+    start_bound: { val: reader_start_bound(start_message_id), },
     available_permits: 0,
     last_seen: { val: start_message_id, },
     closed: { val: false, },
@@ -106,6 +111,28 @@ pub async fn SingleReader::create(
     reader.on_connection_closed()
     raise ConnectionClosed
   }
+  if include_start_message_id && start_message_id == Some(MessageId::latest()) {
+    let last = reader.last_message_id() catch {
+      e => {
+        reader.close() catch {
+          _ => ()
+        }
+        raise e
+      }
+    }
+    if last.entry_id != 18446744073709551615 {
+      reader.start_bound.val = Some(last)
+      reader.last_seen.val = Some(last)
+      reader.resubscribe(Some(last)) catch {
+        e => {
+          reader.close() catch {
+            _ => ()
+          }
+          raise e
+        }
+      }
+    }
+  }
   group.spawn_bg(
     async fn() {
       while !reader.closed.val {
@@ -122,6 +149,41 @@ pub async fn SingleReader::create(
     allow_failure=true,
   )
   reader
+}
+
+///|
+fn reader_start_bound(id : MessageId?) -> MessageId? {
+  match id {
+    Some(value) if value != MessageId::earliest() &&
+      value != MessageId::latest() => Some(value)
+    _ => None
+  }
+}
+
+///|
+fn SingleReader::should_deliver(self : SingleReader, id : MessageId) -> Bool {
+  guard self.start_bound.val is Some(bound) else { return true }
+  if message_id_before(bound, id) {
+    self.start_bound.val = None
+    return true
+  }
+  self.include_start_message_id && !message_id_before(id, bound)
+}
+
+///|
+fn SingleReader::discard_before_start(
+  self : SingleReader,
+  id : MessageId,
+) -> Bool {
+  if self.should_deliver(id) {
+    return false
+  }
+  self.group.spawn_bg(
+    async fn() { self.send_flow(1) catch { _ => () } },
+    no_wait=true,
+    allow_failure=true,
+  )
+  true
 }
 
 ///|
@@ -297,7 +359,9 @@ fn SingleReader::dispatch_message(
         body,
         redelivery_count,
       )
-      ignore(self.events.try_put(Msg(msg)))
+      if !self.discard_before_start(msg.id()) {
+        ignore(self.events.try_put(Msg(msg)))
+      }
     }
   } else {
     let chunk_ids = if chunk.is_chunk { Some(chunk.ids) } else { None }
@@ -313,7 +377,9 @@ fn SingleReader::dispatch_message(
       redelivery_count,
       chunk_ids?,
     )
-    ignore(self.events.try_put(Msg(msg)))
+    if !self.discard_before_start(msg.id()) {
+      ignore(self.events.try_put(Msg(msg)))
+    }
   }
 }
 
@@ -339,6 +405,9 @@ async fn SingleReader::next_event(self : SingleReader) -> ReaderEvent {
   let event = self.events.get()
   match event {
     Msg(msg) => {
+      if self.start_bound.val is Some(bound) && msg.id() == bound {
+        self.start_bound.val = None
+      }
       self.last_seen.val = Some(msg.id())
       self.available_permits -= 1
       let threshold = self.receiver_permits / 2
@@ -381,6 +450,11 @@ pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
       // the "earliest" wire marker is (max, max): always before anything
       if seen.ledger_id == 18446744073709551615 &&
         seen.entry_id == 18446744073709551615 {
+        true
+      } else if self.include_start_message_id &&
+        self.start_bound.val is Some(bound) &&
+        seen == bound &&
+        last == bound {
         true
       } else {
         message_id_before(seen, last)
@@ -466,8 +540,9 @@ pub async fn SingleReader::seek(
   }
   match position {
     PositionId(id) => {
-      self.resubscribe(Some(id))
       self.last_seen.val = Some(id)
+      self.start_bound.val = reader_start_bound(Some(id))
+      self.resubscribe(Some(id))
     }
     PositionTimestamp(ts) => {
       let cmd = @proto.BaseCommand::default()
@@ -482,8 +557,9 @@ pub async fn SingleReader::seek(
         raise UnexpectedResponse("expected SUCCESS for SEEK")
       }
       // the broker disconnected us during the cursor reset; reattach
-      self.resubscribe(None)
       self.last_seen.val = None
+      self.start_bound.val = None
+      self.resubscribe(None)
     }
   }
 }
