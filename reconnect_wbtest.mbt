@@ -141,3 +141,86 @@ async test "consumer re-subscribes after connection break" {
     client.close()
   })
 }
+
+///|
+async test "finite producer reconnect policy fails pending sends and closes" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_producer(peer)
+      let frame = peer.next()
+      guard frame.cmd.send is Some(_) else { fail("expected SEND") }
+      peer.tcp.close()
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let attempts : Ref[Int] = { val: 0, }
+    let policy : RetryPolicy = {
+      max_retries: 0,
+      initial_backoff_ms: 1,
+      max_backoff_ms: 1,
+    }
+    let producer = SingleProducer::create(
+      group,
+      conn,
+      "persistent://public/default/finite-producer",
+      reconnect_with=async fn() {
+        attempts.val += 1
+        raise ConnectFailed("forced reconnect failure")
+      },
+      reconnect_policy=policy,
+    )
+    let future = producer.send_async(ProducerMessage::new(b"pending"))
+    let result : Result[SendReceipt, Error] = Ok(
+      @async.with_timeout(3000, async fn() { future.wait() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConnectionClosed))
+    assert_eq(attempts.val, 1)
+    let second : Result[SendReceipt, Error] = Ok(
+      producer.send(ProducerMessage::new(b"after-failure")),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(second is Err(ProducerClosed))
+    manager.close()
+  })
+}
+
+///|
+async test "finite consumer reconnect policy closes after exhausted attempt" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      peer.tcp.close()
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let attempts : Ref[Int] = { val: 0, }
+    let policy : RetryPolicy = {
+      max_retries: 0,
+      initial_backoff_ms: 1,
+      max_backoff_ms: 1,
+    }
+    let consumer = SingleConsumer::create(
+      group,
+      conn,
+      "persistent://public/default/finite-consumer",
+      "sub",
+      reconnect_with=async fn() {
+        attempts.val += 1
+        raise ConnectFailed("forced reconnect failure")
+      },
+      reconnect_policy=policy,
+    )
+    let result : Result[Message, Error] = Ok(
+      @async.with_timeout(3000, async fn() { consumer.receive() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConnectionClosed))
+    assert_eq(attempts.val, 1)
+    assert_true(consumer.closed.val)
+    manager.close()
+  })
+}

@@ -13,6 +13,7 @@ pub struct ClientOptions {
   priv ca_pem_file : String?
   priv listener_name : String?
   priv lookup_properties : Map[String, String]
+  priv reconnect_policy : RetryPolicy
 }
 
 ///|
@@ -27,6 +28,7 @@ pub fn ClientOptions::new(
   ca_pem_file? : String,
   listener_name? : String,
   lookup_properties? : Map[String, String] = {},
+  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
 ) -> ClientOptions raise PulsarError {
   guard connection_timeout_ms > 0 &&
     operation_timeout_ms > 0 &&
@@ -42,6 +44,11 @@ pub fn ClientOptions::new(
   guard !(tls_insecure && ca_pem_file is Some(_)) else {
     raise InvalidFrame("choose TLS verification or insecure TLS")
   }
+  guard reconnect_policy.max_retries >= -1 &&
+    reconnect_policy.initial_backoff_ms > 0 &&
+    reconnect_policy.max_backoff_ms >= reconnect_policy.initial_backoff_ms else {
+    raise InvalidFrame("invalid reconnect retry policy")
+  }
   {
     service_url,
     auth,
@@ -53,6 +60,7 @@ pub fn ClientOptions::new(
     ca_pem_file,
     listener_name,
     lookup_properties,
+    reconnect_policy,
   }
 }
 

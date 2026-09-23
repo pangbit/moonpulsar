@@ -146,7 +146,7 @@ pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordin
 pub struct ClientOptions {
   // private fields
 }
-pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, listener_name? : String, lookup_properties? : Map[String, String]) -> Self raise PulsarError
+pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, listener_name? : String, lookup_properties? : Map[String, String], reconnect_policy? : RetryPolicy) -> Self raise PulsarError
 
 pub(all) enum CompressionCodec {
   None
@@ -381,7 +381,7 @@ pub async fn SingleConsumer::ack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::ack_cumulative(Self, MessageId) -> Unit
 pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId) -> Unit
 pub async fn SingleConsumer::close(Self) -> Unit
-pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, reconnect_with? : async () -> Connection, schema? : SchemaInfo, chunk_policy? : ChunkAssemblyPolicy) -> Self
+pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, reconnect_with? : async () -> Connection, schema? : SchemaInfo, reconnect_policy? : RetryPolicy, chunk_policy? : ChunkAssemblyPolicy) -> Self
 pub fn SingleConsumer::is_closed(Self) -> Bool
 pub async fn SingleConsumer::nack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::receive(Self) -> Message
@@ -395,7 +395,7 @@ pub struct SingleProducer {
   // private fields
 }
 pub async fn SingleProducer::close(Self) -> Unit
-pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, chunk_size? : Int, automatic_chunking? : Bool, schema? : SchemaInfo) -> Self
+pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, chunk_size? : Int, automatic_chunking? : Bool, schema? : SchemaInfo, reconnect_policy? : RetryPolicy) -> Self
 pub async fn SingleProducer::flush(Self) -> Unit
 pub fn SingleProducer::last_sequence_id(Self) -> UInt64?
 pub fn SingleProducer::name(Self) -> String

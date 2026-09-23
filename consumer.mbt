@@ -195,6 +195,7 @@ pub struct SingleConsumer {
   priv chunk_sweeper_stop : @aqueue.Queue[Unit]
   priv chunk_acks : Map[MessageId, Array[MessageId]]
   priv reconnect_with : (async () -> Connection)?
+  priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
   priv seeking : Ref[Bool]
   priv seek_mu : @async.Mutex
@@ -223,6 +224,7 @@ pub async fn SingleConsumer::create(
   nack_backoff? : NackBackoff,
   reconnect_with? : async () -> Connection,
   schema? : SchemaInfo,
+  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
   chunk_policy? : ChunkAssemblyPolicy,
 ) -> SingleConsumer {
   guard ack_timeout_ms >= 0 else {
@@ -263,6 +265,7 @@ pub async fn SingleConsumer::create(
     chunk_sweeper_stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
     chunk_acks: {},
     reconnect_with,
+    reconnect_policy,
     reconnecting: { val: false, },
     seeking: { val: false, },
     seek_mu: @async.Mutex::Mutex(),
@@ -356,7 +359,7 @@ fn SingleConsumer::attach(self : SingleConsumer, conn : Connection) -> Unit {
 /// Re-subscribe on a fresh connection and resume the message flow.
 async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
   guard self.reconnect_with is Some(provider) else { return }
-  let policy = RetryPolicy::default()
+  let policy = self.reconnect_policy
   let method = @async.RetryMethod::ExponentialDelay(
     initial=policy.initial_backoff_ms,
     factor=2.0,
@@ -383,7 +386,19 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
     self.send_flow(self.receiver_permits)
     self.available_permits = self.receiver_permits
   }
-  @async.retry(method, fatal_error=fn(e) { e is ConsumerClosed }, attempt) catch {
+  let run = async fn() -> Unit {
+    if policy.max_retries < 0 {
+      @async.retry(method, fatal_error=fn(e) { e is ConsumerClosed }, attempt)
+    } else {
+      @async.retry(
+        method,
+        max_retry=policy.max_retries,
+        fatal_error=fn(e) { e is ConsumerClosed },
+        attempt,
+      )
+    }
+  }
+  run() catch {
     _ =>
       if !self.closed.val {
         self.closed.val = true

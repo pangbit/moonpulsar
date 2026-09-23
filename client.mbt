@@ -65,6 +65,7 @@ pub impl Authentication for BasicAuth with fn auth_data(self) -> Bytes {
 pub struct Client {
   priv manager : ConnectionManager
   priv service_addr : String
+  priv reconnect_policy : RetryPolicy
 }
 
 ///|
@@ -110,7 +111,7 @@ pub async fn Client::connect_with_options(
     lookup_properties=options.lookup_properties,
   )
   ignore(manager.get(addr))
-  { manager, service_addr: addr, }
+  { manager, service_addr: addr, reconnect_policy: options.reconnect_policy, }
 }
 
 ///|
@@ -198,6 +199,7 @@ pub async fn Client::create_producer(
       chunk_size?,
       automatic_chunking~,
       schema?,
+      reconnect_policy=self.reconnect_policy,
     )
     return Producer::single(single)
   }
@@ -220,6 +222,7 @@ pub async fn Client::create_producer(
         chunk_size?,
         automatic_chunking~,
         schema?,
+        reconnect_policy=self.reconnect_policy,
       ),
     )
   }
@@ -323,6 +326,7 @@ pub async fn Client::create_consumer(
       nack_backoff?,
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
       schema?,
+      reconnect_policy=self.reconnect_policy,
       chunk_policy?,
     )
     return self.with_dead_letter(Consumer::single(single), dead_letter_policy)
@@ -352,6 +356,7 @@ pub async fn Client::create_consumer(
           lookup_topic(manager, addr, partition_topic)
         },
         schema?,
+        reconnect_policy=self.reconnect_policy,
         chunk_policy?,
       ),
     )

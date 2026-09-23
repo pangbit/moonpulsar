@@ -15,6 +15,16 @@ test "client options reject invalid timeouts and competing authentication" {
     e => Err(e)
   }
   assert_true(competing is Err(InvalidFrame(_)))
+  let invalid_backoff : Result[ClientOptions, Error] = Ok(
+    ClientOptions::new("pulsar://localhost:6650", reconnect_policy={
+      max_retries: -2,
+      initial_backoff_ms: 100,
+      max_backoff_ms: 50,
+    }),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(invalid_backoff is Err(InvalidFrame(_)))
 }
 
 ///|
@@ -91,6 +101,42 @@ async test "client operation timeout applies to broker requests" {
       e => Err(e)
     }
     assert_true(result is Err(RequestTimeout))
+    client.close()
+  })
+}
+
+///|
+async test "client reconnect policy reaches producers and consumers" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_partitioned_broker(group, 0, async fn(_addr, peer) {
+      expect_producer(peer)
+      expect_subscribe(peer)
+    })
+    let policy : RetryPolicy = {
+      max_retries: 0,
+      initial_backoff_ms: 5,
+      max_backoff_ms: 10,
+    }
+    let client = Client::connect_with_options(
+      group,
+      ClientOptions::new("pulsar://\{addr}", reconnect_policy=policy),
+    )
+    let producer = client.create_producer(
+      "persistent://public/default/reconnect-options",
+    )
+    guard producer.inner is ProducerImpl::Single(single_producer) else {
+      fail("expected single producer")
+    }
+    assert_eq(single_producer.reconnect_policy.max_retries, 0)
+    let consumer = client.create_consumer(
+      "persistent://public/default/reconnect-options", "sub",
+    )
+    guard consumer.inner is ConsumerImpl::Single(single_consumer) else {
+      fail("expected single consumer")
+    }
+    assert_eq(single_consumer.reconnect_policy.initial_backoff_ms, 5)
+    consumer.close()
+    producer.close()
     client.close()
   })
 }

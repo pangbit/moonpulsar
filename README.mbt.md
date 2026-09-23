@@ -21,7 +21,7 @@ after a NACK, the next delivery goes to the dead-letter topic. The policy can
 be passed to single-topic, multi-topic, and pattern consumer constructors.
 - Explicit multi-topic consumers and pattern consumers that discover added topics and close removed sources in a namespace
 - Bounded merge queues for composite consumers and readers, so slow applications stop source forwarding
-- Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks
+- Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks; `ClientOptions` can set backoff and a finite retry count
 - Binary-protocol authentication: pluggable `Authentication` trait, token and basic auth built in; refresh auth data on broker challenge
 - TLS via `pulsar+ssl://` service URLs, with system roots or a custom PEM CA through `Client::connect_tls_with_ca`
 - Payload compression: LZ4 (frame format), Zlib, Zstd

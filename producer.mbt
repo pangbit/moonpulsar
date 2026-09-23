@@ -83,6 +83,7 @@ pub struct SingleProducer {
   /// encoded SEND frames awaiting a receipt, for replay after reconnect
   priv payloads : Map[UInt64, Bytes]
   priv reconnect_with : (async () -> Connection)?
+  priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
   priv compression : CompressionCodec
   priv chunk_size : Int?
@@ -122,6 +123,7 @@ pub async fn SingleProducer::create(
   chunk_size? : Int,
   automatic_chunking? : Bool = false,
   schema? : SchemaInfo,
+  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
 ) -> SingleProducer {
   if chunk_size is Some(size) && size <= 0 {
     raise InvalidFrame("chunk size must be positive")
@@ -147,6 +149,7 @@ pub async fn SingleProducer::create(
     pending: {},
     payloads: {},
     reconnect_with,
+    reconnect_policy,
     reconnecting: { val: false, },
     compression,
     chunk_size,
@@ -282,7 +285,7 @@ fn SingleProducer::on_connection_closed(
 /// Re-register on a fresh connection and replay unconfirmed messages.
 async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
   guard self.reconnect_with is Some(provider) else { return }
-  let policy = RetryPolicy::default()
+  let policy = self.reconnect_policy
   let method = @async.RetryMethod::ExponentialDelay(
     initial=policy.initial_backoff_ms,
     factor=2.0,
@@ -322,8 +325,23 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
       }
     }
   }
-  @async.retry(method, fatal_error=fn(e) { e is ProducerClosed }, attempt) catch {
-    _ => self.fail_all(ConnectionClosed)
+  let run = async fn() -> Unit {
+    if policy.max_retries < 0 {
+      @async.retry(method, fatal_error=fn(e) { e is ProducerClosed }, attempt)
+    } else {
+      @async.retry(
+        method,
+        max_retry=policy.max_retries,
+        fatal_error=fn(e) { e is ProducerClosed },
+        attempt,
+      )
+    }
+  }
+  run() catch {
+    _ => {
+      self.closed = true
+      self.fail_all(ConnectionClosed)
+    }
   }
   self.reconnecting.val = false
 }
@@ -828,7 +846,20 @@ pub fn Producer::partition_count(self : Producer) -> Int {
 
 ///|
 pub fn Producer::is_closed(self : Producer) -> Bool {
-  self.closed.val
+  if self.closed.val {
+    return true
+  }
+  match self.inner {
+    ProducerImpl::Single(p) => p.closed
+    ProducerImpl::Partitioned(partitions, _, _) => {
+      for partition in partitions {
+        if !partition.is_closed() {
+          return false
+        }
+      }
+      true
+    }
+  }
 }
 
 ///|
