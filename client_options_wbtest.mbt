@@ -47,6 +47,121 @@ async test "token file provider reloads the token" {
 }
 
 ///|
+async test "OAuth2 client credentials encode form and refresh tokens" {
+  @async.with_task_group(async fn(group) {
+    let calls : Ref[Int] = { val: 0, }
+    with_mock_admin(
+      group,
+      async fn(request, payload) {
+        assert_eq(request.meth, @http.RequestMethod::Post)
+        assert_eq(request.path, "/token")
+        assert_eq(
+          @utf8.decode(payload),
+          "grant_type=client_credentials&client_id=client%20id&client_secret=sec%26ret&audience=urn%3Atest&scope=read%20write",
+        )
+        calls.val += 1
+        (200, "{\"access_token\":\"token-\{calls.val}\",\"expires_in\":60}")
+      },
+      async fn(url) {
+        let provider = oauth2_client_credentials_provider(
+          url + "/token",
+          "client id",
+          "sec&ret",
+          audience="urn:test",
+          scope="read write",
+        )
+        assert_eq(provider().data, b"token-1")
+        assert_eq(provider().data, b"token-2")
+        assert_eq(calls.val, 2)
+      },
+    )
+  })
+}
+
+///|
+async test "OAuth2 token endpoint failures reject authentication" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(request, _payload) {
+        match request.path {
+          "/denied" => (401, "private error")
+          "/malformed" => (200, "not JSON")
+          _ => (200, "{\"token_type\":\"Bearer\"}")
+        }
+      },
+      async fn(url) {
+        for path in ["denied", "malformed", "missing"] {
+          let provider = oauth2_client_credentials_provider(
+            url + "/" + path,
+            "client",
+            "secret",
+          )
+          let result : Result[AuthData, Error] = Ok(provider()) catch {
+            e => Err(e)
+          }
+          match path {
+            "denied" => assert_true(result is Err(ServerError(code=401, ..)))
+            _ => assert_true(result is Err(InvalidFrame(_)))
+          }
+        }
+      },
+    )
+  })
+  let invalid : Result[async () -> AuthData, Error] = Ok(
+    oauth2_client_credentials_provider("", "client", "secret"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(invalid is Err(InvalidFrame(_)))
+}
+
+///|
+async test "OAuth2 provider refreshes for a broker authentication challenge" {
+  @async.with_task_group(async fn(group) {
+    let issued : Ref[Int] = { val: 0, }
+    with_mock_admin(
+      group,
+      async fn(_request, _payload) {
+        issued.val += 1
+        (200, "{\"access_token\":\"token-\{issued.val}\"}")
+      },
+      async fn(url) {
+        let seen : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+          kind=@aqueue.Kind::Unbounded,
+        )
+        let addr = start_mock_broker(group, async fn(_addr, peer) {
+          let challenge = @proto.BaseCommand::default()
+          challenge.type_ = @proto.BaseCommand_Type::AUTH_CHALLENGE
+          challenge.auth_challenge = Some(
+            @proto.CommandAuthChallenge::default(),
+          )
+          peer.send_command(challenge)
+          let reply = peer.next()
+          guard reply.cmd.auth_response is Some(response) &&
+            response.response is Some(data) else {
+            fail("expected OAuth2 AUTH_RESPONSE")
+          }
+          seen.put(data.auth_data == Some(b"token-2"))
+        })
+        let provider = oauth2_client_credentials_provider(
+          url + "/token",
+          "client",
+          "secret",
+        )
+        let client = Client::connect_with_options(
+          group,
+          ClientOptions::new("pulsar://\{addr}", auth_provider=provider),
+        )
+        assert_true(@async.with_timeout(1000, async fn() { seen.get() }))
+        assert_eq(issued.val, 2)
+        client.close()
+      },
+    )
+  })
+}
+
+///|
 async test "client options propagate listener and lookup properties" {
   @async.with_task_group(async fn(group) {
     let checked : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(

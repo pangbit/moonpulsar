@@ -74,3 +74,82 @@ pub fn token_file_provider(path : String) -> async () -> AuthData {
     { method_name: "token", data: @utf8.encode(token), }
   }
 }
+
+///|
+fn oauth2_form_component(value : String) -> String {
+  let encoded = @buffer.Buffer()
+  let digits = b"0123456789ABCDEF"
+  for byte in @utf8.encode(value) {
+    let code = byte.to_int()
+    if (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      (code >= 48 && code <= 57) ||
+      code == 45 ||
+      code == 46 ||
+      code == 95 ||
+      code == 126 {
+      encoded.write_byte(byte)
+    } else {
+      encoded.write_byte(b'%')
+      encoded.write_byte(digits[code >> 4])
+      encoded.write_byte(digits[code & 15])
+    }
+  }
+  @utf8.decode(encoded.to_bytes()) catch {
+    _ => ""
+  }
+}
+
+///|
+/// OAuth2 client-credentials authentication using `client_secret_post`.
+/// The provider requests a fresh access token on each connection or broker
+/// challenge; pass it as `ClientOptions::new(auth_provider=...)`.
+pub fn oauth2_client_credentials_provider(
+  token_endpoint : String,
+  client_id : String,
+  client_secret : String,
+  audience? : String,
+  scope? : String,
+) -> (async () -> AuthData) raise PulsarError {
+  guard token_endpoint != "" && client_id != "" && client_secret != "" else {
+    raise InvalidFrame("OAuth2 endpoint, client id and secret are required")
+  }
+  let mut form = "grant_type=client_credentials&client_id=" +
+    oauth2_form_component(client_id) +
+    "&client_secret=" +
+    oauth2_form_component(client_secret)
+  if audience is Some(value) {
+    form += "&audience=" + oauth2_form_component(value)
+  }
+  if scope is Some(value) {
+    form += "&scope=" + oauth2_form_component(value)
+  }
+  async fn() {
+    let headers = {}
+    headers[@http.CaseInsensitiveString("Content-Type")] = "application/x-www-form-urlencoded"
+    let (response, data) = @http.request(
+      token_endpoint,
+      @http.RequestMethod::Post,
+      headers,
+      @utf8.encode(form),
+    )
+    guard response.code >= 200 && response.code < 300 else {
+      raise ServerError(
+        code=response.code,
+        message="OAuth2 token endpoint rejected credentials",
+      )
+    }
+    let payload = data.binary() catch {
+      _ => raise InvalidFrame("OAuth2 token response is unreadable")
+    }
+    let json = @json.parse(@utf8.decode(payload)) catch {
+      _ => raise InvalidFrame("OAuth2 token response is not JSON")
+    }
+    guard json is Object(fields) &&
+      fields.get("access_token") is Some(String(token)) &&
+      token != "" else {
+      raise InvalidFrame("OAuth2 token response has no access token")
+    }
+    { method_name: "token", data: @utf8.encode(token), }
+  }
+}

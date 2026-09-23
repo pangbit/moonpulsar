@@ -23,7 +23,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 - Explicit multi-topic consumers and pattern consumers that discover added topics and close removed sources in a namespace
 - Bounded merge queues for composite consumers and readers, so slow applications stop source forwarding
 - Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks; `ClientOptions` can set backoff and a finite retry count
-- Binary-protocol authentication: pluggable `Authentication` trait, token and basic auth built in; refresh auth data on broker challenge
+- Binary-protocol authentication: pluggable `Authentication` trait, token and basic auth built in; rotating token files and OAuth2 client credentials through `ClientOptions::new(auth_provider=...)`, refreshed on broker challenge
 - TLS via `pulsar+ssl://` service URLs, with system roots or a custom PEM CA through `Client::connect_tls_with_ca`
 - Payload compression: LZ4 (frame format), Zlib, Zstd
 - Partitioned topics: configurable key hash (default), round-robin, fixed single-partition, or custom callback routing; producers expose the last confirmed sequence ID; consumers aggregate all partitions and both producers and consumers discover added partitions (60-second default polling interval)
@@ -40,7 +40,7 @@ Not yet / known gaps:
 
 - Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
 - The tested Pulsar 4.2.4 broker rejected creation of partitioned metadata over an existing non-partitioned topic with HTTP 409. Migrate data into a new partitioned topic when this change is needed.
-- Retry-letter handling is available through `retry_topic` on single, multi-topic and pattern consumers, or the explicit `create_retry_consumer` constructor. OAuth2/Athenz/TLS-certificate authentication, encryption, and typed Avro/Protobuf serialization are not implemented.
+- Retry-letter handling is available through `retry_topic` on single, multi-topic and pattern consumers, or the explicit `create_retry_consumer` constructor. Athenz/TLS-certificate authentication, encryption, and typed Avro/Protobuf serialization are not implemented. OAuth2 currently requests a fresh token for each connection or challenge; a local token endpoint was validated against the authenticated 4.2.4 broker, but no external identity provider was tested.
 - Automatic chunking requires the broker to advertise a maximum message size; optional ACK of expired incomplete chunks is not implemented.
 - `Connection::max_message_size` exposes the negotiated broker limit; producers cap encoded frames to that limit and can select a chunk size from it automatically.
 - `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; custom CA handshake and reconnection are covered by a local TLS mock, while the live broker run used plain TCP with token auth. The current TLS client API does not expose a client certificate for mutual TLS.
@@ -128,6 +128,7 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/consumer_nack` | negative ack and redelivery |
 | `examples/roundtrip` | produce-then-consume verification |
 | `examples/auth_token` | token authentication (`PULSAR_TOKEN` env var) |
+| `examples/oauth2` | OAuth2 client credentials from a token endpoint |
 | `examples/producer_compression` | Zstd-compressed payloads |
 | `examples/reader` | replay a topic from the start with a reader |
 | `examples/live_capabilities` | real-broker regression for multi-topic, pattern, ack timeout, seek, chunking, transactions, and optional Admin REST |

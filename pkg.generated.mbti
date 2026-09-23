@@ -39,6 +39,8 @@ pub fn lz4_decompress(Bytes) -> Bytes raise PulsarError
 
 pub fn lz4_decompress_block_to(BytesView, Int) -> Bytes raise PulsarError
 
+pub fn oauth2_client_credentials_provider(String, String, String, audience? : String, scope? : String) -> (async () -> AuthData) raise PulsarError
+
 pub async fn[R : @io.Reader] read_frame(R) -> IncomingFrame
 
 pub fn snappy_compress(Bytes) -> Bytes
