@@ -115,7 +115,8 @@ pub async fn Client::create_consumer(Self, String, String, sub_type? : Subscript
 pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Consumer
 pub async fn Client::create_producer(Self, String, name? : String, batching? : BatchingConfig, compression? : CompressionCodec, chunk_size? : Int, schema? : SchemaInfo, partition_refresh_ms? : Int) -> Producer
-pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int, partition_refresh_ms? : Int) -> Reader
+pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, partition_refresh_ms? : Int) -> Reader
+pub async fn Client::create_table_view(Self, String, partition_refresh_ms? : Int) -> TableView
 pub async fn Client::partitions_of(Self, String) -> Int
 pub async fn Client::topics_of_namespace(Self, String, pattern? : String, mode? : NamespaceTopicMode) -> Array[String]
 pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordinator
@@ -328,7 +329,7 @@ pub struct SingleReader {
   // private fields
 }
 pub async fn SingleReader::close(Self) -> Unit
-pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int) -> Self
+pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool) -> Self
 pub async fn SingleReader::has_message_available(Self) -> Bool
 pub async fn SingleReader::next(Self) -> Message?
 pub async fn SingleReader::seek(Self, SeekPosition) -> Unit
@@ -344,6 +345,19 @@ pub(all) enum SubscriptionType {
   Failover
   KeyShared
 } derive(Eq, @debug.Debug)
+
+pub struct TableView {
+  // private fields
+}
+pub async fn TableView::close(Self) -> Unit
+pub fn TableView::contains_key(Self, String) -> Bool
+pub fn TableView::entries(Self) -> Map[String, Bytes]
+pub fn TableView::for_each(Self, (String, Bytes) -> Unit) -> Unit
+pub fn TableView::for_each_and_listen(Self, (String, Bytes?) -> Unit) -> Unit
+pub fn TableView::get(Self, String) -> Bytes?
+pub fn TableView::is_empty(Self) -> Bool
+pub fn TableView::keys(Self) -> Array[String]
+pub fn TableView::size(Self) -> Int
 
 pub(all) struct TokenAuth {
   token : String

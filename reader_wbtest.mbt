@@ -50,20 +50,23 @@ async test "reader has_message_available via last message id" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {
       expect_subscribe(peer)
-      let frame = peer.next()
-      guard frame.cmd.get_last_message_id is Some(req) else {
-        fail("expected GET_LAST_MESSAGE_ID")
+      for _ in 0..<3 {
+        let frame = peer.next()
+        guard frame.cmd.get_last_message_id is Some(req) else {
+          fail("expected GET_LAST_MESSAGE_ID")
+        }
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
+        let resp = @proto.CommandGetLastMessageIdResponse::default()
+        resp.request_id = req.request_id
+        let id = @proto.MessageIdData::default()
+        id.ledger_id = 9
+        id.entry_id = 9
+        id.batch_index = Some(2)
+        resp.last_message_id = id
+        reply.get_last_message_id_response = Some(resp)
+        peer.send_command(reply)
       }
-      let reply = @proto.BaseCommand::default()
-      reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
-      let resp = @proto.CommandGetLastMessageIdResponse::default()
-      resp.request_id = req.request_id
-      let id = @proto.MessageIdData::default()
-      id.ledger_id = 9
-      id.entry_id = 9
-      resp.last_message_id = id
-      reply.get_last_message_id_response = Some(resp)
-      peer.send_command(reply)
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
@@ -72,6 +75,20 @@ async test "reader has_message_available via last message id" {
     )
     // last seen = latest position marker; broker reports 9:9 -> available
     assert_true(reader.has_message_available())
+    reader.last_seen.val = Some({
+      ledger_id: 9,
+      entry_id: 9,
+      batch_index: 0,
+      partition: -1,
+    })
+    assert_true(reader.has_message_available())
+    reader.last_seen.val = Some({
+      ledger_id: 9,
+      entry_id: 9,
+      batch_index: 2,
+      partition: -1,
+    })
+    assert_true(!reader.has_message_available())
     reader.close()
     manager.close()
   })

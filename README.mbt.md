@@ -16,6 +16,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 - Partitioned topics: keyed messages route by `xxhash32(key) % partitions`, keyless round-robin; consumers aggregate all partitions and both producers and consumers discover added partitions (60-second default polling interval)
 - Optional producer chunking and consumer/reader chunk reassembly, including compressed payloads
 - Reader API: non-durable replay from any message id, `seek`, `has_message_available`, aggregation and added-partition discovery
+- TableView: raw-byte key/value snapshot from a compacted reader, live updates, tombstone deletion, and change listeners
 - Transactions: coordinator ownership lookup, `new_transaction` / `commit` / `abort`, transactional send and ack
 - Admin REST API: topic create/delete, partitioned topic create/expand/delete and metadata, list topics/subscriptions, delete subscriptions, topic stats
 - Schema declaration: producers/consumers declare `SchemaInfo` (String/JSON/Avro/Protobuf/raw) on creation
@@ -26,7 +27,7 @@ Not yet / known gaps:
 
 - Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
 - Clients created when a topic was non-partitioned do not convert that handle into a partitioned handle.
-- Retry/DLQ policies, TableView, OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
+- Retry/DLQ policies, OAuth2/Athenz/TLS-certificate authentication, encryption, and schema serialization are not implemented.
 - Chunking requires an explicit `chunk_size`; broker maximum-message-size discovery and configurable chunk expiry are not implemented.
 - `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; this capability run used plain TCP with token auth.
 
@@ -42,6 +43,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - automatic reconnection across a broker restart (producer replay + consumer re-subscribe)
 - token-authenticated multi-topic and pattern consumption, ack timeout, delayed nack redelivery, consumer seek, chunked produce/consume/reader replay, and coordinator lookup
 - partition expansion from two to three partitions while the producer, consumer, and reader remain open
+- TableView initial replay, live update, and tombstone deletion
 - token-authenticated Admin REST topic/subscription operations and partition expansion
 
 ## Requirements

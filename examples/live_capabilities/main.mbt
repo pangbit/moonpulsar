@@ -164,9 +164,11 @@ async fn main {
         token?=@env.get_env_var("PULSAR_TOKEN"),
       )
       let admin_topic = "persistent://public/default/\{prefix}-admin"
+      let table_topic = "persistent://public/default/\{prefix}-table-view"
       let partitioned_topic = "persistent://public/default/\{prefix}-admin-partitioned"
       let volatile_topic = "non-persistent://public/default/\{prefix}-admin-volatile"
       admin.create_topic(admin_topic)
+      admin.create_topic(table_topic)
       admin.create_topic(volatile_topic)
       assert_true(
         admin
@@ -174,6 +176,34 @@ async fn main {
         .contains(volatile_topic),
       )
       admin.create_partitioned_topic(partitioned_topic, 2)
+      let empty_table = @async.with_timeout(10000, async fn() {
+        client.create_table_view(table_topic)
+      })
+      assert_true(empty_table.is_empty())
+      empty_table.close()
+      let table_producer = client.create_producer(table_topic)
+      ignore(
+        table_producer.send(@pulsar.ProducerMessage::new(b"first", key="a")),
+      )
+      ignore(
+        table_producer.send(@pulsar.ProducerMessage::new(b"second", key="b")),
+      )
+      let table = @async.with_timeout(10000, async fn() {
+        client.create_table_view(table_topic)
+      })
+      assert_eq(table.get("a"), Some(b"first"))
+      assert_eq(table.get("b"), Some(b"second"))
+      ignore(
+        table_producer.send(@pulsar.ProducerMessage::new(b"updated", key="a")),
+      )
+      ignore(table_producer.send(@pulsar.ProducerMessage::new(b"", key="b")))
+      @async.with_timeout(10000, async fn() {
+        while table.get("a") != Some(b"updated") || table.contains_key("b") {
+          @async.sleep(20)
+        }
+      })
+      table.close()
+      table_producer.close()
       assert_eq(admin.partition_count(partitioned_topic), 2)
       let scaling_producer = client.create_producer(
         partitioned_topic,
@@ -248,6 +278,7 @@ async fn main {
         !admin.list_subscriptions(admin_topic).contains("\{prefix}-admin-sub"),
       )
       admin.delete_topic(admin_topic, force=true)
+      admin.delete_topic(table_topic, force=true)
       admin.delete_topic(volatile_topic, force=true)
       admin.delete_partitioned_topic(partitioned_topic, force=true)
     }

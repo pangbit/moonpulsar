@@ -411,6 +411,7 @@ pub async fn Client::create_reader(
   topic : String,
   start_message_id? : MessageId,
   receiver_queue_size? : Int = 1000,
+  read_compacted? : Bool = false,
   partition_refresh_ms? : Int = 60000,
 ) -> Reader {
   guard partition_refresh_ms > 0 else {
@@ -428,6 +429,7 @@ pub async fn Client::create_reader(
         topic,
         start_message_id?,
         receiver_queue_size~,
+        read_compacted~,
       ),
     )
   }
@@ -440,6 +442,7 @@ pub async fn Client::create_reader(
       partition_topic,
       start_message_id?,
       receiver_queue_size~,
+      read_compacted~,
     )
   }
   let subs : Array[SingleReader] = []
@@ -481,6 +484,30 @@ pub async fn Client::create_reader(
     allow_failure=true,
   )
   reader
+}
+
+///|
+/// Build a live raw-bytes view of a compacted topic from its earliest message.
+/// Messages without keys are ignored; an empty payload removes the key.
+pub async fn Client::create_table_view(
+  self : Client,
+  topic : String,
+  partition_refresh_ms? : Int = 60000,
+) -> TableView {
+  let reader = self.create_reader(
+    topic,
+    start_message_id=MessageId::earliest(),
+    read_compacted=true,
+    partition_refresh_ms~,
+  )
+  TableView::create(self.manager.group, reader) catch {
+    e => {
+      reader.close() catch {
+        _ => ()
+      }
+      raise e
+    }
+  }
 }
 
 ///|

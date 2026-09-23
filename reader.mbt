@@ -27,6 +27,7 @@ pub struct SingleReader {
   priv events : @aqueue.Queue[ReaderEvent]
   priv conn_ref : Ref[Connection]
   priv receiver_permits : Int
+  priv read_compacted : Bool
   priv mut available_permits : Int
   /// last message seen, for `has_message_available`
   priv last_seen : Ref[MessageId?]
@@ -44,6 +45,7 @@ pub async fn SingleReader::create(
   topic : String,
   start_message_id? : MessageId,
   receiver_queue_size? : Int = 1000,
+  read_compacted? : Bool = false,
 ) -> SingleReader {
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
@@ -62,6 +64,7 @@ pub async fn SingleReader::create(
     events: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
     conn_ref: { val: conn, },
     receiver_permits: receiver_queue_size,
+    read_compacted,
     available_permits: 0,
     last_seen: { val: start_message_id, },
     closed: { val: false, },
@@ -101,7 +104,7 @@ fn SingleReader::subscribe_command(
       // subscription's initial position instead
       ()
   }
-  subscribe.read_compacted = Some(false)
+  subscribe.read_compacted = Some(self.read_compacted)
   subscribe.initial_position = Some(
     match start_message_id {
       Some(id) =>
@@ -306,6 +309,9 @@ pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
   let reply = self.conn.request(cmd) catch { _ => return false }
   guard reply.get_last_message_id_response is Some(resp) else { return false }
   let last = MessageId::from_proto(resp.last_message_id)
+  if last == MessageId::earliest() {
+    return false
+  }
   match self.last_seen.val {
     Some(seen) =>
       // the "earliest" wire marker is (max, max): always before anything
@@ -321,7 +327,11 @@ pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
 
 ///|
 fn message_id_before(a : MessageId, b : MessageId) -> Bool {
-  (a.ledger_id, a.entry_id) < (b.ledger_id, b.entry_id)
+  if (a.ledger_id, a.entry_id) != (b.ledger_id, b.entry_id) {
+    (a.ledger_id, a.entry_id) < (b.ledger_id, b.entry_id)
+  } else {
+    a.batch_index < b.batch_index
+  }
 }
 
 ///|
