@@ -29,7 +29,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 - Reader API: non-durable replay from any message id, `seek`, `has_message_available`, aggregation and added-partition discovery
 - TableView: raw-byte key/value snapshot from a compacted reader, live updates, tombstone deletion, and change listeners
 - Transactions: coordinator ownership lookup, `new_transaction` / `commit` / `abort`, transactional send and ack
-- Admin REST API: topic create/delete, partitioned topic create/expand/delete and metadata, list topics and partitioned topics, list/delete subscriptions, topic and partitioned-topic stats
+- Admin REST API: topic create/delete, partitioned topic create/expand/delete and metadata, list topics and partitioned topics, create/list/delete subscriptions, skip or expire subscription backlog, topic and partitioned-topic stats
 - Schema declaration: producers/consumers declare `SchemaInfo` (String/JSON/Avro/Protobuf/raw) on creation; `SchemaCodec[T]` encodes and decodes STRING and JSON payloads or uses custom callbacks
 - Delayed delivery: `deliver_at` / `deliver_after` on `ProducerMessage`
 - Timestamp seek for readers
@@ -56,6 +56,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - partition expansion from two to three partitions while the producer, consumer, and reader remain open
 - TableView initial replay, live update, tombstone deletion, and added-partition discovery
 - token-authenticated Admin REST topic/subscription operations and partition expansion
+- Admin subscription creation at Earliest, skip-one/skip-all cursor behavior, and timed backlog expiration
 - producer exclusive access rejects a competing producer; wait-for-exclusive becomes ready after the owner closes
 - dead-letter routing after explicit NACK, with source ACK after publish and preserved message metadata
 - retry-letter delivery through a Shared subscription after a 5-second delay, then transfer to DLQ when the retry limit is exceeded

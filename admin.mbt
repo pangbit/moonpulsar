@@ -11,6 +11,15 @@ pub(all) struct TopicName {
 } derive(Eq, Debug)
 
 ///|
+fn safe_admin_segment(segment : StringView) -> Bool {
+  segment != "" &&
+  !segment.contains("/") &&
+  !segment.contains("?") &&
+  !segment.contains("#") &&
+  !segment.contains("%")
+}
+
+///|
 /// Parse "persistent://tenant/namespace/topic" or its non-persistent form.
 pub fn TopicName::parse(full : String) -> TopicName raise PulsarError {
   let (domain, rest) = match full.strip_prefix("persistent://") {
@@ -23,7 +32,9 @@ pub fn TopicName::parse(full : String) -> TopicName raise PulsarError {
       }
   }
   match rest.split("/").collect() {
-    [tenant, namespace, topic] if tenant != "" && namespace != "" && topic != "" =>
+    [tenant, namespace, topic] if safe_admin_segment(tenant) &&
+      safe_admin_segment(namespace) &&
+      safe_admin_segment(topic) =>
       {
         domain,
         tenant: tenant.to_owned(),
@@ -81,6 +92,17 @@ async fn Admin::request(
 ///|
 fn topic_path(name : TopicName) -> String {
   "/admin/v2/\{name.domain}/\{name.tenant}/\{name.namespace}/\{name.topic}"
+}
+
+///|
+fn subscription_path(
+  name : TopicName,
+  subscription : String,
+) -> String raise PulsarError {
+  guard safe_admin_segment(subscription) else {
+    raise LookupFailed("invalid subscription name")
+  }
+  topic_path(name) + "/subscription/" + subscription
 }
 
 ///|
@@ -206,6 +228,9 @@ pub async fn Admin::list_topics(
   guard domain == "persistent" || domain == "non-persistent" else {
     raise LookupFailed("invalid topic domain: \{domain}")
   }
+  guard safe_admin_segment(tenant) && safe_admin_segment(namespace) else {
+    raise LookupFailed("invalid namespace")
+  }
   let (_, payload) = self.request(
     Get,
     "/admin/v2/\{domain}/\{tenant}/\{namespace}",
@@ -223,6 +248,9 @@ pub async fn Admin::list_partitioned_topics(
 ) -> Array[String] {
   guard domain == "persistent" || domain == "non-persistent" else {
     raise LookupFailed("invalid topic domain: \{domain}")
+  }
+  guard safe_admin_segment(tenant) && safe_admin_segment(namespace) else {
+    raise LookupFailed("invalid namespace")
   }
   let (_, payload) = self.request(
     Get,
@@ -301,15 +329,73 @@ pub async fn Admin::delete_subscription(
   subscription : String,
   force? : Bool = false,
 ) -> Unit {
-  guard subscription != "" && !subscription.contains("/") else {
-    raise LookupFailed("invalid subscription name")
-  }
   let name = TopicName::parse(topic)
   let force_q = if force { "?force=true" } else { "" }
+  ignore(self.request(Delete, subscription_path(name, subscription) + force_q))
+}
+
+///|
+/// Create a durable subscription at the earliest or latest position.
+pub async fn Admin::create_subscription(
+  self : Admin,
+  topic : String,
+  subscription : String,
+  initial_position? : SubscriptionInitialPosition = Latest,
+) -> Unit {
+  let name = TopicName::parse(topic)
+  let cursor = match initial_position {
+    Earliest => b"{\"ledgerId\":-1,\"entryId\":-1}"
+    Latest =>
+      b"{\"ledgerId\":9223372036854775807,\"entryId\":9223372036854775807}"
+  }
+  ignore(self.request(Put, subscription_path(name, subscription), body=cursor))
+}
+
+///|
+/// Advance a subscription by `count` messages.
+pub async fn Admin::skip_messages(
+  self : Admin,
+  topic : String,
+  subscription : String,
+  count : Int,
+) -> Unit {
+  guard count > 0 else { raise LookupFailed("skip count must be positive") }
+  let name = TopicName::parse(topic)
+  ignore(
+    self.request(Post, subscription_path(name, subscription) + "/skip/\{count}"),
+  )
+}
+
+///|
+/// Clear all pending messages for a subscription.
+pub async fn Admin::skip_all_messages(
+  self : Admin,
+  topic : String,
+  subscription : String,
+) -> Unit {
+  let name = TopicName::parse(topic)
+  ignore(
+    self.request(Post, subscription_path(name, subscription) + "/skip_all"),
+  )
+}
+
+///|
+/// Expire messages older than the given number of seconds.
+pub async fn Admin::expire_messages(
+  self : Admin,
+  topic : String,
+  subscription : String,
+  older_than_seconds : Int,
+) -> Unit {
+  guard older_than_seconds > 0 else {
+    raise LookupFailed("expiration interval must be positive")
+  }
+  let name = TopicName::parse(topic)
   ignore(
     self.request(
-      Delete,
-      topic_path(name) + "/subscription/" + subscription + force_q,
+      Post,
+      subscription_path(name, subscription) +
+      "/expireMessages/\{older_than_seconds}",
     ),
   )
 }

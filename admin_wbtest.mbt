@@ -14,14 +14,20 @@ async fn with_mock_admin(
   group.spawn_bg(
     async fn() {
       defer server.close()
-      let (conn, _peer) = server.accept()
       while true {
-        let request = conn.read_request()
-        let payload = conn.read_all().binary()
-        let (code, text) = respond(request, payload)
-        conn.send_response(code, "")
-        conn.write(text)
-        conn.end_response()
+        let (conn, _peer) = server.accept()
+        try {
+          while true {
+            let request = conn.read_request()
+            let payload = conn.read_all().binary()
+            let (code, text) = respond(request, payload)
+            conn.send_response(code, "")
+            conn.write(text)
+            conn.end_response()
+          }
+        } catch {
+          _ => ()
+        }
       }
     },
     no_wait=true,
@@ -339,4 +345,106 @@ async test "delete subscription" {
       },
     )
   })
+}
+
+///|
+async test "create subscription sends earliest and latest cursor positions" {
+  @async.with_task_group(async fn(group) {
+    let calls : Ref[Int] = { val: 0, }
+    with_mock_admin(
+      group,
+      async fn(request, payload) {
+        assert_eq(request.meth, @http.RequestMethod::Put)
+        assert_eq(
+          request.path,
+          "/admin/v2/persistent/public/default/events/subscription/worker",
+        )
+        if calls.val == 0 {
+          assert_eq(@utf8.decode(payload), "{\"ledgerId\":-1,\"entryId\":-1}")
+        } else {
+          assert_eq(
+            @utf8.decode(payload),
+            "{\"ledgerId\":9223372036854775807,\"entryId\":9223372036854775807}",
+          )
+        }
+        calls.val += 1
+        (204, "")
+      },
+      async fn(url) {
+        let admin = Admin::new(url)
+        let topic = "persistent://public/default/events"
+        admin.create_subscription(topic, "worker", initial_position=Earliest)
+        admin.create_subscription(topic, "worker")
+        assert_eq(calls.val, 2)
+      },
+    )
+  })
+}
+
+///|
+async test "admin subscription backlog operations use documented endpoints" {
+  @async.with_task_group(async fn(group) {
+    let calls : Ref[Int] = { val: 0, }
+    with_mock_admin(
+      group,
+      async fn(request, payload) {
+        assert_eq(request.meth, @http.RequestMethod::Post)
+        assert_eq(payload.length(), 0)
+        let suffix = match calls.val {
+          0 => "skip/3"
+          1 => "skip_all"
+          _ => "expireMessages/60"
+        }
+        assert_eq(
+          request.path,
+          "/admin/v2/persistent/public/default/events/subscription/worker/" +
+          suffix,
+        )
+        calls.val += 1
+        (204, "")
+      },
+      async fn(url) {
+        let admin = Admin::new(url)
+        let topic = "persistent://public/default/events"
+        admin.skip_messages(topic, "worker", 3)
+        admin.skip_all_messages(topic, "worker")
+        admin.expire_messages(topic, "worker", 60)
+        assert_eq(calls.val, 3)
+      },
+    )
+  })
+}
+
+///|
+async test "admin rejects unsafe path segments and invalid backlog counts" {
+  let admin = Admin::new("http://127.0.0.1:1")
+  let topic = "persistent://public/default/events"
+  let unsafe_topic : Result[TopicName, Error] = Ok(
+    TopicName::parse("persistent://public/default/events?force=true"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(unsafe_topic is Err(LookupFailed(_)))
+  let unsafe_sub : Result[Unit, Error] = Ok(
+    admin.create_subscription(topic, "worker?force=true"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(unsafe_sub is Err(LookupFailed(_)))
+  let unsafe_namespace : Result[Array[String], Error] = Ok(
+    admin.list_topics("public", "default?x"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(unsafe_namespace is Err(LookupFailed(_)))
+  let zero : Result[Unit, Error] = Ok(admin.skip_messages(topic, "worker", 0)) catch {
+    e => Err(e)
+  }
+  assert_true(zero is Err(LookupFailed(_)))
+  let negative : Result[Unit, Error] = Ok(
+    admin.expire_messages(topic, "worker", -1),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(negative is Err(LookupFailed(_)))
 }

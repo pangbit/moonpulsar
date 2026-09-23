@@ -158,6 +158,7 @@ async fn main {
     let txn = coord.new_transaction()
     txn.abort()
     coord.close()
+    pattern_consumer.close()
     if @env.get_env_var("PULSAR_ADMIN_URL") is Some(admin_url) {
       let admin = @pulsar.Admin::new(
         admin_url,
@@ -174,7 +175,9 @@ async fn main {
       let volatile_topic = "non-persistent://public/default/\{prefix}-admin-volatile"
       let string_schema_topic = "persistent://public/default/\{prefix}-schema-string"
       let json_schema_topic = "persistent://public/default/\{prefix}-schema-json"
+      let admin_backlog_topic = "persistent://public/default/\{prefix}-admin-backlog"
       admin.create_topic(admin_topic)
+      admin.create_topic(admin_backlog_topic)
       admin.create_topic(string_schema_topic)
       admin.create_topic(json_schema_topic)
       admin.create_topic(table_topic)
@@ -369,6 +372,59 @@ async fn main {
       json_message.ack()
       json_consumer.close()
       json_producer.close()
+      let backlog_producer = client.create_producer(admin_backlog_topic)
+      ignore(backlog_producer.send(@pulsar.ProducerMessage::new(b"skip-this")))
+      ignore(backlog_producer.send(@pulsar.ProducerMessage::new(b"keep-this")))
+      let skip_sub = "\{prefix}-skip-sub"
+      admin.create_subscription(
+        admin_backlog_topic,
+        skip_sub,
+        initial_position=Earliest,
+      )
+      admin.skip_messages(admin_backlog_topic, skip_sub, 1)
+      let skip_consumer = client.create_consumer(admin_backlog_topic, skip_sub)
+      let kept = @async.with_timeout(10000, async fn() {
+        skip_consumer.receive()
+      })
+      assert_eq(kept.payload(), b"keep-this")
+      kept.ack()
+      skip_consumer.close()
+      let all_sub = "\{prefix}-skip-all-sub"
+      admin.create_subscription(
+        admin_backlog_topic,
+        all_sub,
+        initial_position=Earliest,
+      )
+      admin.skip_all_messages(admin_backlog_topic, all_sub)
+      ignore(backlog_producer.send(@pulsar.ProducerMessage::new(b"after-skip")))
+      let all_consumer = client.create_consumer(admin_backlog_topic, all_sub)
+      let after_skip = @async.with_timeout(10000, async fn() {
+        all_consumer.receive()
+      })
+      assert_eq(after_skip.payload(), b"after-skip")
+      after_skip.ack()
+      all_consumer.close()
+      let expire_sub = "\{prefix}-expire-sub"
+      admin.create_subscription(
+        admin_backlog_topic,
+        expire_sub,
+        initial_position=Earliest,
+      )
+      @async.sleep(1200)
+      admin.expire_messages(admin_backlog_topic, expire_sub, 1)
+      ignore(
+        backlog_producer.send(@pulsar.ProducerMessage::new(b"after-expire")),
+      )
+      let expire_consumer = client.create_consumer(
+        admin_backlog_topic, expire_sub,
+      )
+      let after_expire = @async.with_timeout(10000, async fn() {
+        expire_consumer.receive()
+      })
+      assert_eq(after_expire.payload(), b"after-expire")
+      after_expire.ack()
+      expire_consumer.close()
+      backlog_producer.close()
       assert_true(
         admin
         .list_partitioned_topics("public", "default")
@@ -490,6 +546,7 @@ async fn main {
         !admin.list_subscriptions(admin_topic).contains("\{prefix}-admin-sub"),
       )
       admin.delete_topic(admin_topic, force=true)
+      admin.delete_topic(admin_backlog_topic, force=true)
       admin.delete_topic(string_schema_topic, force=true)
       admin.delete_topic(json_schema_topic, force=true)
       admin.delete_topic(table_topic, force=true)
@@ -504,7 +561,6 @@ async fn main {
     compressed_consumer.close()
     chunk_reader.close()
     chunk_consumer.close()
-    pattern_consumer.close()
     timeout_consumer.close()
     consumer.close()
     producer_a.close()
@@ -523,7 +579,7 @@ async fn main {
     }
     client.close()
     println(
-      "live multi-topic, pattern discovery, dead-letter/retry, schema codecs, ack timeout, chunking, partition expansion, and coordinator lookup OK",
+      "live multi-topic, pattern discovery, dead-letter/retry, schema codecs, admin backlog, ack timeout, chunking, partition expansion, and coordinator lookup OK",
     )
   })
 }
