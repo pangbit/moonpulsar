@@ -5,7 +5,15 @@
 ///|
 priv enum ReaderEvent {
   Msg(Message)
-  EndOfTopic
+  EndOfTopic(UInt64)
+}
+
+///|
+fn ReaderEvent::consumer_id(self : ReaderEvent) -> UInt64 {
+  match self {
+    Msg(msg) => msg.consumer_id
+    EndOfTopic(id) => id
+  }
 }
 
 ///|
@@ -99,7 +107,7 @@ fn SingleReader::subscribe_command(
         } else {
           @proto.CommandSubscribe_InitialPosition::Latest
         }
-      None => @proto.CommandSubscribe_InitialPosition::Earliest
+      None => @proto.CommandSubscribe_InitialPosition::Latest
     },
   )
   cmd.subscribe = Some(subscribe)
@@ -156,7 +164,13 @@ fn SingleReader::on_frame(self : SingleReader, frame : IncomingFrame) -> Unit {
         _ => ()
       }
     @proto.BaseCommand_Type::REACHED_END_OF_TOPIC =>
-      ignore(self.events.try_put(EndOfTopic) catch { _ => false })
+      if frame.cmd.reached_end_of_topic is Some(end) {
+        ignore(
+          self.events.try_put(EndOfTopic(end.consumer_id)) catch {
+            _ => false
+          },
+        )
+      }
     _ => ()
   }
 }
@@ -222,10 +236,19 @@ fn SingleReader::dispatch_message(
 /// reached. Messages published later can still be read by calling `next`
 /// again.
 pub async fn SingleReader::next(self : SingleReader) -> Message? {
+  match self.next_event() {
+    Msg(msg) => Some(msg)
+    EndOfTopic(_) => None
+  }
+}
+
+///|
+async fn SingleReader::next_event(self : SingleReader) -> ReaderEvent {
   if self.closed.val {
     raise ConsumerClosed
   }
-  match self.events.get() {
+  let event = self.events.get()
+  match event {
     Msg(msg) => {
       self.last_seen.val = Some(msg.id())
       self.available_permits -= 1
@@ -237,9 +260,9 @@ pub async fn SingleReader::next(self : SingleReader) -> Message? {
         }
         self.available_permits += refill
       }
-      Some(msg)
+      event
     }
-    EndOfTopic => None
+    EndOfTopic(_) => event
   }
 }
 
@@ -373,9 +396,16 @@ priv enum ReaderImpl {
 }
 
 ///|
+priv struct PartitionedReaderEvent {
+  source : Int
+  event : ReaderEvent
+}
+
+///|
 priv struct PartitionedReaderState {
-  queue : @aqueue.Queue[ReaderEvent]
+  queue : @aqueue.Queue[PartitionedReaderEvent]
   mut ended : Int
+  ended_sources : Map[Int, Bool]
   total : Int
   readers : Array[SingleReader]
   closed : Ref[Bool]
@@ -402,22 +432,18 @@ pub fn Reader::partitioned(
   let state : PartitionedReaderState = {
     queue: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
     ended: 0,
+    ended_sources: {},
     total: readers.length(),
     readers,
     closed: { val: false, },
   }
-  for r in readers {
+  for source, r in readers {
     group.spawn_bg(
       async fn() {
         while true {
-          if r.next() is Some(msg) {
-            state.queue.put(Msg(msg))
-          } else {
-            state.ended += 1
-            if state.ended == state.total {
-              state.queue.put(EndOfTopic)
-            }
-            return
+          let event = r.next_event()
+          if event.consumer_id() == r.consumer_id {
+            state.queue.put({ source, event, })
           }
         }
       },
@@ -429,14 +455,42 @@ pub fn Reader::partitioned(
 }
 
 ///|
+fn PartitionedReaderState::is_current(
+  self : PartitionedReaderState,
+  item : PartitionedReaderEvent,
+) -> Bool {
+  self.readers[item.source].consumer_id == item.event.consumer_id()
+}
+
+///|
 /// Read the next message, or `None` once the end of the topic is reached.
 pub async fn Reader::next(self : Reader) -> Message? {
   match self.inner {
     ReaderImpl::One(r) => r.next()
     ReaderImpl::Many(state) =>
-      match state.queue.get() {
-        Msg(msg) => Some(msg)
-        EndOfTopic => None
+      for ;; {
+        let item = state.queue.get()
+        if !state.is_current(item) {
+          continue
+        }
+        match item.event {
+          Msg(msg) => {
+            if state.ended_sources.get(item.source) is Some(_) {
+              state.ended_sources.remove(item.source)
+              state.ended -= 1
+            }
+            return Some(msg)
+          }
+          EndOfTopic(_) => {
+            if state.ended_sources.get(item.source) is None {
+              state.ended_sources[item.source] = true
+              state.ended += 1
+            }
+            if state.ended == state.total {
+              return None
+            }
+          }
+        }
       }
   }
 }
@@ -447,36 +501,30 @@ pub async fn Reader::next(self : Reader) -> Message? {
 pub async fn Reader::has_message_available(self : Reader) -> Bool {
   match self.inner {
     ReaderImpl::One(r) => r.has_message_available()
-    ReaderImpl::Many(state) =>
-      if state.queue.try_get() is Some(event) {
-        state.queue_front_push(event)
-        true
-      } else {
-        for r in state.readers {
-          if r.has_message_available() {
-            return true
+    ReaderImpl::Many(state) => {
+      let retained = []
+      let mut has_message = false
+      while state.queue.try_get() is Some(item) {
+        if state.is_current(item) {
+          if item.event is Msg(_) {
+            has_message = true
           }
+          retained.push(item)
         }
-        false
       }
-  }
-}
-
-///|
-fn PartitionedReaderState::queue_front_push(
-  self : PartitionedReaderState,
-  event : ReaderEvent,
-) -> Unit raise {
-  let rest = []
-  while true {
-    match self.queue.try_get() {
-      Some(e) => rest.push(e)
-      None => break
+      for item in retained {
+        ignore(state.queue.try_put(item))
+      }
+      if has_message {
+        return true
+      }
+      for r in state.readers {
+        if r.has_message_available() {
+          return true
+        }
+      }
+      false
     }
-  }
-  ignore(self.queue.try_put(event))
-  for e in rest {
-    ignore(self.queue.try_put(e))
   }
 }
 
@@ -485,10 +533,13 @@ fn PartitionedReaderState::queue_front_push(
 pub async fn Reader::seek(self : Reader, position : SeekPosition) -> Unit {
   match self.inner {
     ReaderImpl::One(r) => r.seek(position)
-    ReaderImpl::Many(state) =>
+    ReaderImpl::Many(state) => {
       for r in state.readers {
         r.seek(position)
       }
+      state.ended = 0
+      state.ended_sources.clear()
+    }
   }
 }
 

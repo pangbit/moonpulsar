@@ -26,8 +26,8 @@ pub fn MessageId::earliest() -> MessageId {
 /// The latest available position.
 pub fn MessageId::latest() -> MessageId {
   {
-    ledger_id: 18446744073709551615,
-    entry_id: 18446744073709551615,
+    ledger_id: 9223372036854775807,
+    entry_id: 9223372036854775807,
     batch_index: -1,
     partition: -1,
   }

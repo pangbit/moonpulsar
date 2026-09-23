@@ -67,6 +67,7 @@ async test "partitioned producer routes keyed messages consistently" {
       for _ in 0..<6 {
         let frame = peer.next()
         if frame.cmd.producer is Some(req) {
+          assert_true(req.schema is Some(_))
           topics[req.producer_id] = req.topic
           let reply = @proto.BaseCommand::default()
           reply.type_ = @proto.BaseCommand_Type::PRODUCER_SUCCESS
@@ -84,7 +85,10 @@ async test "partitioned producer routes keyed messages consistently" {
     })
     let client = Client::connect(group, "pulsar://\{addr}")
     println("DEBUG: connected")
-    let producer = client.create_producer("persistent://public/default/pt")
+    let producer = client.create_producer(
+      "persistent://public/default/pt",
+      schema=SchemaInfo::string(),
+    )
     println("DEBUG: producer created")
     ignore(producer.send(ProducerMessage::new(b"a1", key="alpha")))
     ignore(producer.send(ProducerMessage::new(b"b1", key="beta")))
@@ -109,8 +113,21 @@ async test "partitioned consumer merges all partitions" {
   @async.with_task_group(async fn(group) {
     let addr = start_partitioned_broker(group, 2, async fn(_addr, peer) {
       // two SUBSCRIBE + two FLOW on the shared connection
-      expect_subscribe(peer)
-      expect_subscribe(peer)
+      for _ in 0..<2 {
+        let frame = peer.next()
+        guard frame.cmd.subscribe is Some(req) else {
+          fail("expected SUBSCRIBE")
+        }
+        assert_true(req.schema is Some(_))
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::SUCCESS
+        let success = @proto.CommandSuccess::default()
+        success.request_id = req.request_id
+        reply.success = Some(success)
+        peer.send_command(reply)
+        let flow = peer.next()
+        assert_true(flow.cmd.flow is Some(_))
+      }
       // consumer ids on this connection: 3 and 6
       let (cmd0, meta0, p0) = message_frame(
         3UL,
@@ -131,7 +148,9 @@ async test "partitioned consumer merges all partitions" {
     })
     let client = Client::connect(group, "pulsar://\{addr}")
     let consumer = client.create_consumer(
-      "persistent://public/default/pt", "sub-1",
+      "persistent://public/default/pt",
+      "sub-1",
+      schema=SchemaInfo::string(),
     )
     let received = []
     for _ in 0..<2 {

@@ -86,6 +86,47 @@ async test "consumer receives message and acks individually" {
 }
 
 ///|
+async test "try_receive replenishes flow permits" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let (cmd, metadata, payload) = message_frame(
+        1UL,
+        1,
+        1,
+        b"one",
+        test_metadata(),
+      )
+      peer.send_message(cmd, metadata, payload)
+      let flow = peer.next()
+      guard flow.cmd.flow is Some(req) else { fail("expected refill FLOW") }
+      assert_eq(req.message_permits, 1)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let consumer = SingleConsumer::create(
+      group,
+      conn,
+      "persistent://public/default/t",
+      "sub-1",
+      receiver_queue_size=2,
+    )
+    let received = @async.with_timeout(5000, async fn() {
+      while true {
+        if consumer.try_receive() is Some(message) {
+          return message
+        }
+        @async.sleep(1)
+      }
+      fail("unreachable")
+    })
+    assert_eq(received.payload(), b"one")
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
 async test "consumer nack triggers redeliver command" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {

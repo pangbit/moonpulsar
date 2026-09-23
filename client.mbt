@@ -129,6 +129,7 @@ pub async fn Client::create_producer(
             lookup_topic(manager, addr, partition_topic)
           },
           compression~,
+          schema?,
         ),
       ),
     )
@@ -185,6 +186,7 @@ pub async fn Client::create_consumer(
           reconnect_with=async fn() {
             lookup_topic(manager, addr, partition_topic)
           },
+          schema?,
         ),
       ),
     )

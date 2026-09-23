@@ -308,6 +308,10 @@ pub async fn SingleProducer::send_async(
   if self.closed {
     raise ProducerClosed
   }
+  if msg.deliver_at is Some(_) || msg.deliver_after is Some(_) {
+    self.flush()
+    return { reply: self.send_messages([msg]), }
+  }
   if self.batching is Some(_) {
     return self.enqueue_batch(msg)
   }

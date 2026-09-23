@@ -401,9 +401,20 @@ pub async fn SingleConsumer::receive(self : SingleConsumer) -> Message {
 ///|
 /// Non-blocking receive: returns `None` if no message is buffered.
 pub fn SingleConsumer::try_receive(self : SingleConsumer) -> Message? raise {
-  self.messages.try_get() catch {
-    _ => raise ConsumerClosed
+  let message = self.messages.try_get() catch { _ => raise ConsumerClosed }
+  if message is Some(_) {
+    self.available_permits -= 1
+    if self.available_permits <= self.receiver_permits / 2 {
+      let refill = self.receiver_permits - self.available_permits
+      self.available_permits += refill
+      self.group.spawn_bg(
+        async fn() { self.send_flow(refill) catch { _ => () } },
+        no_wait=true,
+        allow_failure=true,
+      )
+    }
   }
+  message
 }
 
 ///|
