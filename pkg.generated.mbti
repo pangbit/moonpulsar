@@ -76,10 +76,12 @@ pub async fn Admin::create_topic(Self, String) -> Unit
 pub async fn Admin::delete_partitioned_topic(Self, String, force? : Bool) -> Unit
 pub async fn Admin::delete_subscription(Self, String, String, force? : Bool) -> Unit
 pub async fn Admin::delete_topic(Self, String, force? : Bool) -> Unit
+pub async fn Admin::list_partitioned_topics(Self, String, String, domain? : String) -> Array[String]
 pub async fn Admin::list_subscriptions(Self, String) -> Array[String]
 pub async fn Admin::list_topics(Self, String, String, domain? : String) -> Array[String]
 pub fn Admin::new(String, token? : String) -> Self
 pub async fn Admin::partition_count(Self, String) -> Int
+pub async fn Admin::partitioned_topic_stats(Self, String, per_partition? : Bool) -> Json
 pub async fn Admin::topic_stats(Self, String) -> Json
 pub async fn Admin::update_partitioned_topic(Self, String, Int) -> Unit
 

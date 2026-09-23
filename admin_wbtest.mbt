@@ -99,6 +99,51 @@ async test "list non-persistent topics selects the correct domain" {
 }
 
 ///|
+async test "list partitioned topics uses partitioned namespace endpoint" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(request, _payload) {
+        assert_eq(
+          request.path,
+          "/admin/v2/persistent/public/default/partitioned",
+        )
+        (200, "[\"persistent://public/default/pt\"]")
+      },
+      async fn(url) {
+        assert_eq(
+          Admin::new(url).list_partitioned_topics("public", "default"),
+          ["persistent://public/default/pt"],
+        )
+      },
+    )
+  })
+}
+
+///|
+async test "partitioned topic stats request per partition detail" {
+  @async.with_task_group(async fn(group) {
+    with_mock_admin(
+      group,
+      async fn(request, _payload) {
+        assert_eq(
+          request.path,
+          "/admin/v2/persistent/public/default/pt/partitioned-stats?perPartition=true",
+        )
+        (200, "{\"metadata\":{\"partitions\":2},\"partitions\":{}}")
+      },
+      async fn(url) {
+        let stats = Admin::new(url).partitioned_topic_stats(
+          "persistent://public/default/pt",
+          per_partition=true,
+        )
+        assert_true(stats is Object(_))
+      },
+    )
+  })
+}
+
+///|
 async test "admin error surfaces status code and body" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(

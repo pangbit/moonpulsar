@@ -175,20 +175,7 @@ pub async fn Admin::delete_topic(
 }
 
 ///|
-/// List topics of a namespace.
-pub async fn Admin::list_topics(
-  self : Admin,
-  tenant : String,
-  namespace : String,
-  domain? : String = "persistent",
-) -> Array[String] {
-  guard domain == "persistent" || domain == "non-persistent" else {
-    raise LookupFailed("invalid topic domain: \{domain}")
-  }
-  let (_, payload) = self.request(
-    Get,
-    "/admin/v2/\{domain}/\{tenant}/\{namespace}",
-  )
+fn admin_string_array(payload : Bytes) -> Array[String] raise PulsarError {
   let text = @utf8.decode(payload) catch {
     _ => raise InvalidFrame("admin: response is not UTF-8")
   }
@@ -209,10 +196,68 @@ pub async fn Admin::list_topics(
 }
 
 ///|
+/// List topics of a namespace.
+pub async fn Admin::list_topics(
+  self : Admin,
+  tenant : String,
+  namespace : String,
+  domain? : String = "persistent",
+) -> Array[String] {
+  guard domain == "persistent" || domain == "non-persistent" else {
+    raise LookupFailed("invalid topic domain: \{domain}")
+  }
+  let (_, payload) = self.request(
+    Get,
+    "/admin/v2/\{domain}/\{tenant}/\{namespace}",
+  )
+  admin_string_array(payload)
+}
+
+///|
+/// List partitioned topics of a namespace.
+pub async fn Admin::list_partitioned_topics(
+  self : Admin,
+  tenant : String,
+  namespace : String,
+  domain? : String = "persistent",
+) -> Array[String] {
+  guard domain == "persistent" || domain == "non-persistent" else {
+    raise LookupFailed("invalid topic domain: \{domain}")
+  }
+  let (_, payload) = self.request(
+    Get,
+    "/admin/v2/\{domain}/\{tenant}/\{namespace}/partitioned",
+  )
+  admin_string_array(payload)
+}
+
+///|
 /// Topic statistics as raw JSON (see Pulsar's TopicStats schema).
 pub async fn Admin::topic_stats(self : Admin, topic : String) -> Json {
   let name = TopicName::parse(topic)
   let (_, payload) = self.request(Get, topic_path(name) + "/stats")
+  let text = @utf8.decode(payload) catch {
+    _ => raise InvalidFrame("admin: response is not UTF-8")
+  }
+  @json.parse(text) catch {
+    _ => raise InvalidFrame("admin: invalid JSON response")
+  }
+}
+
+///|
+/// Partitioned topic statistics as raw JSON. Include per-partition detail
+/// when `per_partition` is true.
+pub async fn Admin::partitioned_topic_stats(
+  self : Admin,
+  topic : String,
+  per_partition? : Bool = false,
+) -> Json {
+  let name = TopicName::parse(topic)
+  let detail = if per_partition { "true" } else { "false" }
+  let (_, payload) = self.request(
+    Get,
+    topic_path(name) + "/partitioned-stats?perPartition=" + detail,
+  )
   let text = @utf8.decode(payload) catch {
     _ => raise InvalidFrame("admin: response is not UTF-8")
   }

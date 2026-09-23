@@ -23,12 +23,12 @@ repository on 2026-09-23.
 | Chunk reassembly and ACK | Implemented with bounded memory | Mock wire tests and live consumer/reader replay |
 | Reader, seek, replay, and added-partition discovery | Implemented for initially partitioned topics | Mock one-to-two expansion, bounded slow-reader forwarding, and disconnect wakeup; live two-to-three expansion |
 | Transaction coordinator lookup and transaction lifecycle | Implemented | Mock tests and live coordinator/abort; prior live commit/read-back |
-| Admin topic and subscription operations | Selected endpoints implemented | Mock HTTP tests and live create/expand/query/delete |
+| Admin topic and subscription operations | Selected endpoints implemented, including partitioned-topic list and stats | Mock HTTP tests and live create/expand/query/stats/delete |
 | Schema declaration | Implemented | Existing mock/live schema scenario; typed serialization is open |
 | Dead-letter policy | Implemented for consumer delivery and negative ack; producer created when the consumer is created | Mock publish-before-ACK, send-failure NACK, direct consumer NACK, composite non-blocking receive, and live broker explicit-NACK routing (including a broker that reports redelivery count zero) |
 | Retry-letter topic policy | Implemented through explicit `create_retry_consumer` and `reconsume_later` for a source topic; standard multi-topic/pattern constructors do not auto-add retry topics | Mock retry then DLQ publish-before-ACK, send-failure NACK; live Shared subscription delayed retry and DLQ escalation |
 | TableView (raw payload values) | Implemented | Mock initial replay/live updates/empty topic/query failure; live broker update, tombstone, and added partition |
-| Conversion of existing non-partitioned handles | Open | No implementation or coverage |
+| In-place conversion of a non-partitioned topic to a partitioned topic | Broker does not support this on the tested Pulsar 4.2.4 instance | An isolated Admin REST probe returned HTTP 409 (`This topic already exists`); existing clients can discover added partitions of an already partitioned topic |
 | OAuth2, Athenz, TLS client-certificate authentication | Open | No implementation or coverage; the current `moonbitlang/async/tls` client API does not expose a client certificate |
 | Encryption, interceptors, tracing, metrics | Open | No implementation or coverage |
 | Full Admin REST surface | Open | Only listed topic/subscription endpoints are implemented |

@@ -316,6 +316,11 @@ async fn main {
         .contains(volatile_topic),
       )
       admin.create_partitioned_topic(partitioned_topic, 2)
+      assert_true(
+        admin
+        .list_partitioned_topics("public", "default")
+        .contains(partitioned_topic),
+      )
       let empty_table = @async.with_timeout(10000, async fn() {
         client.create_table_view(table_topic)
       })
@@ -411,6 +416,10 @@ async fn main {
       })
       assert_eq(read_expanded.topic(), "\{partitioned_topic}-partition-2")
       assert_eq(read_expanded.payload(), b"expanded")
+      assert_true(
+        admin.partitioned_topic_stats(partitioned_topic, per_partition=true)
+        is Object(_),
+      )
       scaling_table.close()
       scaling_reader.close()
       scaling_consumer.close()
