@@ -28,7 +28,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 - Partitioned topics: configurable key hash (default), round-robin, fixed single-partition, or custom callback routing; producers expose the last confirmed sequence ID; consumers aggregate all partitions and both producers and consumers discover added partitions (60-second default polling interval)
 - Optional explicit or broker-limit-driven automatic producer chunking and consumer/reader chunk reassembly, including compressed payloads; `ChunkAssemblyPolicy` limits pending assemblies and expires incomplete chunks even when no further messages arrive
 - Reader API: non-durable replay from any message id with optional inclusive start/seek, `seek`, `has_message_available`, last-message ID, custom name/properties/subscription, aggregation and added-partition discovery
-- TableView: raw-byte key/value snapshot from a compacted reader, live updates, tombstone deletion, and change listeners
+- TableView: raw-byte or schema-decoded key/value snapshot from a compacted reader, live updates, tombstone deletion, and change listeners; typed listeners receive decode failures as `Err`
 - Transactions: coordinator ownership lookup, `new_transaction` / `commit` / `abort`, transactional send and ack
 - Admin REST API: topic create/delete and properties, partitioned topic create/expand/delete and metadata, list topics and partitioned topics, create/list/delete subscriptions, skip or expire subscription backlog, topic and partitioned-topic stats
 - Schema declaration: producers/consumers declare `SchemaInfo` (String/JSON/Avro/Protobuf/raw) on creation; `SchemaCodec[T]` encodes and decodes STRING, JSON, BYTES and numeric primitive payloads or uses custom callbacks
@@ -56,7 +56,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - automatic reconnection across a broker restart (producer replay + consumer re-subscribe)
 - token-authenticated multi-topic and pattern consumption, ack timeout, delayed nack redelivery, consumer seek, chunked produce/consume/reader replay, and coordinator lookup
 - partition expansion from two to three partitions while the producer, consumer, and reader remain open
-- TableView initial replay, live update, tombstone deletion, and added-partition discovery
+- Raw and typed TableView initial replay, live update, tombstone deletion, and added-partition discovery
 - token-authenticated Admin REST topic/subscription operations and partition expansion
 - Admin subscription creation at Earliest, skip-one/skip-all cursor behavior, and timed backlog expiration
 - Admin topic property update, read, and removal

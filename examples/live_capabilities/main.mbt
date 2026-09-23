@@ -232,6 +232,33 @@ async fn main {
     )
     latest_inclusive_reader.close()
     reader_position_producer.close()
+    let typed_view_topic = "persistent://public/default/\{prefix}-typed-view"
+    let table_codec = @pulsar.SchemaCodec::int32()
+    let typed_view_producer = client.create_producer(
+      typed_view_topic,
+      schema=table_codec.info(),
+    )
+    ignore(
+      typed_view_producer.send(
+        @pulsar.ProducerMessage::new(table_codec.encode(11), key="typed-key"),
+      ),
+    )
+    let typed_view = @async.with_timeout(10000, async fn() {
+      client.create_typed_table_view(typed_view_topic, table_codec)
+    })
+    assert_eq(typed_view.get("typed-key"), Some(11))
+    ignore(
+      typed_view_producer.send(
+        @pulsar.ProducerMessage::new(table_codec.encode(12), key="typed-key"),
+      ),
+    )
+    @async.with_timeout(10000, async fn() {
+      while typed_view.get("typed-key") != Some(12) {
+        @async.sleep(20)
+      }
+    })
+    typed_view.close()
+    typed_view_producer.close()
     let coord = client.transaction_coordinator(0UL)
     let txn = coord.new_transaction()
     txn.abort()
@@ -707,6 +734,7 @@ async fn main {
       for
         topic in [
           topic_a, topic_b, topic_c, topic_d, topic_e, auto_chunk_topic, reader_position_topic,
+          typed_view_topic,
         ] {
         admin.delete_topic(topic, force=true)
       }

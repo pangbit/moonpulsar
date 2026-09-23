@@ -33,6 +33,7 @@ pub struct SingleReader {
   priv conn_ref : Ref[Connection]
   priv receiver_permits : Int
   priv read_compacted : Bool
+  priv schema : SchemaInfo?
   priv include_start_message_id : Bool
   priv start_bound : Ref[MessageId?]
   priv mut available_permits : Int
@@ -61,6 +62,7 @@ pub async fn SingleReader::create(
   subscription_name? : String,
   subscription_role_prefix? : String = "reader",
   chunk_policy? : ChunkAssemblyPolicy,
+  schema? : SchemaInfo,
 ) -> SingleReader {
   guard subscription_name != Some("") && subscription_role_prefix != "" else {
     raise InvalidFrame("reader subscription name or prefix must not be empty")
@@ -88,6 +90,7 @@ pub async fn SingleReader::create(
     conn_ref: { val: conn, },
     receiver_permits: receiver_queue_size,
     read_compacted,
+    schema,
     include_start_message_id,
     start_bound: { val: reader_start_bound(start_message_id), },
     available_permits: 0,
@@ -229,6 +232,9 @@ fn SingleReader::subscribe_command(
       ()
   }
   subscribe.read_compacted = Some(self.read_compacted)
+  if self.schema is Some(schema) {
+    subscribe.schema = Some(schema.to_proto())
+  }
   subscribe.initial_position = Some(
     match start_message_id {
       Some(id) =>

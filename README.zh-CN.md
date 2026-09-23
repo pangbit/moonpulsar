@@ -25,7 +25,7 @@
 - 分区 Topic：可选 key 哈希（默认）、轮询、固定单分区或自定义回调路由；生产者可读取最后确认的序列号；消费者聚合全部分区，生产者和消费者可发现新增分区（默认每 60 秒轮询）
 - 可选的生产者分块和消费者/Reader 分块重组，包括压缩负载；`ChunkAssemblyPolicy` 可限制待组装消息数，并在没有新消息时清理过期分块
 - Reader：从指定消息 ID 开始的非持久回放（可选择包含起点）、seek、`has_message_available`、最后消息 ID、自定义名称/属性/订阅、分区聚合和新增分区发现
-- TableView：从压缩后的 Reader 获取原始字节键值快照、实时更新、墓碑删除和变更监听器
+- TableView：从压缩后的 Reader 获取原始字节或 Schema 解码的键值快照、实时更新、墓碑删除和变更监听器；类型化监听器以 `Err` 报告解码失败
 - 事务：协调器归属查找、`new_transaction` / `commit` / `abort`、事务性发送与 ACK
 - Admin REST API：创建/删除 Topic、创建/扩容/删除分区 Topic、查询分区元数据、列出 Topic 与订阅、删除订阅、查询 Topic 及分区 Topic 统计信息
 - Schema 声明：生产者/消费者创建时声明 `SchemaInfo`（String/JSON/Avro/Protobuf/raw）；`SchemaCodec[T]` 已支持 STRING、JSON、BYTES 和数值原始类型转换
@@ -53,7 +53,7 @@
 - broker 重启后的自动重连（生产者重放和消费者重新订阅）
 - token 认证下的多 Topic/模式消费、ACK 超时、延迟 NACK 重投、消费者 seek、分块生产/消费/Reader 回放与协调器查找
 - 客户端持续运行时，将分区从两个扩容到三个，生产者、消费者和 Reader 均能发现新增分区
-- TableView 初始回放、实时更新、墓碑删除和新增分区发现
+- 原始字节及类型化 TableView 的初始回放、实时更新、墓碑删除和新增分区发现
 - token 认证下的 Admin REST Topic/订阅操作和分区扩容
 - 独占生产者拒绝竞争者；原生产者关闭后，等待独占的生产者进入就绪状态
 - 显式 NACK 后的死信路由、发布成功后确认源消息，以及消息元数据保留

@@ -120,6 +120,220 @@ async test "table view replays keys and follows updates and tombstones" {
 }
 
 ///|
+async test "typed table view decodes values and reports malformed live updates" {
+  @async.with_task_group(async fn(group) {
+    let topic = "persistent://public/default/typed-table"
+    let codec = SchemaCodec::int32()
+    let checked : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    let proceed : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    let addr = start_partitioned_broker(group, 0, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.subscribe is Some(sub) else {
+        fail("expected typed reader SUBSCRIBE")
+      }
+      checked.put(
+        sub.schema is Some(schema) && schema.type_ == @proto.Schema_Type::Int32,
+      )
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = sub.request_id
+      reply.success = Some(success)
+      peer.send_command(reply)
+      assert_true(peer.next().cmd.flow is Some(_))
+      let initial = test_metadata()
+      initial.partition_key = Some("key")
+      let (cmd, meta, body) = message_frame(
+        sub.consumer_id,
+        1,
+        1,
+        codec.encode(7),
+        initial,
+      )
+      peer.send_message(cmd, meta, body)
+      let end = @proto.BaseCommand::default()
+      end.type_ = @proto.BaseCommand_Type::REACHED_END_OF_TOPIC
+      let reached = @proto.CommandReachedEndOfTopic::default()
+      reached.consumer_id = sub.consumer_id
+      end.reached_end_of_topic = Some(reached)
+      peer.send_command(end)
+      let mut ready = false
+      while !ready {
+        if (proceed.try_get() catch { _ => None }) is Some(_) {
+          ready = true
+        } else {
+          match (peer.received.try_get() catch { _ => None }) {
+            Some(frame) =>
+              if frame.cmd.get_last_message_id is Some(req) {
+                let reply = @proto.BaseCommand::default()
+                reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
+                let response = @proto.CommandGetLastMessageIdResponse::default()
+                response.request_id = req.request_id
+                let id = @proto.MessageIdData::default()
+                id.ledger_id = 1
+                id.entry_id = 1
+                response.last_message_id = id
+                reply.get_last_message_id_response = Some(response)
+                peer.send_command(reply)
+              }
+            None => @async.sleep(1)
+          }
+        }
+      }
+      for index, value in [codec.encode(8), b"bad", b""] {
+        let metadata = test_metadata()
+        metadata.partition_key = Some("key")
+        let (cmd, meta, body) = message_frame(
+          sub.consumer_id,
+          1,
+          (index + 2).to_uint64(),
+          value,
+          metadata,
+        )
+        peer.send_message(cmd, meta, body)
+      }
+    })
+    let client = Client::connect(group, "pulsar://\{addr}")
+    let view = @async.with_timeout(3000, async fn() {
+      client.create_typed_table_view(topic, codec)
+    })
+    assert_true(checked.get())
+    assert_eq(view.get("key"), Some(7))
+    assert_eq(view.entries().get("key"), Some(7))
+    let updates : @aqueue.Queue[Result[Int?, PulsarError]] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
+    view.for_each_and_listen(fn(_key, value) {
+      ignore(updates.try_put(value) catch { _ => false })
+    })
+    assert_true(updates.get() is Ok(Some(7)))
+    proceed.put(true)
+    assert_true(
+      @async.with_timeout(3000, async fn() { updates.get() }) is Ok(Some(8)),
+    )
+    assert_true(
+      @async.with_timeout(3000, async fn() { updates.get() })
+      is Err(InvalidFrame(_)),
+    )
+    assert_true(
+      @async.with_timeout(3000, async fn() { updates.get() }) is Ok(None),
+    )
+    assert_true(!view.contains_key("key"))
+    view.close()
+    client.close()
+  })
+}
+
+///|
+async test "typed table view reports broker schema incompatibility" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_partitioned_broker(group, 0, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.subscribe is Some(sub) && sub.schema is Some(_) else {
+        fail("expected typed SUBSCRIBE")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::ERROR
+      let error = @proto.CommandError::default()
+      error.request_id = sub.request_id
+      error.error = @proto.ServerError::IncompatibleSchema
+      error.message = "incompatible table schema"
+      reply.error = Some(error)
+      peer.send_command(reply)
+    })
+    let client = Client::connect(group, "pulsar://\{addr}")
+    let result : Result[TypedTableView[Int], Error] = Ok(
+      client.create_typed_table_view(
+        "persistent://public/default/incompatible-table",
+        SchemaCodec::int32(),
+      ),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      result is Err(ServerError(message="incompatible table schema", ..)),
+    )
+    client.close()
+  })
+}
+
+///|
+async test "typed table view rejects a malformed initial snapshot" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_partitioned_broker(group, 0, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.subscribe is Some(sub) else {
+        fail("expected typed SUBSCRIBE")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = sub.request_id
+      reply.success = Some(success)
+      peer.send_command(reply)
+      assert_true(peer.next().cmd.flow is Some(_))
+      let metadata = test_metadata()
+      metadata.partition_key = Some("bad")
+      let (cmd, meta, body) = message_frame(
+        sub.consumer_id,
+        1,
+        1,
+        b"bad",
+        metadata,
+      )
+      peer.send_message(cmd, meta, body)
+      let end = @proto.BaseCommand::default()
+      end.type_ = @proto.BaseCommand_Type::REACHED_END_OF_TOPIC
+      let reached = @proto.CommandReachedEndOfTopic::default()
+      reached.consumer_id = sub.consumer_id
+      end.reached_end_of_topic = Some(reached)
+      peer.send_command(end)
+      let mut closed = false
+      while !closed {
+        let frame = peer.next()
+        if frame.cmd.get_last_message_id is Some(req) {
+          let reply = @proto.BaseCommand::default()
+          reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
+          let response = @proto.CommandGetLastMessageIdResponse::default()
+          response.request_id = req.request_id
+          let id = @proto.MessageIdData::default()
+          id.ledger_id = 1
+          id.entry_id = 1
+          response.last_message_id = id
+          reply.get_last_message_id_response = Some(response)
+          peer.send_command(reply)
+        } else if frame.cmd.close_consumer is Some(req) {
+          let reply = @proto.BaseCommand::default()
+          reply.type_ = @proto.BaseCommand_Type::SUCCESS
+          let success = @proto.CommandSuccess::default()
+          success.request_id = req.request_id
+          reply.success = Some(success)
+          peer.send_command(reply)
+          closed = true
+        }
+      }
+    })
+    let client = Client::connect(group, "pulsar://\{addr}")
+    let result : Result[TypedTableView[Int], Error] = Ok(
+      @async.with_timeout(3000, async fn() {
+        client.create_typed_table_view(
+          "persistent://public/default/malformed-table",
+          SchemaCodec::int32(),
+        )
+      }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(InvalidFrame(_)))
+    client.close()
+  })
+}
+
+///|
 async test "table view of an empty topic is ready without an end event" {
   @async.with_task_group(async fn(group) {
     let topic = "persistent://public/default/empty-table-view"

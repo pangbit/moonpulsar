@@ -579,6 +579,7 @@ pub async fn Client::create_reader(
   subscription_name? : String,
   subscription_role_prefix? : String = "reader",
   chunk_policy? : ChunkAssemblyPolicy,
+  schema? : SchemaInfo,
 ) -> Reader {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -602,6 +603,7 @@ pub async fn Client::create_reader(
         subscription_name?,
         subscription_role_prefix~,
         chunk_policy?,
+        schema?,
       ),
     )
   }
@@ -621,6 +623,7 @@ pub async fn Client::create_reader(
       subscription_name?,
       subscription_role_prefix~,
       chunk_policy?,
+      schema?,
     )
   }
   let subs : Array[SingleReader] = []
@@ -672,12 +675,14 @@ pub async fn Client::create_table_view(
   self : Client,
   topic : String,
   partition_refresh_ms? : Int = 60000,
+  schema? : SchemaInfo,
 ) -> TableView {
   let reader = self.create_reader(
     topic,
     start_message_id=MessageId::earliest(),
     read_compacted=true,
     partition_refresh_ms~,
+    schema?,
   )
   TableView::create(self.manager.group, reader) catch {
     e => {
@@ -687,6 +692,34 @@ pub async fn Client::create_table_view(
       raise e
     }
   }
+}
+
+///|
+/// Create a typed view after the broker accepts the declared schema and
+/// every entry in the initial snapshot decodes successfully.
+pub async fn[T] Client::create_typed_table_view(
+  self : Client,
+  topic : String,
+  codec : SchemaCodec[T],
+  partition_refresh_ms? : Int = 60000,
+) -> TypedTableView[T] {
+  let raw = self.create_table_view(
+    topic,
+    partition_refresh_ms~,
+    schema=codec.info(),
+  )
+  let typed = TypedTableView::wrap(raw, codec)
+  ignore(
+    typed.entries() catch {
+      e => {
+        raw.close() catch {
+          _ => ()
+        }
+        raise e
+      }
+    },
+  )
+  typed
 }
 
 ///|
