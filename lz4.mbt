@@ -34,8 +34,8 @@ fn write_len(out : @buffer.Buffer, len : Int) -> Unit {
 }
 
 ///|
-/// Compress one LZ4 block (raw block format, no frame header).
-fn lz4_compress_block(data : BytesView) -> Bytes {
+/// Compress raw LZ4 block format (the wire format Pulsar brokers exchange).
+pub fn lz4_compress_block(data : BytesView) -> Bytes {
   let len = data.length()
   let out = @buffer.Buffer()
   if len == 0 {
@@ -52,9 +52,14 @@ fn lz4_compress_block(data : BytesView) -> Bytes {
     if candidate >= 0 &&
       pos - candidate <= 65535 &&
       read_le32(data, candidate) == seq {
-      // extend the match
+      // LZ4 requires every block to end with a literal run (LASTLITERALS);
+      // never start a match that would reach into the last 5 bytes
+      let max_len = len - 5 - pos
+      if max_len < 4 {
+        break
+      }
       let mut match_len = 4
-      while pos + match_len < len &&
+      while match_len < max_len &&
             data[candidate + match_len] == data[pos + match_len] {
         match_len += 1
       }
@@ -95,6 +100,20 @@ fn lz4_compress_block(data : BytesView) -> Bytes {
     out.write_byte(data[i])
   }
   out.to_bytes()
+}
+
+///|
+/// Decompress a raw LZ4 block to exactly `size` bytes.
+pub fn lz4_decompress_block_to(
+  data : BytesView,
+  size : Int,
+) -> Bytes raise PulsarError {
+  let out : Array[Byte] = []
+  lz4_decompress_block(data, out, size)
+  if out.length() != size {
+    raise InvalidFrame("lz4: decompressed size mismatch")
+  }
+  Bytes::from_array(out)
 }
 
 ///|

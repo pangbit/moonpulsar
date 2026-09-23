@@ -28,3 +28,22 @@ pub(all) suberror PulsarError {
   /// Authentication failed.
   AuthenticationFailed(String)
 } derive(Debug)
+
+///|
+pub impl Show for PulsarError with fn output(self, logger) {
+  let text = match self {
+    ConnectionClosed => "connection closed"
+    ConnectFailed(addr) => "connect failed: \{addr}"
+    ServerError(code~, message~) => "broker error \{code}: \{message}"
+    UnexpectedResponse(what) => "unexpected response: \{what}"
+    LookupFailed(msg) => "lookup failed: \{msg}"
+    TooManyRedirects => "too many lookup redirects"
+    ProducerClosed => "producer closed"
+    ConsumerClosed => "consumer closed"
+    ChecksumMismatch => "message checksum mismatch"
+    InvalidFrame(msg) => "invalid frame: \{msg}"
+    RequestTimeout => "request timeout"
+    AuthenticationFailed(msg) => "authentication failed: \{msg}"
+  }
+  logger.write_string(text)
+}

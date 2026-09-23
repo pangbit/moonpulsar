@@ -1,14 +1,20 @@
-// Shared subscription: two consumers on the same subscription split the
-// message stream. Requires a Pulsar broker at pulsar://127.0.0.1:6650.
+// Broker URL from PULSAR_URL, defaulting to a local standalone.
+///|
+fn service_url() -> String {
+  @env.get_env_var("PULSAR_URL").unwrap_or("pulsar://127.0.0.1:6650")
+}
 
 ///|
 async fn consume_loop(
   name : String,
   consumer : @pulsar.Consumer,
-  count : Int,
+  budget : Ref[Int],
 ) -> Unit {
-  for _ in 0..<count {
-    let message = consumer.receive()
+  // workers race for the remaining budget; whichever the broker's shared
+  // dispatcher picks drains the queue
+  while budget.val > 0 {
+    let message = @async.with_timeout(10000, async fn() { consumer.receive() })
+    budget.val -= 1
     let body = @utf8.decode(message.payload()) catch { _ => "<binary>" }
     println("\{name} received: \{body}")
     message.ack()
@@ -18,7 +24,7 @@ async fn consume_loop(
 ///|
 async fn main {
   @async.with_task_group(async fn(group) {
-    let client = @pulsar.Client::connect(group, "pulsar://127.0.0.1:6650")
+    let client = @pulsar.Client::connect(group, service_url())
     let c1 = client.create_consumer(
       "persistent://public/default/moonpulsar-producer",
       "shared-subscription",
@@ -33,11 +39,13 @@ async fn main {
       consumer_name="worker-2",
       initial_position=Earliest,
     )
-    // both workers race on the same subscription; the broker balances them
-    let t1 = group.spawn(async fn() { consume_loop("worker-1", c1, 5) })
-    let t2 = group.spawn(async fn() { consume_loop("worker-2", c2, 5) })
+    // 10 messages total, split between the two workers
+    let budget : Ref[Int] = { val: 10, }
+    let t1 = group.spawn(async fn() { consume_loop("worker-1", c1, budget) })
+    let t2 = group.spawn(async fn() { consume_loop("worker-2", c2, budget) })
     t1.wait()
     t2.wait()
+    println("shared subscription drained")
     c1.close()
     c2.close()
     client.close()

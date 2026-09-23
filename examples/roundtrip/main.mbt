@@ -1,10 +1,16 @@
+// Broker URL from PULSAR_URL, defaulting to a local standalone.
+///|
+fn service_url() -> String {
+  @env.get_env_var("PULSAR_URL").unwrap_or("pulsar://127.0.0.1:6650")
+}
+
 // End-to-end roundtrip: produce a batch of messages, then consume and
 // verify them. Requires a Pulsar broker at pulsar://127.0.0.1:6650.
 
 ///|
 async fn main {
   @async.with_task_group(async fn(group) {
-    let client = @pulsar.Client::connect(group, "pulsar://127.0.0.1:6650")
+    let client = @pulsar.Client::connect(group, service_url())
     let topic = "persistent://public/default/moonpulsar-roundtrip"
     let producer = client.create_producer(topic)
     let consumer = client.create_consumer(

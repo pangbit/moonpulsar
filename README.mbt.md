@@ -17,7 +17,22 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 - Transactions: coordinator channel, `new_transaction` / `commit` / `abort`, transactional send and ack
 - Admin REST API: partitioned topic create/delete, topic delete, list topics, topic stats
 
-Not yet: Snappy compression uses the google framing variant (matching the Go/Python clients); transaction coordinator ownership lookup.
+Not yet / known gaps:
+
+- Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
+- Transaction coordinator ownership lookup (connect directly to the owning broker for now)
+- `pulsar+ssl://` is implemented via `moonbitlang/async/tls` but has not been exercised against a TLS-enabled broker
+
+## Verified against a real broker
+
+The examples and integration scenarios have been exercised against Pulsar standalone 4.2:
+
+- produce / consume roundtrip, sync + async send, batching (broker-side `batch_index` echoed correctly)
+- nack redelivery, shared subscriptions, reader replay
+- LZ4 / Zlib / Zstd / Snappy payloads consumed back by official clients (Snappy: google framing)
+- partitioned topics (admin-created, key routing, merged consumption)
+- transactions: TC channel, transactional produce, commit, read-back
+- automatic reconnection across a broker restart (producer replay + consumer re-subscribe)
 
 ## Requirements
 

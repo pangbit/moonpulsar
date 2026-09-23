@@ -1,10 +1,16 @@
 # Local Pulsar standalone broker for manual integration testing:
 #   docker compose -f scripts/docker-compose.yml up -d
 #   moon run examples/roundtrip --target native
+#
+# The webServicePort and advertisedAddress overrides mirror what a
+# real deployment needs when the default 8080 is taken or clients
+# connect from another host.
 services:
   pulsar:
     image: apachepulsar/pulsar:latest
-    command: bin/pulsar standalone
+    command: bin/pulsar standalone -a 127.0.0.1
     ports:
       - "6650:6650"
       - "8080:8080"
+    environment:
+      PULSAR_PREFIX_transactionCoordinatorEnabled: "true"

@@ -1,3 +1,9 @@
+// Broker URL from PULSAR_URL, defaulting to a local standalone.
+///|
+fn service_url() -> String {
+  @env.get_env_var("PULSAR_URL").unwrap_or("pulsar://127.0.0.1:6650")
+}
+
 // Exclusive consumer: receive messages and acknowledge each one.
 // Requires a Pulsar broker at pulsar://127.0.0.1:6650.
 // Produce some messages first, e.g. with the `producer` example.
@@ -5,7 +11,7 @@
 ///|
 async fn main {
   @async.with_task_group(async fn(group) {
-    let client = @pulsar.Client::connect(group, "pulsar://127.0.0.1:6650")
+    let client = @pulsar.Client::connect(group, service_url())
     let consumer = client.create_consumer(
       "persistent://public/default/moonpulsar-producer",
       "example-subscription",

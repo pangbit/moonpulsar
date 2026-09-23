@@ -126,7 +126,9 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
     return { cmd, metadata: None, payload: None, }
   }
   let mut offset = 0
-  // Optional broker entry metadata, protected by a CRC32-C checksum.
+  // Payload frames carry a CRC32-C checksum guarded by a magic number.
+  // Broker entry metadata only appears when the client advertises
+  // `supports_broker_entry_metadata` in CONNECT, which we never do.
   if rest.length() >= 2 &&
     rest[0].to_int() == BROKER_ENTRY_METADATA_MAGIC >> 8 &&
     rest[1].to_int() == (BROKER_ENTRY_METADATA_MAGIC & 0xff) {
@@ -134,11 +136,7 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
     if crc32c(rest[6:]) != checksum {
       raise ChecksumMismatch
     }
-    let broker_meta_size = read_be32(rest, 6).reinterpret_as_int()
-    offset = 10 + broker_meta_size
-    if offset > rest.length() {
-      raise InvalidFrame("broker entry metadata exceeds frame length")
-    }
+    offset = 6
   }
   let metadata_size = read_be32(rest, offset).reinterpret_as_int()
   if offset + 4 + metadata_size > rest.length() {

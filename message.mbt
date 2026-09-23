@@ -192,6 +192,18 @@ pub async fn Message::ack(self : Message) -> Unit {
 }
 
 ///|
+/// Acknowledge this message as part of a transaction.
+pub async fn Message::ack_txn(self : Message, txn : Transaction) -> Unit {
+  send_ack(
+    self.conn_ref.val,
+    self.consumer_id,
+    @proto.CommandAck_AckType::Individual,
+    [self.id],
+    txn~,
+  )
+}
+
+///|
 /// Negatively acknowledge this message, triggering redelivery.
 pub async fn Message::nack(self : Message) -> Unit {
   send_redeliver(self.conn_ref.val, self.consumer_id, [self.id])
@@ -203,6 +215,7 @@ async fn send_ack(
   consumer_id : UInt64,
   ack_type : @proto.CommandAck_AckType,
   ids : Array[MessageId],
+  txn? : Transaction,
 ) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::ACK
@@ -210,6 +223,19 @@ async fn send_ack(
   ack.consumer_id = consumer_id
   ack.ack_type = ack_type
   ack.message_id = ids.map(fn(id) { id.to_proto() })
+  match txn {
+    Some(t) => {
+      let (most, least) = t.id()
+      ack.txnid_least_bits = Some(least)
+      ack.txnid_most_bits = Some(most)
+    }
+    None => {
+      // proto2 default 0 would make the broker treat the ack as
+      // transactional and reject it when transactions are disabled
+      ack.txnid_least_bits = None
+      ack.txnid_most_bits = None
+    }
+  }
   cmd.ack = Some(ack)
   conn.send_command(cmd)
 }

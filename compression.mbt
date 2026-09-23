@@ -44,7 +44,7 @@ pub fn compress(
 ) -> Bytes raise PulsarError {
   match codec {
     None => payload
-    Lz4 => lz4_compress(payload)
+    Lz4 => lz4_compress_block(payload)
     Zlib => @zlib.zlib_compress(payload)
     Zstd =>
       @zstd.compress(payload) catch {
@@ -59,10 +59,15 @@ pub fn compress(
 pub fn decompress(
   codec : CompressionCodec,
   payload : Bytes,
+  uncompressed_size? : Int,
 ) -> Bytes raise PulsarError {
   match codec {
     None => payload
-    Lz4 => lz4_decompress(payload)
+    Lz4 =>
+      match uncompressed_size {
+        Some(size) => lz4_decompress_block_to(payload, size)
+        None => raise InvalidFrame("lz4 payload without uncompressed_size")
+      }
     Zlib =>
       @zlib.zlib_decompress(payload) catch {
         e => raise InvalidFrame("zlib decompress failed")

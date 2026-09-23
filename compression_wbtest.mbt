@@ -97,3 +97,10 @@ test "snappy decodes cramjam reference frames" {
   }
   assert_eq(snappy_decompress(framed2), expected2.to_bytes())
 }
+
+///|
+test "lz4 raw block wire format roundtrip" {
+  let data = sample_data()
+  let compressed = compress(Lz4, data)
+  assert_eq(decompress(Lz4, compressed, uncompressed_size=data.length()), data)
+}

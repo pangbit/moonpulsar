@@ -59,9 +59,7 @@ async test "list topics parses JSON" {
       group,
       async fn(request, _payload) {
         assert_eq(request.meth, @http.RequestMethod::Get)
-        assert_true(
-          request.path.has_prefix("/admin/v2/persistent/public/default/topics"),
-        )
+        assert_true(request.path == "/admin/v2/persistent/public/default")
         (
           200, "[\"persistent://public/default/a\",\"persistent://public/default/b\"]",
         )

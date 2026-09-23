@@ -1,10 +1,16 @@
+// Broker URL from PULSAR_URL, defaulting to a local standalone.
+///|
+fn service_url() -> String {
+  @env.get_env_var("PULSAR_URL").unwrap_or("pulsar://127.0.0.1:6650")
+}
+
 // Negative acknowledgement: a nacked message is redelivered by the broker.
 // Requires a Pulsar broker at pulsar://127.0.0.1:6650.
 
 ///|
 async fn main {
   @async.with_task_group(async fn(group) {
-    let client = @pulsar.Client::connect(group, "pulsar://127.0.0.1:6650")
+    let client = @pulsar.Client::connect(group, service_url())
     let producer = client.create_producer(
       "persistent://public/default/moonpulsar-nack",
     )

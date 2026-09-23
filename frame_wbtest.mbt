@@ -58,7 +58,7 @@ test "send frame roundtrip with payload" {
 }
 
 ///|
-test "decode frame with broker entry metadata and checksum" {
+test "decode frame with magic and checksum (no broker entry metadata)" {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::MESSAGE
   let message = @proto.CommandMessage::default()
@@ -69,18 +69,11 @@ test "decode frame with broker entry metadata and checksum" {
   metadata.sequence_id = 1
   metadata.publish_time = 1
   let payload = b"data"
-  // build tail: broker meta size + broker meta + metadata size + metadata + payload
-  let broker_meta = @proto.BrokerEntryMetadata::default()
-  broker_meta.broker_timestamp = Some(99)
-  let broker_buf = @buffer.Buffer()
-  @lib.Write::write(broker_meta, broker_buf)
-  let broker_bytes = broker_buf.to_bytes()
+  // tail after the checksum: metadata size + metadata + payload
   let meta_buf = @buffer.Buffer()
   @lib.Write::write(metadata, meta_buf)
   let meta_bytes = meta_buf.to_bytes()
   let tail = @buffer.Buffer()
-  be32(tail, broker_bytes.length())
-  tail.write_bytes(broker_bytes)
   be32(tail, meta_bytes.length())
   tail.write_bytes(meta_bytes)
   tail.write_bytes(payload)

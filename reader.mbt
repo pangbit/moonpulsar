@@ -113,7 +113,14 @@ fn SingleReader::dispatch_message(
     raise InvalidFrame("MESSAGE without payload")
   }
   let payload = match metadata.compression {
-    Some(t) => decompress(CompressionCodec::from_proto(t), raw_payload)
+    Some(t) =>
+      decompress(
+        CompressionCodec::from_proto(t),
+        raw_payload,
+        uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt) {
+          u.reinterpret_as_int()
+        }),
+      )
     None => raw_payload
   }
   let redelivery_count = message.redelivery_count.unwrap_or(0)

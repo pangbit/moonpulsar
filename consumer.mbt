@@ -232,7 +232,14 @@ fn SingleConsumer::dispatch_message(
     raise InvalidFrame("MESSAGE without payload")
   }
   let payload = match metadata.compression {
-    Some(t) => decompress(CompressionCodec::from_proto(t), raw_payload)
+    Some(t) =>
+      decompress(
+        CompressionCodec::from_proto(t),
+        raw_payload,
+        uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt) {
+          u.reinterpret_as_int()
+        }),
+      )
     None => raw_payload
   }
   let redelivery_count = message.redelivery_count.unwrap_or(0)
@@ -419,6 +426,22 @@ pub async fn SingleConsumer::ack_cumulative(
 }
 
 ///|
+/// Acknowledge a message as part of a transaction.
+pub async fn SingleConsumer::ack_txn(
+  self : SingleConsumer,
+  txn : Transaction,
+  id : MessageId,
+) -> Unit {
+  send_ack(
+    self.conn_ref.val,
+    self.consumer_id,
+    @proto.CommandAck_AckType::Individual,
+    [id],
+    txn~,
+  )
+}
+
+///|
 /// Negatively acknowledge a message, triggering redelivery.
 pub async fn SingleConsumer::nack(
   self : SingleConsumer,
@@ -557,6 +580,22 @@ pub async fn Consumer::ack_cumulative(self : Consumer, id : MessageId) -> Unit {
     ConsumerImpl::Partitioned(_) =>
       raise InvalidFrame(
         "cumulative ack needs the message's own consumer; use message.ack()",
+      )
+  }
+}
+
+///|
+/// Acknowledge a message as part of a transaction.
+pub async fn Consumer::ack_txn(
+  self : Consumer,
+  txn : Transaction,
+  id : MessageId,
+) -> Unit {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.ack_txn(txn, id)
+    ConsumerImpl::Partitioned(_) =>
+      raise InvalidFrame(
+        "txn ack needs the message's own consumer; use message.ack_txn()",
       )
   }
 }

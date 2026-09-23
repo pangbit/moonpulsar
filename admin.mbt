@@ -53,6 +53,9 @@ async fn Admin::request(
   body? : Bytes,
 ) -> (Int, Bytes) {
   let headers = {}
+  if body is Some(_) {
+    headers[@http.CaseInsensitiveString("Content-Type")] = "application/json"
+  }
   if self.token is Some(t) {
     headers[@http.CaseInsensitiveString("Authorization")] = "Bearer " + t
   }
@@ -128,7 +131,7 @@ pub async fn Admin::list_topics(
 ) -> Array[String] {
   let (_, payload) = self.request(
     Get,
-    "/admin/v2/persistent/\{tenant}/\{namespace}/topics",
+    "/admin/v2/persistent/\{tenant}/\{namespace}",
   )
   let text = @utf8.decode(payload) catch {
     _ => raise InvalidFrame("admin: response is not UTF-8")

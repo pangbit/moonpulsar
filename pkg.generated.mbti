@@ -17,7 +17,7 @@ pub fn crc32c(BytesView) -> UInt
 
 pub fn decode_frame_body(Bytes) -> IncomingFrame raise PulsarError
 
-pub fn decompress(CompressionCodec, Bytes) -> Bytes raise PulsarError
+pub fn decompress(CompressionCodec, Bytes, uncompressed_size? : Int) -> Bytes raise PulsarError
 
 pub fn encode_command_frame(@proto.BaseCommand) -> Bytes raise
 
@@ -29,7 +29,11 @@ pub async fn lookup_topic(ConnectionManager, String, String, authoritative? : Bo
 
 pub fn lz4_compress(Bytes) -> Bytes
 
+pub fn lz4_compress_block(BytesView) -> Bytes
+
 pub fn lz4_decompress(Bytes) -> Bytes raise PulsarError
+
+pub fn lz4_decompress_block_to(BytesView, Int) -> Bytes raise PulsarError
 
 pub async fn[R : @io.Reader] read_frame(R) -> IncomingFrame
 
@@ -58,6 +62,7 @@ pub(all) suberror PulsarError {
   RequestTimeout
   AuthenticationFailed(String)
 } derive(@debug.Debug)
+pub impl Show for PulsarError
 
 // Types and methods
 pub struct Admin {
@@ -128,6 +133,7 @@ pub struct Consumer {
 }
 pub async fn Consumer::ack(Self, MessageId) -> Unit
 pub async fn Consumer::ack_cumulative(Self, MessageId) -> Unit
+pub async fn Consumer::ack_txn(Self, Transaction, MessageId) -> Unit
 pub async fn Consumer::close(Self) -> Unit
 pub fn Consumer::is_closed(Self) -> Bool
 pub async fn Consumer::nack(Self, MessageId) -> Unit
@@ -148,6 +154,7 @@ pub struct Message {
   // private fields
 }
 pub async fn Message::ack(Self) -> Unit
+pub async fn Message::ack_txn(Self, Transaction) -> Unit
 pub fn Message::event_time(Self) -> UInt64?
 pub fn Message::id(Self) -> MessageId
 pub fn Message::key(Self) -> String?
@@ -226,6 +233,7 @@ pub struct SingleConsumer {
 }
 pub async fn SingleConsumer::ack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::ack_cumulative(Self, MessageId) -> Unit
+pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId) -> Unit
 pub async fn SingleConsumer::close(Self) -> Unit
 pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, consumer_name? : String, initial_position? : SubscriptionInitialPosition, receiver_queue_size? : Int, reconnect_with? : async () -> Connection) -> Self
 pub fn SingleConsumer::is_closed(Self) -> Bool

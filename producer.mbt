@@ -337,12 +337,22 @@ async fn SingleProducer::send_messages(
   if messages.length() > 1 {
     send.num_messages = Some(messages.length())
   }
-  if txn is Some(t) {
-    let (most, least) = t.id()
-    send.txnid_least_bits = Some(least)
-    send.txnid_most_bits = Some(most)
-    metadata.txnid_least_bits = Some(least)
-    metadata.txnid_most_bits = Some(most)
+  match txn {
+    Some(t) => {
+      let (most, least) = t.id()
+      send.txnid_least_bits = Some(least)
+      send.txnid_most_bits = Some(most)
+      metadata.txnid_least_bits = Some(least)
+      metadata.txnid_most_bits = Some(most)
+    }
+    None => {
+      // proto2 default 0 would make the broker treat the message as
+      // transactional and reject it when transactions are disabled
+      send.txnid_least_bits = None
+      send.txnid_most_bits = None
+      metadata.txnid_least_bits = None
+      metadata.txnid_most_bits = None
+    }
   }
   cmd.send = Some(send)
   let frame = encode_send_frame(cmd, metadata, payload)

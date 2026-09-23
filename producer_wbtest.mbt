@@ -47,6 +47,9 @@ async test "producer send waits for send receipt" {
       guard frame.metadata is Some(meta) && frame.payload is Some(payload) else {
         fail("SEND without payload")
       }
+      // NOTE: proto2 default-valued fields (e.g. txnid = 0) are verified
+      // against a real broker in integration testing; the generated codec
+      // materializes defaults on decode so wire absence can't be asserted here.
       assert_eq(payload, b"hello")
       assert_eq(meta.producer_name, "mock-producer")
       assert_eq(meta.partition_key, Some("k1"))
