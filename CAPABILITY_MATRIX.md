@@ -25,7 +25,7 @@ repository on 2026-09-23.
 | Admin topic and subscription operations | Selected endpoints implemented | Mock HTTP tests and live create/expand/query/delete |
 | Schema declaration | Implemented | Existing mock/live schema scenario; typed serialization is open |
 | Dead-letter/retry policy | Open | No implementation or coverage |
-| TableView (raw payload values) | Implemented | Mock initial replay/live updates/empty topic; live broker update and tombstone |
+| TableView (raw payload values) | Implemented | Mock initial replay/live updates/empty topic; live broker update, tombstone, and added partition |
 | Conversion of existing non-partitioned handles | Open | No implementation or coverage |
 | OAuth2, Athenz, TLS certificate authentication | Open | No implementation or coverage |
 | Encryption, interceptors, tracing, metrics | Open | No implementation or coverage |

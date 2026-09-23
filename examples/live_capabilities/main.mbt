@@ -220,6 +220,10 @@ async fn main {
         start_message_id=@pulsar.MessageId::earliest(),
         partition_refresh_ms=100,
       )
+      let scaling_table = @async.with_timeout(10000, async fn() {
+        client.create_table_view(partitioned_topic, partition_refresh_ms=100)
+      })
+      assert_true(scaling_table.is_empty())
       assert_eq(scaling_producer.partition_count(), 2)
       admin.update_partitioned_topic(partitioned_topic, 3)
       assert_eq(admin.partition_count(partitioned_topic), 3)
@@ -250,6 +254,11 @@ async fn main {
       assert_eq(expanded.topic(), "\{partitioned_topic}-partition-2")
       assert_eq(expanded.payload(), b"expanded")
       expanded.ack()
+      @async.with_timeout(10000, async fn() {
+        while scaling_table.get(partition_key) != Some(b"expanded") {
+          @async.sleep(20)
+        }
+      })
       let read_expanded = @async.with_timeout(10000, async fn() {
         let mut result : @pulsar.Message? = None
         while result is None {
@@ -262,6 +271,7 @@ async fn main {
       })
       assert_eq(read_expanded.topic(), "\{partitioned_topic}-partition-2")
       assert_eq(read_expanded.payload(), b"expanded")
+      scaling_table.close()
       scaling_reader.close()
       scaling_consumer.close()
       scaling_producer.close()

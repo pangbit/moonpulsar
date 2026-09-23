@@ -43,7 +43,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - automatic reconnection across a broker restart (producer replay + consumer re-subscribe)
 - token-authenticated multi-topic and pattern consumption, ack timeout, delayed nack redelivery, consumer seek, chunked produce/consume/reader replay, and coordinator lookup
 - partition expansion from two to three partitions while the producer, consumer, and reader remain open
-- TableView initial replay, live update, and tombstone deletion
+- TableView initial replay, live update, tombstone deletion, and added-partition discovery
 - token-authenticated Admin REST topic/subscription operations and partition expansion
 
 ## Requirements

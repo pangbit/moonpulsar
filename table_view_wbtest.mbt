@@ -143,7 +143,9 @@ async test "table view of an empty topic is ready without an end event" {
       reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
       let response = @proto.CommandGetLastMessageIdResponse::default()
       response.request_id = req.request_id
-      response.last_message_id = MessageId::earliest().to_proto()
+      let no_message = MessageId::earliest().to_proto()
+      no_message.partition = Some(0)
+      response.last_message_id = no_message
       reply.get_last_message_id_response = Some(response)
       peer.send_command(reply)
     })

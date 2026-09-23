@@ -309,7 +309,8 @@ pub async fn SingleReader::has_message_available(self : SingleReader) -> Bool {
   let reply = self.conn.request(cmd) catch { _ => return false }
   guard reply.get_last_message_id_response is Some(resp) else { return false }
   let last = MessageId::from_proto(resp.last_message_id)
-  if last == MessageId::earliest() {
+  if last.ledger_id == 18446744073709551615 &&
+    last.entry_id == 18446744073709551615 {
     return false
   }
   match self.last_seen.val {
