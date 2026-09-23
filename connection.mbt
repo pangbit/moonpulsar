@@ -302,6 +302,12 @@ fn request_id_of(cmd : @proto.BaseCommand) -> UInt64? {
   if cmd.get_last_message_id_response is Some(c) {
     return Some(c.request_id)
   }
+  if cmd.get_schema is Some(c) {
+    return Some(c.request_id)
+  }
+  if cmd.get_schema_response is Some(c) {
+    return Some(c.request_id)
+  }
   if cmd.seek is Some(c) {
     return Some(c.request_id)
   }

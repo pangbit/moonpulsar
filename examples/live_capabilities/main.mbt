@@ -503,6 +503,23 @@ async fn main {
         string_consumer.receive()
       })
       assert_eq(string_message.decode(string_codec), "typed string")
+      let registered_string_schema = client.get_schema(string_schema_topic)
+      assert_eq(
+        registered_string_schema.info.type_,
+        @pulsar.SchemaInfo::string().type_,
+      )
+      assert_eq(
+        string_message.schema_version(),
+        registered_string_schema.version,
+      )
+      let historical_string_schema = client.get_schema(
+        string_schema_topic,
+        version?=registered_string_schema.version,
+      )
+      assert_eq(
+        historical_string_schema.info.type_,
+        registered_string_schema.info.type_,
+      )
       string_message.ack()
       string_consumer.close()
       string_producer.close()

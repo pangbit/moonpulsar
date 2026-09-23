@@ -139,6 +139,7 @@ pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, 
 pub async fn Client::create_retry_consumer(Self, String, String, String, DeadLetterPolicy, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy) -> Consumer
 pub async fn Client::create_table_view(Self, String, partition_refresh_ms? : Int, schema? : SchemaInfo) -> TableView
 pub async fn[T] Client::create_typed_table_view(Self, String, SchemaCodec[T], partition_refresh_ms? : Int) -> TypedTableView[T]
+pub async fn Client::get_schema(Self, String, version? : Bytes) -> VersionedSchema
 pub async fn Client::partitions_of(Self, String) -> Int
 pub async fn Client::topics_of_namespace(Self, String, pattern? : String, mode? : NamespaceTopicMode) -> Array[String]
 pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordinator
@@ -236,6 +237,7 @@ pub fn Message::producer_name(Self) -> String
 pub fn Message::properties(Self) -> Map[String, String]
 pub fn Message::publish_time(Self) -> UInt64
 pub fn Message::redelivery_count(Self) -> UInt
+pub fn Message::schema_version(Self) -> Bytes?
 pub fn Message::sequence_id(Self) -> UInt64?
 pub fn Message::topic(Self) -> String
 
@@ -481,6 +483,11 @@ pub fn[T] TypedTableView::get(Self[T], String) -> T? raise PulsarError
 pub fn[T] TypedTableView::is_empty(Self[T]) -> Bool
 pub fn[T] TypedTableView::keys(Self[T]) -> Array[String]
 pub fn[T] TypedTableView::size(Self[T]) -> Int
+
+pub(all) struct VersionedSchema {
+  info : SchemaInfo
+  version : Bytes?
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

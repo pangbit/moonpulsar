@@ -643,6 +643,7 @@ fn build_message(
       Some(s) => s.sequence_id
       None => Some(metadata.sequence_id)
     },
+    schema_version: metadata.schema_version,
     redelivery_count,
     ack_tracker,
     chunk_ids,

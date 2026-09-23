@@ -142,6 +142,7 @@ pub struct Message {
   priv event_time : UInt64?
   priv producer_name : String
   priv sequence_id : UInt64?
+  priv schema_version : Bytes?
   priv redelivery_count : UInt
   priv ack_tracker : Map[MessageId, Int]?
   priv chunk_ids : Array[MessageId]?
@@ -207,6 +208,12 @@ pub fn Message::producer_name(self : Message) -> String {
 ///|
 pub fn Message::sequence_id(self : Message) -> UInt64? {
   self.sequence_id
+}
+
+///|
+/// Version of the schema used to publish this message, when supplied by the broker.
+pub fn Message::schema_version(self : Message) -> Bytes? {
+  self.schema_version
 }
 
 ///|

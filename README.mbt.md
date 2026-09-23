@@ -14,7 +14,8 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 - Producer: synchronous and asynchronous send, shared/exclusive/wait-for-exclusive/fencing access modes, producer metadata, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation
 - Consumer: Exclusive / Shared / Failover / KeyShared subscriptions (including auto-split and sticky hash-range policies), individual & cumulative ack, negative ack with optional exponential redelivery backoff, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), batched message unpacking
 - Dead-letter policy: route messages after the configured number of unsuccessful deliveries, preserving payload, key, ordering key, properties, and event time; acknowledge the source only after the dead-letter producer receives a broker receipt
-- Explicit retry-letter consumer: merge the source and retry topic, use `reconsume_later` to publish a failed message with a delay, and send it to the dead-letter topic after the configured retry limit
+- Retry-letter consumers: use `retry_topic` on ordinary subscriptions or the explicit constructor, then `reconsume_later` to publish with a delay and route exhausted retries to the dead-letter topic
+- Schema registry lookup by latest or specific version; producers attach the broker-assigned version and messages expose it through `schema_version()`
 
 `DeadLetterPolicy::new(1U, dead_letter_topic)` allows one application attempt;
 after a NACK, the next delivery goes to the dead-letter topic. The policy can

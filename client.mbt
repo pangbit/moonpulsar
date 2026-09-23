@@ -840,6 +840,38 @@ pub async fn Client::partitions_of(self : Client, topic : String) -> Int {
 }
 
 ///|
+/// Retrieve the topic's latest schema, or a specific version. Broker errors
+/// such as an unknown version or incompatible schema are returned explicitly.
+pub async fn Client::get_schema(
+  self : Client,
+  topic : String,
+  version? : Bytes,
+) -> VersionedSchema {
+  let conn = lookup_topic(self.manager, self.service_addr, topic)
+  let cmd = @proto.BaseCommand::default()
+  cmd.type_ = @proto.BaseCommand_Type::GET_SCHEMA
+  let query = @proto.CommandGetSchema::default()
+  query.request_id = conn.next_request_id()
+  query.topic = topic
+  query.schema_version = version
+  cmd.get_schema = Some(query)
+  let response = conn.request(cmd)
+  guard response.get_schema_response is Some(result) else {
+    raise UnexpectedResponse("expected GET_SCHEMA_RESPONSE")
+  }
+  if result.error_code is Some(code) {
+    raise ServerError(
+      code=code.to_enum().0.reinterpret_as_int(),
+      message=result.error_message.unwrap_or("schema lookup failed"),
+    )
+  }
+  guard result.schema is Some(schema) else {
+    raise UnexpectedResponse("GET_SCHEMA_RESPONSE without schema")
+  }
+  { info: SchemaInfo::from_proto(schema), version: result.schema_version, }
+}
+
+///|
 /// List topics in `tenant/namespace`, optionally filtered by a MoonBit regular
 /// expression.
 pub async fn Client::topics_of_namespace(

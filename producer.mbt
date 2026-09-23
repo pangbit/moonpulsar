@@ -90,6 +90,7 @@ pub struct SingleProducer {
   priv automatic_chunking : Bool
   priv chunk_mu : @async.Mutex
   priv schema : SchemaInfo?
+  priv mut schema_version : Bytes?
   priv batching : BatchingConfig?
   priv batch_mu : @async.Mutex
   priv mut batch_messages : Array[ProducerMessage]
@@ -156,6 +157,7 @@ pub async fn SingleProducer::create(
     automatic_chunking,
     chunk_mu: @async.Mutex::Mutex(),
     schema,
+    schema_version: None,
     batching,
     batch_mu: @async.Mutex::Mutex(),
     batch_messages: [],
@@ -172,6 +174,7 @@ pub async fn SingleProducer::create(
   }
   producer.name = success.producer_name
   producer.topic_epoch = success.topic_epoch
+  producer.schema_version = success.schema_version
   if success.last_sequence_id is Some(last) && last >= 0 {
     producer.sequence_id = (last + 1).reinterpret_as_uint64()
     producer.last_confirmed_sequence_id = Some(last.reinterpret_as_uint64())
@@ -305,6 +308,7 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
     }
     self.topic_epoch = success.topic_epoch
     self.name = success.producer_name
+    self.schema_version = success.schema_version
     if success.last_sequence_id is Some(last) && last >= 0 {
       let confirmed = last.reinterpret_as_uint64()
       if self.last_confirmed_sequence_id is None ||
@@ -369,6 +373,7 @@ fn SingleProducer::build_metadata(
   let metadata = @proto.MessageMetadata::default()
   metadata.producer_name = self.name
   metadata.sequence_id = sequence_id
+  metadata.schema_version = self.schema_version
   metadata.publish_time = @async.now().reinterpret_as_uint64()
   metadata.properties = key_values_of(msg.properties)
   // clear proto2 defaults that only apply to batched/timed messages

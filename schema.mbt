@@ -21,6 +21,23 @@ fn SchemaInfo::to_proto(self : SchemaInfo) -> @proto.Schema {
 }
 
 ///|
+fn SchemaInfo::from_proto(schema : @proto.Schema) -> SchemaInfo {
+  {
+    name: schema.name,
+    type_: schema.type_,
+    schema_data: schema.schema_data,
+    properties: properties_of(schema.properties),
+  }
+}
+
+///|
+/// A schema returned by the broker, with its registry version when present.
+pub(all) struct VersionedSchema {
+  info : SchemaInfo
+  version : Bytes?
+} derive(Eq, Debug)
+
+///|
 /// Built-in UTF-8 string schema.
 pub fn SchemaInfo::string() -> SchemaInfo {
   {
