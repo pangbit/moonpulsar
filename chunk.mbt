@@ -10,7 +10,25 @@ const MAX_CHUNKED_MESSAGE_BYTES : Int = 67108864
 const MAX_PENDING_CHUNKED_BYTES : Int = 67108864
 
 ///|
-const CHUNK_EXPIRY_MS : Int64 = 60000L
+const CHUNK_EXPIRY_MS : Int = 60000
+
+///|
+/// Limits for incomplete chunked messages buffered by a reader or consumer.
+pub struct ChunkAssemblyPolicy {
+  priv expiry_ms : Int
+  priv max_pending_messages : Int
+}
+
+///|
+pub fn ChunkAssemblyPolicy::new(
+  expiry_ms? : Int = CHUNK_EXPIRY_MS,
+  max_pending_messages? : Int = MAX_PENDING_CHUNKED_MESSAGES,
+) -> ChunkAssemblyPolicy raise PulsarError {
+  guard expiry_ms > 0 && max_pending_messages > 0 else {
+    raise InvalidFrame("chunk expiry and pending limit must be positive")
+  }
+  { expiry_ms, max_pending_messages, }
+}
 
 ///|
 priv struct ChunkAssembly {
@@ -34,11 +52,19 @@ struct ChunkResult {
 struct ChunkAssembler {
   pending : Map[String, ChunkAssembly]
   mut buffered_bytes : Int
+  policy : ChunkAssemblyPolicy
 }
 
 ///|
-fn ChunkAssembler::new() -> ChunkAssembler {
-  { pending: {}, buffered_bytes: 0, }
+fn ChunkAssembler::new(policy? : ChunkAssemblyPolicy) -> ChunkAssembler {
+  {
+    pending: {},
+    buffered_bytes: 0,
+    policy: policy.unwrap_or({
+      expiry_ms: CHUNK_EXPIRY_MS,
+      max_pending_messages: MAX_PENDING_CHUNKED_MESSAGES,
+    }),
+  }
 }
 
 ///|
@@ -71,6 +97,20 @@ fn ChunkAssembler::evict_oldest(self : ChunkAssembler) -> Unit {
 }
 
 ///|
+fn ChunkAssembler::evict_expired(self : ChunkAssembler) -> Unit {
+  let expired = []
+  let now = @async.now()
+  for key, part in self.pending {
+    if now - part.started_at >= self.policy.expiry_ms.to_int64() {
+      expired.push(key)
+    }
+  }
+  for key in expired {
+    self.discard(key)
+  }
+}
+
+///|
 fn ChunkAssembler::accept(
   self : ChunkAssembler,
   metadata : @proto.MessageMetadata,
@@ -82,15 +122,7 @@ fn ChunkAssembler::accept(
     return { payload: Some(bytes), ids: [id], is_chunk: false, }
   }
   let empty : ChunkResult = { payload: None, ids: [], is_chunk: true, }
-  let expired = []
-  for key, part in self.pending {
-    if @async.now() - part.started_at >= CHUNK_EXPIRY_MS {
-      expired.push(key)
-    }
-  }
-  for key in expired {
-    self.discard(key)
-  }
+  self.evict_expired()
   guard metadata.uuid is Some(uuid) &&
     metadata.chunk_id is Some(index) &&
     metadata.total_chunk_msg_size is Some(total) else {
@@ -106,7 +138,7 @@ fn ChunkAssembler::accept(
   }
   if index == 0 {
     self.discard(uuid)
-    if self.pending.size() >= MAX_PENDING_CHUNKED_MESSAGES &&
+    if self.pending.size() >= self.policy.max_pending_messages &&
       !self.pending.contains(uuid) {
       self.evict_oldest()
     }

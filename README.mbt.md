@@ -26,7 +26,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 - TLS via `pulsar+ssl://` service URLs, with system roots or a custom PEM CA through `Client::connect_tls_with_ca`
 - Payload compression: LZ4 (frame format), Zlib, Zstd
 - Partitioned topics: keyed messages route by `xxhash32(key) % partitions`, keyless round-robin; consumers aggregate all partitions and both producers and consumers discover added partitions (60-second default polling interval)
-- Optional producer chunking and consumer/reader chunk reassembly, including compressed payloads
+- Optional producer chunking and consumer/reader chunk reassembly, including compressed payloads; `ChunkAssemblyPolicy` limits pending assemblies and expires incomplete chunks even when no further messages arrive
 - Reader API: non-durable replay from any message id, `seek`, `has_message_available`, last-message ID, custom name/properties/subscription, aggregation and added-partition discovery
 - TableView: raw-byte key/value snapshot from a compacted reader, live updates, tombstone deletion, and change listeners
 - Transactions: coordinator ownership lookup, `new_transaction` / `commit` / `abort`, transactional send and ack
@@ -40,13 +40,13 @@ Not yet / known gaps:
 - Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
 - The tested Pulsar 4.2.4 broker rejected creation of partitioned metadata over an existing non-partitioned topic with HTTP 409. Migrate data into a new partitioned topic when this change is needed.
 - Retry-letter handling uses a separate `create_retry_consumer` constructor; the standard multi-topic and pattern constructors do not automatically add retry topics. OAuth2/Athenz/TLS-certificate authentication, encryption, and typed Avro/Protobuf serialization are not implemented.
-- Chunking requires an explicit `chunk_size`; automatic sizing and configurable chunk expiry are not implemented.
+- Chunking requires an explicit `chunk_size`; automatic sizing and optional ACK of expired incomplete chunks are not implemented.
 - `Connection::max_message_size` exposes the negotiated broker limit; producers do not yet select a chunk size from it automatically.
 - `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; custom CA handshake and reconnection are covered by a local TLS mock, while the live broker run used plain TCP with token auth. The current TLS client API does not expose a client certificate for mutual TLS.
 
 ## Verified against a real broker
 
-The examples and integration scenarios have been exercised against Pulsar standalone 4.2:
+The examples and integration scenarios have been exercised against Pulsar standalone 4.2. The current `examples/live_capabilities` suite also passed against 4.2.4 and an isolated 3.3.9 broker with transactions enabled:
 
 - produce / consume roundtrip, sync + async send, batching (broker-side `batch_index` echoed correctly)
 - nack redelivery, shared subscriptions, reader replay

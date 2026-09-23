@@ -39,6 +39,7 @@ pub struct SingleReader {
   priv closed : Ref[Bool]
   priv close_error : Ref[Error?]
   priv chunks : ChunkAssembler
+  priv chunk_sweeper_stop : @aqueue.Queue[Unit]
 }
 
 ///|
@@ -56,6 +57,7 @@ pub async fn SingleReader::create(
   properties? : Map[String, String] = {},
   subscription_name? : String,
   subscription_role_prefix? : String = "reader",
+  chunk_policy? : ChunkAssemblyPolicy,
 ) -> SingleReader {
   guard subscription_name != Some("") && subscription_role_prefix != "" else {
     raise InvalidFrame("reader subscription name or prefix must not be empty")
@@ -87,7 +89,8 @@ pub async fn SingleReader::create(
     last_seen: { val: start_message_id, },
     closed: { val: false, },
     close_error: { val: None, },
-    chunks: ChunkAssembler::new(),
+    chunks: ChunkAssembler::new(policy?=chunk_policy),
+    chunk_sweeper_stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
   }
   conn.message_handlers[consumer_id] = fn(frame) { reader.on_frame(frame) }
   errdefer conn.message_handlers.remove(consumer_id)
@@ -103,7 +106,27 @@ pub async fn SingleReader::create(
     reader.on_connection_closed()
     raise ConnectionClosed
   }
+  group.spawn_bg(
+    async fn() {
+      while !reader.closed.val {
+        let stopped = @async.with_timeout_opt(reader.chunks.policy.expiry_ms, async fn() {
+          reader.chunk_sweeper_stop.get()
+        })
+        if stopped is Some(_) || reader.closed.val {
+          return
+        }
+        reader.chunks.evict_expired()
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
   reader
+}
+
+///|
+fn SingleReader::stop_chunk_sweeper(self : SingleReader) -> Unit {
+  ignore(self.chunk_sweeper_stop.try_put(()) catch { _ => false })
 }
 
 ///|
@@ -112,6 +135,7 @@ fn SingleReader::on_connection_closed(self : SingleReader) -> Unit {
     return
   }
   self.closed.val = true
+  self.stop_chunk_sweeper()
   self.close_error.val = Some(ConnectionClosed)
   self.conn.message_handlers.remove(self.consumer_id)
   self.chunks.clear()
@@ -471,6 +495,7 @@ pub async fn SingleReader::close(self : SingleReader) -> Unit {
     return
   }
   self.closed.val = true
+  self.stop_chunk_sweeper()
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
   let close = @proto.CommandCloseConsumer::default()

@@ -22,7 +22,7 @@ repository on 2026-09-23.
 | Pattern subscriptions | Topic additions and removals implemented | Addition: mock and live broker; removal and stale-queue filtering: mock |
 | Consumer options, ack/nack, ack timeout, seek, unsubscribe | Implemented | Mock tests; ack timeout and ID seek live |
 | Exponential negative-ack backoff | Implemented for `Message::nack` | Timing and close-cancellation mock tests; live broker redelivery |
-| Chunk reassembly and ACK | Implemented with bounded memory | Mock wire tests and live consumer/reader replay |
+| Chunk reassembly and ACK | Implemented with bounded memory and configurable expiry/pending count; optional ACK of evicted incomplete chunks open | Mock wire and periodic-expiry tests for consumer/reader; live consumer/reader replay |
 | Reader, seek, replay, and added-partition discovery | Implemented for initially partitioned topics; custom name/properties/subscription and last-message ID added; inclusive start and chunk expiry open | Mock one-to-two expansion, SUBSCRIBE metadata, last-ID query, bounded slow-reader forwarding, and disconnect wakeup; live two-to-three expansion |
 | Transaction coordinator lookup and transaction lifecycle | Implemented | Mock tests and live coordinator/abort; prior live commit/read-back |
 | Admin topic and subscription operations | Selected endpoints implemented, including partitioned-topic list/stats, topic properties, and subscription create/skip/expire | Mock HTTP path, body, JSON-shape, and invalid-input tests; live create/expand/query/stats/delete, topic property updates, and subscription cursor/backlog behavior |
@@ -33,7 +33,8 @@ repository on 2026-09-23.
 | In-place conversion of a non-partitioned topic to a partitioned topic | Broker does not support this on the tested Pulsar 4.2.4 instance | An isolated Admin REST probe returned HTTP 409 (`This topic already exists`); existing clients can discover added partitions of an already partitioned topic |
 | OAuth2, Athenz, TLS client-certificate authentication | Open | No implementation or coverage; the current `moonbitlang/async/tls` client API does not expose a client certificate |
 | Encryption, interceptors, tracing, metrics | Open | No implementation or coverage |
-| Full Admin REST surface | Open | Only listed topic/subscription endpoints are implemented |
+| Full Admin REST surface | Outside the data-client parity target | Only listed topic/subscription endpoints are implemented |
+| Broker version compatibility | Current live regression suite passes on 4.2.4 and 3.3.9 | 4.2.4 test container and isolated 3.3.9 container with transaction coordinator enabled; both exercised `examples/live_capabilities` with Admin REST |
 
 `moon test --target native` runs the in-process mock suite. The
 `examples/live_capabilities` program exercises an authenticated Pulsar broker;

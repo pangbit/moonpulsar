@@ -23,7 +23,7 @@
 - `pulsar+ssl://` TLS 连接：系统信任根或通过 `Client::connect_tls_with_ca` 提供自定义 PEM CA
 - LZ4（帧格式）、Zlib、Zstd 压缩；Snappy 的兼容性限制见下文
 - 分区 Topic：有 key 的消息按 `xxhash32(key) % partitions` 路由，无 key 的消息轮询路由；消费者聚合全部分区，生产者和消费者可发现新增分区（默认每 60 秒轮询）
-- 可选的生产者分块和消费者/Reader 分块重组，包括压缩负载
+- 可选的生产者分块和消费者/Reader 分块重组，包括压缩负载；`ChunkAssemblyPolicy` 可限制待组装消息数，并在没有新消息时清理过期分块
 - Reader：从指定消息 ID 开始的非持久回放、seek、`has_message_available`、最后消息 ID、自定义名称/属性/订阅、分区聚合和新增分区发现
 - TableView：从压缩后的 Reader 获取原始字节键值快照、实时更新、墓碑删除和变更监听器
 - 事务：协调器归属查找、`new_transaction` / `commit` / `abort`、事务性发送与 ACK
@@ -37,13 +37,13 @@
 - Snappy 使用 **google framing** 变体，与 Go/Python 客户端一致；Java 客户端使用 xerial framing，不能解码这种格式。官方 Java 与 Go 客户端之间也存在这一差异。
 - 测试所用的 Pulsar 4.2.4 broker 在已有非分区 Topic 上创建分区元数据时返回 HTTP 409。需要转换时，应把数据迁移到新的分区 Topic。
 - 重试信需通过单独的 `create_retry_consumer` 构造函数处理；普通多 Topic 和模式消费者不会自动加入重试 Topic。OAuth2、Athenz、TLS 客户端证书认证、加密和 Schema 序列化尚未实现。
-- 分块需要显式设置 `chunk_size`；尚未实现自动分块大小和可配置的分块过期时间。
+- 分块需要显式设置 `chunk_size`；尚未实现自动分块大小和过期未完成分块的可选 ACK。
 - `Connection::max_message_size` 可读取 broker 握手报告的上限，但生产者尚不能据此自动选择分块大小。
 - `pulsar+ssl://` 使用 `moonbitlang/async/tls`。自定义 CA 握手和重连由本地 TLS mock 覆盖；此前的真实 broker 测试使用带 token 认证的明文 TCP。当前 TLS 客户端 API 不提供用于双向 TLS 的客户端证书。
 
 ## 真实 broker 验证记录
 
-示例和集成场景曾在 Pulsar standalone 4.2 上运行，覆盖：
+示例和集成场景曾在 Pulsar standalone 4.2 上运行。当前 `examples/live_capabilities` 套件还在 4.2.4 以及启用事务的独立 3.3.9 broker 上通过，覆盖：
 
 - 生产/消费往返、同步和异步发送、批量发送（broker 正确返回 `batch_index`）
 - NACK 重投、Shared 订阅和 Reader 回放

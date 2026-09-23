@@ -192,6 +192,7 @@ pub struct SingleConsumer {
   priv ack_pending : Map[MessageId, Int]
   priv mut next_ack_token : Int
   priv chunks : ChunkAssembler
+  priv chunk_sweeper_stop : @aqueue.Queue[Unit]
   priv chunk_acks : Map[MessageId, Array[MessageId]]
   priv reconnect_with : (async () -> Connection)?
   priv reconnecting : Ref[Bool]
@@ -222,6 +223,7 @@ pub async fn SingleConsumer::create(
   nack_backoff? : NackBackoff,
   reconnect_with? : async () -> Connection,
   schema? : SchemaInfo,
+  chunk_policy? : ChunkAssemblyPolicy,
 ) -> SingleConsumer {
   guard ack_timeout_ms >= 0 else {
     raise InvalidFrame("ack timeout must not be negative")
@@ -257,7 +259,8 @@ pub async fn SingleConsumer::create(
     nack_epoch: { val: 0, },
     ack_pending: {},
     next_ack_token: 0,
-    chunks: ChunkAssembler::new(),
+    chunks: ChunkAssembler::new(policy?=chunk_policy),
+    chunk_sweeper_stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
     chunk_acks: {},
     reconnect_with,
     reconnecting: { val: false, },
@@ -275,7 +278,28 @@ pub async fn SingleConsumer::create(
   // start the flow of messages
   consumer.send_flow(receiver_queue_size)
   consumer.available_permits = receiver_queue_size
+  group.spawn_bg(
+    async fn() {
+      while !consumer.closed.val {
+        let stopped = @async.with_timeout_opt(
+          consumer.chunks.policy.expiry_ms,
+          async fn() { consumer.chunk_sweeper_stop.get() },
+        )
+        if stopped is Some(_) || consumer.closed.val {
+          return
+        }
+        consumer.chunks.evict_expired()
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
   consumer
+}
+
+///|
+fn SingleConsumer::stop_chunk_sweeper(self : SingleConsumer) -> Unit {
+  ignore(self.chunk_sweeper_stop.try_put(()) catch { _ => false })
 }
 
 ///|
@@ -363,6 +387,7 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
     _ =>
       if !self.closed.val {
         self.closed.val = true
+        self.stop_chunk_sweeper()
         self.messages.close(error=ConnectionClosed, clear=true)
       }
   }
@@ -379,6 +404,7 @@ fn SingleConsumer::on_connection_closed(
   if self.closed.val || self.reconnect_with is None {
     if !self.closed.val {
       self.closed.val = true
+      self.stop_chunk_sweeper()
       self.messages.close(error=ConnectionClosed, clear=true)
     }
     return
@@ -428,6 +454,7 @@ fn SingleConsumer::on_frame(
         self.on_connection_closed(None)
       } else if !self.closed.val {
         self.closed.val = true
+        self.stop_chunk_sweeper()
         self.messages.close(error=ConsumerClosed, clear=true)
       }
     _ => ()
@@ -916,6 +943,7 @@ pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
     return
   }
   self.closed.val = true
+  self.stop_chunk_sweeper()
   self.nack_epoch.val += 1
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
@@ -956,6 +984,7 @@ pub async fn SingleConsumer::unsubscribe(
     raise UnexpectedResponse("expected SUCCESS for UNSUBSCRIBE")
   }
   self.closed.val = true
+  self.stop_chunk_sweeper()
   self.nack_epoch.val += 1
   self.conn_ref.val.message_handlers.remove(self.consumer_id)
   self.ack_pending.clear()

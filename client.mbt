@@ -281,6 +281,7 @@ pub async fn Client::create_consumer(
   dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
+  chunk_policy? : ChunkAssemblyPolicy,
 ) -> Consumer {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -318,6 +319,7 @@ pub async fn Client::create_consumer(
       nack_backoff?,
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
       schema?,
+      chunk_policy?,
     )
     return self.with_dead_letter(Consumer::single(single), dead_letter_policy)
   }
@@ -346,6 +348,7 @@ pub async fn Client::create_consumer(
           lookup_topic(manager, addr, partition_topic)
         },
         schema?,
+        chunk_policy?,
       ),
     )
   }
@@ -434,6 +437,7 @@ pub async fn Client::create_retry_consumer(
   nack_backoff? : NackBackoff,
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
+  chunk_policy? : ChunkAssemblyPolicy,
 ) -> Consumer {
   guard retry_topic != "" &&
     retry_topic != topic &&
@@ -459,6 +463,7 @@ pub async fn Client::create_retry_consumer(
       nack_backoff?,
       schema?,
       partition_refresh_ms~,
+      chunk_policy?,
     )
   }
   let source = create(topic)
@@ -508,6 +513,7 @@ pub async fn Client::create_multi_topic_consumer(
   dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
+  chunk_policy? : ChunkAssemblyPolicy,
 ) -> Consumer {
   guard !topics.is_empty() else {
     raise InvalidFrame("multi-topic consumer requires at least one topic")
@@ -535,6 +541,7 @@ pub async fn Client::create_multi_topic_consumer(
         dead_letter_policy?,
         schema?,
         partition_refresh_ms~,
+        chunk_policy?,
       ) catch {
         e => {
           for existing in consumers {
@@ -566,6 +573,7 @@ pub async fn Client::create_reader(
   properties? : Map[String, String] = {},
   subscription_name? : String,
   subscription_role_prefix? : String = "reader",
+  chunk_policy? : ChunkAssemblyPolicy,
 ) -> Reader {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -587,6 +595,7 @@ pub async fn Client::create_reader(
         properties~,
         subscription_name?,
         subscription_role_prefix~,
+        chunk_policy?,
       ),
     )
   }
@@ -604,6 +613,7 @@ pub async fn Client::create_reader(
       properties~,
       subscription_name?,
       subscription_role_prefix~,
+      chunk_policy?,
     )
   }
   let subs : Array[SingleReader] = []
@@ -720,6 +730,7 @@ pub async fn Client::create_pattern_consumer(
   dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
+  chunk_policy? : ChunkAssemblyPolicy,
 ) -> Consumer {
   guard refresh_interval_ms > 0 else {
     raise InvalidFrame("topic refresh interval must be positive")
@@ -757,6 +768,7 @@ pub async fn Client::create_pattern_consumer(
           dead_letter_policy?,
           schema?,
           partition_refresh_ms~,
+          chunk_policy?,
         )
         consumer.add_source(self.manager.group, sub)
         seen[topic] = true

@@ -197,3 +197,112 @@ test "chunk assembler releases completed payloads and caps pending messages" {
   chunks.clear()
   assert_eq(chunks.buffered_bytes, 0)
 }
+
+///|
+async test "chunk policy limits pending messages and expires incomplete buffers" {
+  let invalid : Result[ChunkAssemblyPolicy, Error] = Ok(
+    ChunkAssemblyPolicy::new(expiry_ms=0),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(invalid is Err(InvalidFrame(_)))
+  let policy = ChunkAssemblyPolicy::new(expiry_ms=20, max_pending_messages=1)
+  let chunks = ChunkAssembler::new(policy~)
+  let id : MessageId = {
+    ledger_id: 1UL,
+    entry_id: 1UL,
+    batch_index: -1,
+    partition: -1,
+  }
+  for uuid in ["first", "second"] {
+    let meta = test_metadata()
+    meta.uuid = Some(uuid)
+    meta.num_chunks_from_msg = Some(2)
+    meta.total_chunk_msg_size = Some(2)
+    meta.chunk_id = Some(0)
+    ignore(chunks.accept(meta, id, b"a"))
+  }
+  assert_eq(chunks.pending.size(), 1)
+  assert_eq(chunks.buffered_bytes, 1)
+  @async.sleep(30)
+  chunks.evict_expired()
+  assert_eq(chunks.pending.size(), 0)
+  assert_eq(chunks.buffered_bytes, 0)
+}
+
+///|
+async test "consumer sweeps incomplete chunks without new messages" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let metadata = test_metadata()
+      metadata.uuid = Some("expires")
+      metadata.num_chunks_from_msg = Some(2)
+      metadata.total_chunk_msg_size = Some(2)
+      metadata.chunk_id = Some(0)
+      let (cmd, meta, body) = message_frame(1UL, 1UL, 1UL, b"a", metadata)
+      peer.send_message(cmd, meta, body)
+      ignore(peer.next())
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let consumer = SingleConsumer::create(
+      group,
+      conn,
+      "persistent://public/default/chunk-expiry",
+      "chunk-expiry-sub",
+      chunk_policy=ChunkAssemblyPolicy::new(expiry_ms=20),
+    )
+    @async.with_timeout(1000, async fn() {
+      while consumer.chunks.pending.is_empty() {
+        @async.sleep(1)
+      }
+    })
+    @async.with_timeout(1000, async fn() {
+      while !consumer.chunks.pending.is_empty() {
+        @async.sleep(5)
+      }
+    })
+    assert_eq(consumer.chunks.buffered_bytes, 0)
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "reader sweeps incomplete chunks without new messages" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let metadata = test_metadata()
+      metadata.uuid = Some("reader-expires")
+      metadata.num_chunks_from_msg = Some(2)
+      metadata.total_chunk_msg_size = Some(2)
+      metadata.chunk_id = Some(0)
+      let (cmd, meta, body) = message_frame(1UL, 1UL, 1UL, b"a", metadata)
+      peer.send_message(cmd, meta, body)
+      ignore(peer.next())
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let reader = SingleReader::create(
+      group,
+      conn,
+      "persistent://public/default/chunk-expiry-reader",
+      chunk_policy=ChunkAssemblyPolicy::new(expiry_ms=20),
+    )
+    @async.with_timeout(1000, async fn() {
+      while reader.chunks.pending.is_empty() {
+        @async.sleep(1)
+      }
+    })
+    @async.with_timeout(1000, async fn() {
+      while !reader.chunks.pending.is_empty() {
+        @async.sleep(5)
+      }
+    })
+    assert_eq(reader.chunks.buffered_bytes, 0)
+    reader.close()
+    manager.close()
+  })
+}
