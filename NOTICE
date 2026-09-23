@@ -1,0 +1,8 @@
+moonpulsar includes proto/PulsarApi.proto from Apache Pulsar and
+proto/top.mbt generated from that protocol definition.
+Source: https://github.com/apache/pulsar/blob/769ce7f51c6f04bbd0b2043fd5bd54b16476df69/pulsar-common/src/main/proto/PulsarApi.proto
+
+Apache Pulsar
+Copyright 2017-2024 The Apache Software Foundation
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).

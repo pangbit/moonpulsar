@@ -1,0 +1,9 @@
+# The published module contains library sources and documentation.
+*_test.mbt
+*_wbtest.mbt
+/testdata/
+/examples/
+/scripts/
+/moon.work
+/AGENTS.md
+/target/

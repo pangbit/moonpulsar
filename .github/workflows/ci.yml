@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: native library checks
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Update MoonBit dependencies
+        run: |
+          moon version --all
+          moon update
+
+      - name: Check library and examples
+        run: moon check --target native
+
+      - name: Run native tests
+        run: moon test --target native
+
+      - name: Run release tests
+        run: moon test --release --target native
+
+      - name: Check formatting
+        run: moon fmt --check
+
+      - name: Check generated interfaces
+        run: |
+          moon info
+          git diff --exit-code
+
+      - name: Generate documentation
+        run: moon doc
+
+      - name: Create release archive
+        run: moon package --list

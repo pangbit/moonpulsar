@@ -2,6 +2,8 @@ name = "pangbit/moonpulsar_examples"
 
 version = "0.1.0"
 
+repository = "https://github.com/pangbit/moonpulsar"
+
 license = "Apache-2.0"
 
 description = "Examples for `pangbit/moonpulsar`"

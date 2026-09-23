@@ -1,6 +1,10 @@
 # moonpulsar
 
+English | [简体中文](README.zh-CN.md)
+
 Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com). Architecture follows [pulsar-rs](https://github.com/streamnative/pulsar-rs) and [pulsar-client-go](https://github.com/apache/pulsar-client-go). See [CAPABILITY_MATRIX.md](CAPABILITY_MATRIX.md) for verified coverage and remaining differences.
+
+[Source repository](https://github.com/pangbit/moonpulsar).
 
 ## Features
 
@@ -61,26 +65,49 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - MoonBit toolchain with the **native** backend (TCP sockets)
 - A Pulsar broker for the examples; the test suite uses an in-process mock broker and needs no external services
 
+## Installation
+
+After this module is published to Mooncakes, add it to a native MoonBit module:
+
+```sh
+moon add pangbit/moonpulsar
+```
+
+Until then, clone the [source repository](https://github.com/pangbit/moonpulsar) to run the examples locally. For an executable using the published `0.1.0` library, declare `"pangbit/moonpulsar@0.1.0"` and `"moonbitlang/async@0.22.1"` in its `moon.mod`, set `preferred_target = "native"`, and use this `moon.pkg`:
+
+```text
+import {
+  "pangbit/moonpulsar" @pulsar,
+  "moonbitlang/async",
+}
+supported_targets = "+native"
+pkgtype(kind: "executable")
+```
+
 ## Usage
 
 ```mbt nocheck
 ///|
-async fn boot(group : @async.TaskGroup[Unit]) -> Unit {
-  let client = @pulsar.Client::connect(group, "pulsar://127.0.0.1:6650")
-  let producer = client.create_producer("persistent://public/default/my-topic")
-  let receipt = producer.send(@pulsar.ProducerMessage::new(b"hello"))
-  println(receipt.message_id)
-
-  let consumer = client.create_consumer(
-    "persistent://public/default/my-topic", "my-subscription",
-  )
-  let message = consumer.receive()
-  message.ack()
-  client.close()
+async fn main {
+  @async.with_task_group(async fn(group) {
+    let client = @pulsar.Client::connect(group, "pulsar://127.0.0.1:6650")
+    let topic = "persistent://public/default/my-topic"
+    let consumer = client.create_consumer(topic, "my-subscription")
+    let producer = client.create_producer(topic)
+    let receipt = producer.send(@pulsar.ProducerMessage::new(b"hello"))
+    println("sent entry=\{receipt.message_id.entry_id}")
+    let message = consumer.receive()
+    message.ack()
+    consumer.close()
+    producer.close()
+    client.close()
+  })
 }
 ```
 
-Background tasks (connection reader, keepalive) are tied to the task group passed to `Client::connect`, following `moonbitlang/async` structured concurrency.
+Background tasks (connection reader, keepalive) are tied to the task group passed to `Client::connect`, following `moonbitlang/async` structured concurrency. The consumer is created before sending so a new subscription can receive the message.
+
+The `@pulsar` alias in this snippet is declared in the `moon.pkg` above. See `examples/roundtrip` for a larger executable.
 
 ## Examples
 
@@ -127,6 +154,8 @@ moon info        # regenerate .mbti interfaces
 moon fmt         # format
 ```
 
+GitHub Actions runs native checks, debug and release tests, formatting, generated-interface verification, documentation generation, and package creation on pushes and pull requests. The checked-in localhost TLS key and certificate are public, disposable test fixtures; never use them for a real broker. They are excluded from the Mooncakes package, along with tests and examples.
+
 The protocol layer in `proto/` is generated from `proto/PulsarApi.proto` (vendored from apache/pulsar) with `protoc-gen-mbt`:
 
 ```sh
@@ -135,4 +164,4 @@ protoc --mbt_out=. --mbt_opt=project_name=proto proto/PulsarApi.proto
 
 ## License
 
-Apache-2.0
+Apache-2.0. The vendored Pulsar protocol definition and generated bindings carry Apache Pulsar attribution in [NOTICE](NOTICE).
