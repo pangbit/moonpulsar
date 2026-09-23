@@ -132,6 +132,40 @@ async test "client rejects invalid consumer and chunking options before lookup" 
       e => Err(e)
     }
     assert_true(bad_reader_refresh is Err(InvalidFrame(_)))
+    let single_retry_without_dlq : Result[Consumer, Error] = Ok(
+      client.create_consumer(topic, "sub", retry_topic="retry"),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(single_retry_without_dlq is Err(InvalidFrame(_)))
+    let multi_retry_without_dlq : Result[Consumer, Error] = Ok(
+      client.create_multi_topic_consumer([topic], "sub", retry_topic="retry"),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(multi_retry_without_dlq is Err(InvalidFrame(_)))
+    let pattern_retry_without_dlq : Result[Consumer, Error] = Ok(
+      client.create_pattern_consumer(
+        "public/default",
+        "options.*",
+        "sub",
+        retry_topic="retry",
+      ),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(pattern_retry_without_dlq is Err(InvalidFrame(_)))
+    let duplicate_retry : Result[Consumer, Error] = Ok(
+      client.create_multi_topic_consumer(
+        [topic],
+        "sub",
+        retry_topic=topic,
+        dead_letter_policy=DeadLetterPolicy::new(1U, "dead-letter"),
+      ),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(duplicate_retry is Err(InvalidFrame(_)))
     client.close()
   })
 }

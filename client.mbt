@@ -289,7 +289,34 @@ pub async fn Client::create_consumer(
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
+  retry_topic? : String,
 ) -> Consumer {
+  if retry_topic is Some(retry) {
+    guard dead_letter_policy is Some(policy) else {
+      raise InvalidFrame("retry topic requires a dead-letter policy")
+    }
+    return self.create_retry_consumer(
+      topic,
+      subscription,
+      retry,
+      policy,
+      sub_type~,
+      key_shared_policy?,
+      consumer_name?,
+      initial_position~,
+      priority_level~,
+      durable~,
+      read_compacted~,
+      properties~,
+      subscription_properties~,
+      receiver_queue_size~,
+      ack_timeout_ms~,
+      nack_backoff?,
+      schema?,
+      partition_refresh_ms~,
+      chunk_policy?,
+    )
+  }
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
   }
@@ -423,6 +450,46 @@ async fn Client::with_dead_letter(
 }
 
 ///|
+async fn Client::attach_retry_source(
+  self : Client,
+  consumer : Consumer,
+  retry_topic : String,
+  policy : DeadLetterPolicy,
+  create_retry_source : async () -> Consumer,
+) -> Consumer {
+  let source = create_retry_source() catch {
+    e => {
+      consumer.close() catch {
+        _ => ()
+      }
+      raise e
+    }
+  }
+  consumer.add_source(self.manager.group, source) catch {
+    e => {
+      source.close() catch {
+        _ => ()
+      }
+      consumer.close() catch {
+        _ => ()
+      }
+      raise e
+    }
+  }
+  let consumer = self.with_dead_letter(consumer, Some(policy))
+  let producer = self.create_producer(retry_topic) catch {
+    e => {
+      consumer.close() catch {
+        _ => ()
+      }
+      raise e
+    }
+  }
+  consumer.set_retry_letter(retry_topic, producer)
+  consumer
+}
+
+///|
 /// Consume a source and its retry-letter topic as one stream. Call
 /// `Consumer::reconsume_later` to publish a failed message with a delay;
 /// retries beyond the dead-letter limit are sent to the dead-letter topic.
@@ -523,9 +590,24 @@ pub async fn Client::create_multi_topic_consumer(
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
+  retry_topic? : String,
 ) -> Consumer {
   guard !topics.is_empty() else {
     raise InvalidFrame("multi-topic consumer requires at least one topic")
+  }
+  if retry_topic is Some(retry) {
+    guard dead_letter_policy is Some(policy) &&
+      retry != "" &&
+      retry != policy.topic() &&
+      !topics.contains(retry) &&
+      !topics.contains(policy.topic()) else {
+      raise InvalidFrame("source, retry, and dead-letter topics must differ")
+    }
+  }
+  let source_policy = if retry_topic is None {
+    dead_letter_policy
+  } else {
+    None
   }
   let consumers : Array[Consumer] = []
   let seen : Map[String, Bool] = {}
@@ -547,7 +629,7 @@ pub async fn Client::create_multi_topic_consumer(
         receiver_queue_size~,
         ack_timeout_ms~,
         nack_backoff?,
-        dead_letter_policy?,
+        dead_letter_policy?=source_policy,
         schema?,
         partition_refresh_ms~,
         chunk_policy?,
@@ -564,7 +646,31 @@ pub async fn Client::create_multi_topic_consumer(
       consumers.push(sub)
     }
   }
-  Consumer::partitioned(self.manager.group, consumers)
+  let combined = Consumer::partitioned(self.manager.group, consumers)
+  guard retry_topic is Some(retry) && dead_letter_policy is Some(policy) else {
+    return combined
+  }
+  self.attach_retry_source(combined, retry, policy, async fn() {
+    self.create_consumer(
+      retry,
+      subscription,
+      sub_type~,
+      key_shared_policy?,
+      consumer_name?,
+      initial_position~,
+      priority_level~,
+      durable~,
+      read_compacted~,
+      properties~,
+      subscription_properties~,
+      receiver_queue_size~,
+      ack_timeout_ms~,
+      nack_backoff?,
+      schema?,
+      partition_refresh_ms~,
+      chunk_policy?,
+    )
+  })
 }
 
 ///|
@@ -776,6 +882,7 @@ pub async fn Client::create_pattern_consumer(
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
+  retry_topic? : String,
 ) -> Consumer {
   guard refresh_interval_ms > 0 else {
     raise InvalidFrame("topic refresh interval must be positive")
@@ -783,9 +890,21 @@ pub async fn Client::create_pattern_consumer(
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
   }
+  if retry_topic is Some(retry) {
+    guard dead_letter_policy is Some(policy) &&
+      retry != "" &&
+      retry != policy.topic() else {
+      raise InvalidFrame("retry topic requires a distinct dead-letter topic")
+    }
+  }
   let regex = @string.Regex::Regex(pattern)
   let consumer = Consumer::pattern(pattern, subscription)
   let seen : Map[String, Bool] = {}
+  let source_policy = if retry_topic is None {
+    dead_letter_policy
+  } else {
+    None
+  }
   let refresh = async fn() -> Unit {
     let discovered = self.topics_of_namespace(namespace)
     let current : Map[String, Bool] = {}
@@ -794,7 +913,13 @@ pub async fn Client::create_pattern_consumer(
       if regex.execute(topic) is Some(_) {
         current[topic] = true
       }
-      if current.contains(topic) && !seen.contains(topic) {
+      if current.contains(topic) &&
+        !seen.contains(topic) &&
+        retry_topic != Some(topic) &&
+        (
+          dead_letter_policy is None ||
+          Some(topic) != dead_letter_policy.map(fn(policy) { policy.topic() })
+        ) {
         let sub = self.create_consumer(
           topic,
           subscription,
@@ -810,7 +935,7 @@ pub async fn Client::create_pattern_consumer(
           receiver_queue_size~,
           ack_timeout_ms~,
           nack_backoff?,
-          dead_letter_policy?,
+          dead_letter_policy?=source_policy,
           schema?,
           partition_refresh_ms~,
           chunk_policy?,
@@ -835,6 +960,31 @@ pub async fn Client::create_pattern_consumer(
       consumer.close()
       raise e
     }
+  }
+  if retry_topic is Some(retry) && dead_letter_policy is Some(policy) {
+    ignore(
+      self.attach_retry_source(consumer, retry, policy, async fn() {
+        self.create_consumer(
+          retry,
+          subscription,
+          sub_type~,
+          key_shared_policy?,
+          consumer_name?,
+          initial_position~,
+          priority_level~,
+          durable~,
+          read_compacted~,
+          properties~,
+          subscription_properties~,
+          receiver_queue_size~,
+          ack_timeout_ms~,
+          nack_backoff?,
+          schema?,
+          partition_refresh_ms~,
+          chunk_policy?,
+        )
+      }),
+    )
   }
   self.manager.group.spawn_bg(
     async fn() {

@@ -392,6 +392,52 @@ async fn main {
       retry_dead_lettered.ack()
       retry_consumer.close()
       retry_dlq_consumer.close()
+      for mode in 0..<3 {
+        let subscription = "\{prefix}-ordinary-retry-\{mode}"
+        let policy = @pulsar.DeadLetterPolicy::new(1U, retry_dead_letter_topic)
+        let ordinary = match mode {
+          0 =>
+            client.create_consumer(
+              retry_source_topic,
+              subscription,
+              sub_type=Shared,
+              dead_letter_policy=policy,
+              retry_topic~,
+            )
+          1 =>
+            client.create_multi_topic_consumer(
+              [retry_source_topic, topic_a],
+              subscription,
+              sub_type=Shared,
+              dead_letter_policy=policy,
+              retry_topic~,
+            )
+          _ =>
+            client.create_pattern_consumer(
+              "public/default",
+              "persistent://public/default/\{prefix}-retry-.*",
+              subscription,
+              refresh_interval_ms=100,
+              sub_type=Shared,
+              dead_letter_policy=policy,
+              retry_topic~,
+            )
+        }
+        assert_true(ordinary.topics().contains(retry_topic))
+        let body = @utf8.encode("ordinary-retry-\{mode}")
+        ignore(retry_producer.send(@pulsar.ProducerMessage::new(body)))
+        let first = @async.with_timeout(10000, async fn() { ordinary.receive() })
+        assert_eq(first.topic(), retry_source_topic)
+        assert_eq(first.payload(), body)
+        ordinary.reconsume_later(first)
+        let retried = @async.with_timeout(10000, async fn() {
+          ordinary.receive()
+        })
+        assert_eq(retried.topic(), retry_topic)
+        assert_eq(retried.payload(), body)
+        retried.ack()
+        ordinary.close()
+      }
       retry_producer.close()
       let exclusive_producer = client.create_producer(
         admin_topic,
