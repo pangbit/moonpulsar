@@ -1117,11 +1117,12 @@ priv enum ProducerImpl {
 pub struct Producer {
   priv inner : ProducerImpl
   priv closed : Ref[Bool]
+  priv mut interceptors : Array[ProducerInterceptor]
 }
 
 ///|
 fn Producer::single(p : SingleProducer) -> Producer {
-  { inner: ProducerImpl::Single(p), closed: { val: false, }, }
+  { inner: ProducerImpl::Single(p), closed: { val: false, }, interceptors: [], }
 }
 
 ///|
@@ -1133,7 +1134,53 @@ pub fn Producer::partitioned(
   {
     inner: ProducerImpl::Partitioned(partitions, { val: 0, }, routing),
     closed: { val: false, },
+    interceptors: [],
   }
+}
+
+///|
+fn Producer::set_interceptors(
+  self : Producer,
+  interceptors : Array[ProducerInterceptor],
+) -> Unit {
+  self.interceptors = interceptors
+}
+
+///|
+fn Producer::before_send_message(
+  self : Producer,
+  message : ProducerMessage,
+) -> ProducerMessage {
+  let mut current = message
+  for interceptor in self.interceptors {
+    if interceptor.before_send is Some(callback) {
+      current = callback(current)
+    }
+  }
+  current
+}
+
+///|
+fn Producer::on_send_result(
+  self : Producer,
+  message : ProducerMessage,
+  result : Result[SendReceipt, Error],
+) -> Unit {
+  for interceptor in self.interceptors {
+    if interceptor.on_send_result is Some(callback) {
+      callback(message, result)
+    }
+  }
+}
+
+///|
+fn Producer::has_result_interceptor(self : Producer) -> Bool {
+  for interceptor in self.interceptors {
+    if interceptor.on_send_result is Some(_) {
+      return true
+    }
+  }
+  false
 }
 
 ///|
@@ -1218,9 +1265,17 @@ pub async fn Producer::send(
   self : Producer,
   msg : ProducerMessage,
 ) -> SendReceipt {
+  self.send_async(msg).wait()
+}
+
+///|
+async fn Producer::send_async_raw(
+  self : Producer,
+  msg : ProducerMessage,
+) -> (ReceiptFuture, @async.TaskGroup[Unit]) {
   match self.inner {
-    ProducerImpl::Single(p) => p.send(msg)
-    ProducerImpl::Partitioned(_, _, _) => self.route(msg).send(msg)
+    ProducerImpl::Single(p) => (p.send_async(msg), p.group)
+    ProducerImpl::Partitioned(_, _, _) => self.route(msg).send_async_raw(msg)
   }
 }
 
@@ -1230,10 +1285,34 @@ pub async fn Producer::send_async(
   self : Producer,
   msg : ProducerMessage,
 ) -> ReceiptFuture {
-  match self.inner {
-    ProducerImpl::Single(p) => p.send_async(msg)
-    ProducerImpl::Partitioned(_, _, _) => self.route(msg).send_async(msg)
+  let message = self.before_send_message(msg)
+  let (inner, group) = self.send_async_raw(message) catch {
+    e => {
+      self.on_send_result(message, Err(e))
+      raise e
+    }
   }
+  if !self.has_result_interceptor() {
+    return inner
+  }
+  let reply : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
+    kind=@aqueue.Kind::Blocking(1),
+  )
+  group.spawn_bg(
+    async fn() {
+      let result : Result[SendReceipt, Error] = Ok(inner.wait()) catch {
+        e => Err(e)
+      }
+      self.on_send_result(message, result)
+      match result {
+        Ok(receipt) => ignore(reply.try_put(receipt))
+        Err(e) => reply.close(error=e, clear=true)
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
+  { reply, }
 }
 
 ///|
@@ -1243,9 +1322,26 @@ pub async fn Producer::send_txn(
   txn : Transaction,
   msg : ProducerMessage,
 ) -> SendReceipt {
+  let message = self.before_send_message(msg)
+  let result : Result[SendReceipt, Error] = Ok(self.send_txn_raw(txn, message)) catch {
+    e => Err(e)
+  }
+  self.on_send_result(message, result)
+  match result {
+    Ok(receipt) => receipt
+    Err(e) => raise e
+  }
+}
+
+///|
+async fn Producer::send_txn_raw(
+  self : Producer,
+  txn : Transaction,
+  msg : ProducerMessage,
+) -> SendReceipt {
   match self.inner {
     ProducerImpl::Single(p) => p.send_txn(txn, msg)
-    ProducerImpl::Partitioned(_, _, _) => self.route(msg).send_txn(txn, msg)
+    ProducerImpl::Partitioned(_, _, _) => self.route(msg).send_txn_raw(txn, msg)
   }
 }
 

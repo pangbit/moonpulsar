@@ -187,6 +187,7 @@ pub async fn Client::create_producer(
   max_pending_messages? : Int,
   block_if_queue_full? : Bool = false,
   send_timeout_ms? : Int,
+  interceptors? : Array[ProducerInterceptor] = [],
 ) -> Producer {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -221,7 +222,9 @@ pub async fn Client::create_producer(
       send_timeout_ms?,
       memory_limiter?=self.memory_limiter,
     )
-    return Producer::single(single)
+    let producer = Producer::single(single)
+    producer.set_interceptors(interceptors)
+    return producer
   }
   let create_partition = async fn(i : Int) -> Producer {
     let partition_topic = "\{topic}-partition-\{i}"
@@ -265,6 +268,7 @@ pub async fn Client::create_producer(
     subs.push(partition)
   }
   let producer = Producer::partitioned(subs, routing~)
+  producer.set_interceptors(interceptors)
   self.manager.group.spawn_bg(
     async fn() {
       while !producer.is_closed() && !manager.is_closed() {

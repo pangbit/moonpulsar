@@ -238,6 +238,32 @@ async fn main {
     auto_second.ack()
     auto_consumer.close()
     auto_producer.close()
+    let interceptor_topic = "persistent://public/default/\{prefix}-interceptor"
+    let send_observed : Ref[Bool] = { val: false, }
+    let interceptor_producer = client.create_producer(interceptor_topic, interceptors=[
+      @pulsar.ProducerInterceptor::new(
+        before_send=fn(_message) {
+          @pulsar.ProducerMessage::new(b"intercepted")
+        },
+        on_send_result=fn(_message, result) {
+          send_observed.val = result is Ok(_)
+        },
+      ),
+    ])
+    let interceptor_consumer = client.create_consumer(
+      interceptor_topic,
+      "\{prefix}-interceptor-sub",
+      initial_position=Earliest,
+    )
+    ignore(interceptor_producer.send(@pulsar.ProducerMessage::new(b"original")))
+    assert_true(send_observed.val)
+    let intercepted = @async.with_timeout(10000, async fn() {
+      interceptor_consumer.receive()
+    })
+    assert_eq(intercepted.payload(), b"intercepted")
+    intercepted.ack()
+    interceptor_consumer.close()
+    interceptor_producer.close()
     let timeout_consumer = client.create_consumer(
       topic_a,
       "\{prefix}-timeout-sub",
