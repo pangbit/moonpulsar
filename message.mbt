@@ -146,6 +146,7 @@ pub struct Message {
   priv redelivery_count : UInt
   priv ack_tracker : Map[MessageId, Int]?
   priv batch_ack_tracker : BatchAckTracker?
+  priv ack_dispatcher : AckDispatcher?
   priv chunk_ids : Array[MessageId]?
   priv chunk_tracker : Map[MessageId, Array[MessageId]]?
   priv on_delivery : ((Message) -> Unit)?
@@ -236,6 +237,13 @@ pub async fn Message::ack(
       self.id,
       @proto.CommandAck_AckType::Individual,
       await_response~,
+      dispatcher?=self.ack_dispatcher,
+    )
+  } else if self.ack_dispatcher is Some(dispatcher) {
+    dispatcher.ack(
+      @proto.CommandAck_AckType::Individual,
+      self.chunk_ids.unwrap_or([self.id]),
+      await_response~,
     )
   } else {
     send_ack(
@@ -270,6 +278,14 @@ pub async fn Message::ack_txn(
       self.consumer_id,
       self.id,
       @proto.CommandAck_AckType::Individual,
+      txn~,
+      await_response~,
+      dispatcher?=self.ack_dispatcher,
+    )
+  } else if self.ack_dispatcher is Some(dispatcher) {
+    dispatcher.ack(
+      @proto.CommandAck_AckType::Individual,
+      self.chunk_ids.unwrap_or([self.id]),
       txn~,
       await_response~,
     )

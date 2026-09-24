@@ -111,6 +111,36 @@ async fn main {
     reopened_index_consumer.close()
     batch_producer.close()
     println("live batch ACK: completed")
+    let grouped_topic = "persistent://public/default/\{prefix}-grouped-ack"
+    let grouped_consumer = client.create_consumer(
+      grouped_topic,
+      "\{prefix}-grouped-ack-sub",
+      initial_position=Earliest,
+      ack_grouping=@pulsar.AckGroupingOptions::new(max_size=2, max_time_ms=0),
+    )
+    let grouped_producer = client.create_producer(grouped_topic)
+    for index in 0..<3 {
+      ignore(
+        grouped_producer.send(
+          @pulsar.ProducerMessage::new(@utf8.encode("grouped-\{index}")),
+        ),
+      )
+    }
+    for _ in 0..<3 {
+      let message = @async.with_timeout(10000, async fn() {
+        grouped_consumer.receive()
+      })
+      message.ack()
+    }
+    grouped_consumer.close()
+    let reopened_grouped_consumer = client.create_consumer(
+      grouped_topic,
+      "\{prefix}-grouped-ack-sub",
+    )
+    @async.sleep(300)
+    assert_true(reopened_grouped_consumer.try_receive() is None)
+    reopened_grouped_consumer.close()
+    grouped_producer.close()
     let timeout_consumer = client.create_consumer(
       topic_a,
       "\{prefix}-timeout-sub",

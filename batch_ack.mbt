@@ -88,6 +88,7 @@ async fn BatchAckTracker::ack(
   ack_type : @proto.CommandAck_AckType,
   txn? : Transaction,
   await_response? : Bool = false,
+  dispatcher? : AckDispatcher,
 ) -> Unit {
   self.mu.acquire()
   defer self.mu.release()
@@ -121,22 +122,34 @@ async fn BatchAckTracker::ack(
     raise InvalidFrame("partial cumulative batch ACK requires batch-index ACK")
   }
   if self.enabled {
-    send_ack(
-      conn,
-      consumer_id,
-      ack_type,
-      [key],
-      txn?,
-      await_response~,
-      batch_ack_set=batch_ack_set(
-        state.acknowledged,
-        id.batch_index,
-        cumulative,
-      ),
-      batch_size=state.acknowledged.length(),
-    )
+    let bits = batch_ack_set(state.acknowledged, id.batch_index, cumulative)
+    if dispatcher is Some(sender) {
+      sender.ack(
+        ack_type,
+        [key],
+        txn?,
+        await_response~,
+        batch_ack_set=bits,
+        batch_size=state.acknowledged.length(),
+      )
+    } else {
+      send_ack(
+        conn,
+        consumer_id,
+        ack_type,
+        [key],
+        txn?,
+        await_response~,
+        batch_ack_set=bits,
+        batch_size=state.acknowledged.length(),
+      )
+    }
   } else if all_acked {
-    send_ack(conn, consumer_id, ack_type, [key], txn?, await_response~)
+    if dispatcher is Some(sender) {
+      sender.ack(ack_type, [key], txn?, await_response~)
+    } else {
+      send_ack(conn, consumer_id, ack_type, [key], txn?, await_response~)
+    }
   } else if await_response {
     raise InvalidFrame(
       "partial batch ACK cannot await broker confirmation without batch-index ACK",
