@@ -156,6 +156,7 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/oauth2` | OAuth2 client credentials from a token endpoint |
 | `examples/athenz` | Athenz role token file maintained by a sidecar |
 | `examples/tls` | verified TLS send/receive and optional broker-restart check |
+| `examples/token_rotation` | invalid-token rejection and valid file-token rotation on one client |
 | `examples/producer_compression` | Zstd-compressed payloads |
 | `examples/reader` | replay a topic from the start with a reader |
 | `examples/encryption_interop` | Go/MoonBit encrypted messages, reader replay, retry and dead-letter forwarding |
@@ -174,6 +175,13 @@ For a TLS broker, set `PULSAR_TLS_URL` and `PULSAR_TLS_CA_FILE`. Set
 existing client across a broker restart, also set
 `PULSAR_TLS_RECONNECT_CHECK=1` and restart the broker after the first
 roundtrip message appears; the example waits 30 seconds before sending again.
+
+`examples/token_rotation` reads valid initial and next tokens from
+`PULSAR_TOKEN_INITIAL_FILE` and `PULSAR_TOKEN_NEXT_FILE`. It copies them into
+a disposable working file, verifies that the broker rejects an invalid rotated
+token, then opens a new connection from the same client with the next valid
+token. Set `PULSAR_URL`, `PULSAR_TOPIC`, and `PULSAR_SUBSCRIPTION` for an
+isolated broker run. The example never changes the supplied token files.
 
 The extended integration scenario accepts `PULSAR_URL`, `PULSAR_TOKEN`,
 `PULSAR_TEST_PREFIX`, and optional `PULSAR_ADMIN_URL`:

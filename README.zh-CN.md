@@ -149,6 +149,7 @@ async fn main {
 | `examples/oauth2` | 从令牌端点获取 OAuth2 客户端凭据 |
 | `examples/athenz` | 读取由 sidecar 维护的 Athenz 角色令牌文件 |
 | `examples/tls` | 验证 TLS 收发及可选的 broker 重启检查 |
+| `examples/token_rotation` | 同一客户端下验证无效 Token 拒绝和文件 Token 轮换 |
 | `examples/producer_compression` | Zstd 压缩负载 |
 | `examples/reader` | 从头回放 Topic |
 | `examples/encryption_interop` | Go/MoonBit 加密互通、Reader 回放及重试/死信转发 |
@@ -166,6 +167,12 @@ moon run examples/producer --target native
 `PULSAR_TOPIC`、`PULSAR_SUBSCRIPTION` 隔离测试资源。设置
 `PULSAR_TLS_RECONNECT_CHECK=1` 后，在首次收发完成的提示出现时重启 broker；
 示例等待 30 秒，再用同一客户端发送和接收。
+
+`examples/token_rotation` 从 `PULSAR_TOKEN_INITIAL_FILE` 和
+`PULSAR_TOKEN_NEXT_FILE` 读取两个有效 Token，并复制到一次性工作文件。它先验证
+broker 拒绝轮换后的无效 Token，再让同一客户端用第二个有效 Token 建立新连接并收发。
+可设置 `PULSAR_URL`、`PULSAR_TOPIC` 和 `PULSAR_SUBSCRIPTION` 隔离测试资源；
+示例不会修改传入的 Token 文件。
 
 扩展集成场景接受 `PULSAR_URL`、`PULSAR_TOKEN`、`PULSAR_TEST_PREFIX` 和可选的 `PULSAR_ADMIN_URL`：
 
