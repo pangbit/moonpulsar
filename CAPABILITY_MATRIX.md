@@ -7,7 +7,7 @@ repository on 2026-09-24.
 
 | Capability | Status | Verification |
 | --- | --- | --- |
-| TCP handshake, lookup, pooling, keepalive, reconnection | Implemented | Mock broker; prior real-broker restart scenario |
+| TCP handshake, lookup, pooling, keepalive, reconnection | Implemented | Mock broker, connection refusal, malformed handshake and response, pending-request failure and release; prior real-broker restart scenario |
 | Client configuration | Partial: connection/operation timeouts, keepalive, listener and lookup properties, reconnect backoff/attempts, per-broker pool sizing and idle eviction; `max_memory_bytes` bounds pending producer payload bytes across one client, while metadata and connection memory remain outside that budget | Mock timeout, LOOKUP wire, invalid retry policy, exhausted producer/consumer reconnect, pool bound/replacement, active-handler-aware idle eviction and shared byte-budget close; two-connection and shared-budget live suites on 4.2.4 and 3.3.9 |
 | TLS service URL and custom PEM CA | Implemented, limited live verification | TLS mock validates a private CA, rejects an untrusted certificate, and reconnects with the same CA; runnable TLS example; excluded from the token-authenticated live run |
 | Binary-protocol token and basic auth | Implemented | Token: live broker; basic: unit test; Admin REST supports bearer token |
@@ -44,5 +44,6 @@ set `PULSAR_ADMIN_URL` to include Admin REST checks. The live program is not
 part of `moon test` and requires a broker. `moon coverage` measures mock-suite
 line execution and therefore does not include the live program's execution.
 The mock suite does not yet reach full library line coverage; uncovered paths
-include connection failures, malformed broker replies, and several existing
-reader/transaction branches.
+include additional connection failure paths and several existing
+reader/transaction branches. Malformed frame lengths and missing handshake
+metadata now have executable regression tests.

@@ -132,3 +132,32 @@ test "decode frame rejects bad checksum" {
   }
   assert_true(result is Err(ChecksumMismatch))
 }
+
+///|
+test "decode frame rejects overflowing command and metadata lengths" {
+  let huge_command : Result[IncomingFrame, Error] = Ok(
+    decode_frame_body(b"\xff\xff\xff\xff"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(huge_command is Err(InvalidFrame(_)))
+  let empty_command : Result[IncomingFrame, Error] = Ok(
+    decode_frame_body(b"\x00\x00\x00\x00"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(empty_command is Err(InvalidFrame(_)))
+  let cmd = @proto.BaseCommand::default()
+  cmd.type_ = @proto.BaseCommand_Type::MESSAGE
+  cmd.message = Some(@proto.CommandMessage::default())
+  let encoded = encode_command_frame(cmd)
+  let body = @buffer.Buffer()
+  body.write_bytes(encoded[4:])
+  be32(body, -1)
+  let huge_metadata : Result[IncomingFrame, Error] = Ok(
+    decode_frame_body(body.to_bytes()),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(huge_metadata is Err(InvalidFrame(_)))
+}

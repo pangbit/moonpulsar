@@ -255,3 +255,99 @@ async test "pending request fails when connection breaks" {
     assert_true(conn.is_closed())
   })
 }
+
+///|
+async test "malformed broker response closes connection and releases request" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let _ = peer.next()
+      peer.tcp.write(b"\x00\x00\x00\x04\xff\xff\xff\xff")
+    })
+    let conn = Connection::connect(group, addr)
+    let req = @proto.CommandPartitionedTopicMetadata::default()
+    req.topic = "persistent://public/default/malformed"
+    req.request_id = conn.next_request_id()
+    let cmd = @proto.BaseCommand::default()
+    cmd.type_ = @proto.BaseCommand_Type::PARTITIONED_METADATA
+    cmd.partition_metadata = Some(req)
+    let result : Result[@proto.BaseCommand, Error] = Ok(
+      @async.with_timeout(1000, async fn() { conn.request(cmd) }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(InvalidFrame(_)))
+    assert_true(conn.is_closed())
+    assert_true(conn.pending.is_empty())
+    conn.close()
+  })
+}
+
+///|
+async test "handshake rejects CONNECTED without broker information" {
+  @async.with_task_group(async fn(group) {
+    let server = @socket.TcpServer::TcpServer(
+      @socket.Addr::parse("127.0.0.1:0"),
+    )
+    let addr = server.addr.to_string()
+    group.spawn_bg(
+      async fn() {
+        defer server.close()
+        let (tcp, _) = server.accept()
+        defer tcp.close()
+        let _ = read_frame(tcp)
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::CONNECTED
+        tcp.write(encode_command_frame(reply))
+      },
+      no_wait=true,
+      allow_failure=true,
+    )
+    let result : Result[Connection, Error] = Ok(
+      @async.with_timeout(1000, async fn() { Connection::connect(group, addr) }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConnectFailed(_)))
+  })
+}
+
+///|
+async test "handshake rejects frame shorter than command header" {
+  @async.with_task_group(async fn(group) {
+    let server = @socket.TcpServer::TcpServer(
+      @socket.Addr::parse("127.0.0.1:0"),
+    )
+    let addr = server.addr.to_string()
+    group.spawn_bg(
+      async fn() {
+        defer server.close()
+        let (tcp, _) = server.accept()
+        defer tcp.close()
+        let _ = read_frame(tcp)
+        tcp.write(b"\x00\x00\x00\x00")
+      },
+      no_wait=true,
+      allow_failure=true,
+    )
+    let result : Result[Connection, Error] = Ok(
+      @async.with_timeout(1000, async fn() { Connection::connect(group, addr) }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(InvalidFrame(_)))
+  })
+}
+
+///|
+async test "connection refusal returns ConnectFailed" {
+  @async.with_task_group(async fn(group) {
+    let result : Result[Connection, Error] = Ok(
+      @async.with_timeout(1000, async fn() {
+        Connection::connect(group, "127.0.0.1:0", connection_timeout_ms=500)
+      }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConnectFailed(_)))
+  })
+}

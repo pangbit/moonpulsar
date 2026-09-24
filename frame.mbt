@@ -101,6 +101,9 @@ pub async fn[R : @io.Reader] read_frame(reader : R) -> IncomingFrame {
   (header[1].to_uint() << 16) |
   (header[2].to_uint() << 8) |
   header[3].to_uint()).reinterpret_as_int()
+  if total < 4 {
+    raise InvalidFrame("invalid frame size")
+  }
   let body = reader.read_exactly(total) catch { _ => raise ConnectionClosed }
   decode_frame_body(body)
 }
@@ -134,7 +137,7 @@ fn metadata_has_batch_count(data : Bytes) -> Bool raise {
 /// Decode a frame body (without the leading total size field).
 pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
   let cmd_size = read_be32(body, 0).reinterpret_as_int()
-  if 4 + cmd_size > body.length() {
+  if cmd_size <= 0 || cmd_size > body.length() - 4 {
     raise InvalidFrame("command size exceeds frame length")
   }
   let cmd : @proto.BaseCommand = read_proto(body[4:4 + cmd_size].to_owned()) catch {
@@ -158,7 +161,7 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
     offset = 6
   }
   let metadata_size = read_be32(rest, offset).reinterpret_as_int()
-  if offset + 4 + metadata_size > rest.length() {
+  if metadata_size < 0 || metadata_size > rest.length() - offset - 4 {
     raise InvalidFrame("message metadata exceeds frame length")
   }
   let meta_bytes = rest[offset + 4:offset + 4 + metadata_size].to_owned()
