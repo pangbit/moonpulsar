@@ -21,14 +21,14 @@ pub fn RetryPolicy::default() -> RetryPolicy {
 ///|
 /// Run `f` with the retry policy, retrying any failure.
 pub async fn[T] with_retry(policy : RetryPolicy, f : async () -> T) -> T {
-  let method = @async.RetryMethod::ExponentialDelay(
+  let retry_method = @async.RetryMethod::ExponentialDelay(
     initial=policy.initial_backoff_ms,
     factor=2.0,
     maximum=policy.max_backoff_ms,
   )
   if policy.max_retries < 0 {
-    @async.retry(method, f)
+    @async.retry(retry_method, f)
   } else {
-    @async.retry(method, max_retry=policy.max_retries, f)
+    @async.retry(retry_method, max_retry=policy.max_retries, f)
   }
 }

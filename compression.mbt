@@ -24,9 +24,7 @@ fn CompressionCodec::to_proto(
 }
 
 ///|
-fn CompressionCodec::from_proto(
-  t : @proto.CompressionType,
-) -> CompressionCodec raise PulsarError {
+fn CompressionCodec::from_proto(t : @proto.CompressionType) -> CompressionCodec {
   match t {
     @proto.CompressionType::NONE => None
     @proto.CompressionType::LZ4 => Lz4
@@ -70,7 +68,7 @@ pub fn decompress(
       }
     Zlib =>
       @zlib.zlib_decompress(payload) catch {
-        e => raise InvalidFrame("zlib decompress failed")
+        _ => raise InvalidFrame("zlib decompress failed")
       }
     Zstd =>
       @zstd.decompress(payload) catch {

@@ -7,7 +7,7 @@ async test "multi-topic consumer receives and acknowledges each source topic" {
       "persistent://public/default/multi-a", "persistent://public/default/multi-b",
     ]
     let addr = start_partitioned_broker(group, 0, async fn(_addr, peer) {
-      let ids : Map[String, UInt64] = {}
+      let ids : Map[String, UInt64] = Map([])
       for _ in 0..<2 {
         let frame = peer.next()
         guard frame.cmd.subscribe is Some(req) else {
@@ -50,7 +50,7 @@ async test "multi-topic consumer receives and acknowledges each source topic" {
       [topics[0], topics[1], topics[0]],
       "multi-sub",
     )
-    let received : Map[String, Bytes] = {}
+    let received : Map[String, Bytes] = Map([])
     for _ in 0..<2 {
       let message = @async.with_timeout(5000, async fn() { consumer.receive() })
       received[message.topic()] = message.payload()
@@ -66,7 +66,7 @@ async test "multi-topic consumer receives and acknowledges each source topic" {
 ///|
 async test "client rejects invalid consumer and chunking options before lookup" {
   @async.with_task_group(async fn(group) {
-    let addr = start_mock_broker(group, async fn(_addr, _peer) {  })
+    let addr = start_mock_broker(group, fn(_addr, _peer) {  })
     let client = Client::connect(group, "pulsar://\{addr}")
     let topic = "persistent://public/default/options"
     let no_topics : Result[Consumer, Error] = Ok(

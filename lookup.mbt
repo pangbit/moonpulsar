@@ -146,14 +146,14 @@ pub async fn get_partition_count(
 pub async fn get_topics_of_namespace(
   manager : ConnectionManager,
   addr : String,
-  namespace : String,
+  ns : String,
   pattern? : String,
   mode? : NamespaceTopicMode = Persistent,
 ) -> Array[String] {
   let conn = manager.get(addr)
   let req = @proto.CommandGetTopicsOfNamespace::default()
   req.request_id = conn.next_request_id()
-  req.namespace_ = namespace
+  req.namespace_ = ns
   req.mode = Some(mode.to_proto())
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::GET_TOPICS_OF_NAMESPACE

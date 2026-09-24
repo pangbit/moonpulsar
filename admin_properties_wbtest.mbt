@@ -4,7 +4,7 @@ async test "admin topic properties update read and remove" {
     let calls : Ref[Int] = { val: 0, }
     with_mock_admin(
       group,
-      async fn(request, payload) {
+      (request, payload) => {
         let path = "/admin/v2/persistent/public/default/events/properties"
         match calls.val {
           0 => {
@@ -56,18 +56,16 @@ async test "admin topic properties update read and remove" {
 ///|
 async test "admin topic properties reject wrong JSON shapes and unsafe keys" {
   @async.with_task_group(async fn(group) {
-    with_mock_admin(
-      group,
-      async fn(_request, _payload) { (200, "{\"owner\":7}") },
-      async fn(url) {
-        let result : Result[Map[String, String], Error] = Ok(
-          Admin::new(url).topic_properties("persistent://public/default/events"),
-        ) catch {
-          e => Err(e)
-        }
-        assert_true(result is Err(InvalidFrame(_)))
-      },
-    )
+    with_mock_admin(group, (_request, _payload) => (200, "{\"owner\":7}"), async fn(
+      url,
+    ) {
+      let result : Result[Map[String, String], Error] = Ok(
+        Admin::new(url).topic_properties("persistent://public/default/events"),
+      ) catch {
+        e => Err(e)
+      }
+      assert_true(result is Err(InvalidFrame(_)))
+    })
   })
   let invalid : Result[Unit, Error] = Ok(
     Admin::new("http://127.0.0.1:1").remove_topic_property(

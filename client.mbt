@@ -318,17 +318,13 @@ pub async fn Client::create_producer(
     )
   }
   let subs : Array[Producer] = []
-  for i in 0..<partitions {
-    let partition = create_partition(i) catch {
-      e => {
-        for existing in subs {
-          existing.close() catch {
-            _ => ()
-          }
-        }
-        raise e
-      }
+  errdefer (for existing in subs {
+    existing.close() catch {
+      _ => ()
     }
+  })
+  for i in 0..<partitions {
+    let partition = create_partition(i)
     subs.push(partition)
   }
   let producer = Producer::partitioned(subs, routing~)
@@ -509,17 +505,13 @@ pub async fn Client::create_consumer(
     )
   }
   let subs : Array[Consumer] = []
-  for i in 0..<partitions {
-    let sub = create_partition(i) catch {
-      e => {
-        for existing in subs {
-          existing.close() catch {
-            _ => ()
-          }
-        }
-        raise e
-      }
+  errdefer (for existing in subs {
+    existing.close() catch {
+      _ => ()
     }
+  })
+  for i in 0..<partitions {
+    let sub = create_partition(i)
     subs.push(sub)
   }
   let consumer = Consumer::partitioned(self.manager.group, subs)
@@ -564,18 +556,12 @@ async fn Client::with_dead_letter(
   encryption_key_names? : Array[String] = [],
 ) -> Consumer {
   if policy is Some(config) {
+    errdefer (consumer.close() catch { _ => () })
     let producer = self.create_producer(
       config.topic(),
       message_crypto?,
       encryption_key_names~,
-    ) catch {
-      e => {
-        consumer.close() catch {
-          _ => ()
-        }
-        raise e
-      }
-    }
+    )
     consumer.set_dead_letter(config, producer, self.manager.group)
   }
   consumer
@@ -591,24 +577,11 @@ async fn Client::attach_retry_source(
   message_crypto? : MessageCrypto,
   encryption_key_names? : Array[String] = [],
 ) -> Consumer {
-  let source = create_retry_source() catch {
-    e => {
-      consumer.close() catch {
-        _ => ()
-      }
-      raise e
-    }
-  }
-  consumer.add_source(self.manager.group, source) catch {
-    e => {
-      source.close() catch {
-        _ => ()
-      }
-      consumer.close() catch {
-        _ => ()
-      }
-      raise e
-    }
+  errdefer (consumer.close() catch { _ => () })
+  let source = create_retry_source()
+  {
+    errdefer (source.close() catch { _ => () })
+    consumer.add_source(self.manager.group, source)
   }
   let consumer = self.with_dead_letter(
     consumer,
@@ -620,14 +593,7 @@ async fn Client::attach_retry_source(
     retry_topic,
     message_crypto?,
     encryption_key_names~,
-  ) catch {
-    e => {
-      consumer.close() catch {
-        _ => ()
-      }
-      raise e
-    }
-  }
+  )
   consumer.set_retry_letter(retry_topic, producer)
   consumer
 }
@@ -697,13 +663,9 @@ pub async fn Client::create_retry_consumer(
     )
   }
   let source = create(topic)
-  let retry_source = create(retry_topic) catch {
-    e => {
-      source.close() catch {
-        _ => ()
-      }
-      raise e
-    }
+  let retry_source = {
+    errdefer (source.close() catch { _ => () })
+    create(retry_topic)
   }
   let combined = Consumer::partitioned(self.manager.group, [
     source, retry_source,
@@ -714,18 +676,12 @@ pub async fn Client::create_retry_consumer(
     message_crypto?,
     encryption_key_names~,
   )
+  errdefer (combined.close() catch { _ => () })
   let producer = self.create_producer(
     retry_topic,
     message_crypto?,
     encryption_key_names~,
-  ) catch {
-    e => {
-      combined.close() catch {
-        _ => ()
-      }
-      raise e
-    }
-  }
+  )
   combined.set_retry_letter(retry_topic, producer)
   self.observe_consumer(combined, interceptors)
 }
@@ -779,7 +735,12 @@ pub async fn Client::create_multi_topic_consumer(
     None
   }
   let consumers : Array[Consumer] = []
-  let seen : Map[String, Bool] = {}
+  errdefer (for existing in consumers {
+    existing.close() catch {
+      _ => ()
+    }
+  })
+  let seen : Map[String, Bool] = Map([])
   for topic in topics {
     if !seen.contains(topic) {
       seen[topic] = true
@@ -807,16 +768,7 @@ pub async fn Client::create_multi_topic_consumer(
         enable_batch_index_ack~,
         ack_grouping?,
         auto_scaled_receiver_queue~,
-      ) catch {
-        e => {
-          for existing in consumers {
-            existing.close() catch {
-              _ => ()
-            }
-          }
-          raise e
-        }
-      }
+      )
       consumers.push(sub)
     }
   }
@@ -928,17 +880,13 @@ pub async fn Client::create_reader(
     )
   }
   let subs : Array[SingleReader] = []
-  for i in 0..<partitions {
-    let sub = create_partition(i) catch {
-      e => {
-        for existing in subs {
-          existing.close() catch {
-            _ => ()
-          }
-        }
-        raise e
-      }
+  errdefer (for existing in subs {
+    existing.close() catch {
+      _ => ()
     }
+  })
+  for i in 0..<partitions {
+    let sub = create_partition(i)
     subs.push(sub)
   }
   let reader = Reader::partitioned(self.manager.group, subs)
@@ -987,14 +935,8 @@ pub async fn Client::create_table_view(
     schema?,
     message_crypto?,
   )
-  TableView::create(self.manager.group, reader) catch {
-    e => {
-      reader.close() catch {
-        _ => ()
-      }
-      raise e
-    }
-  }
+  errdefer (reader.close() catch { _ => () })
+  TableView::create(self.manager.group, reader)
 }
 
 ///|
@@ -1014,16 +956,8 @@ pub async fn[T] Client::create_typed_table_view(
     message_crypto?,
   )
   let typed = TypedTableView::wrap(raw, codec)
-  ignore(
-    typed.entries() catch {
-      e => {
-        raw.close() catch {
-          _ => ()
-        }
-        raise e
-      }
-    },
-  )
+  errdefer (raw.close() catch { _ => () })
+  ignore(typed.entries())
   typed
 }
 
@@ -1070,17 +1004,11 @@ pub async fn Client::get_schema(
 /// expression.
 pub async fn Client::topics_of_namespace(
   self : Client,
-  namespace : String,
+  ns : String,
   pattern? : String,
   mode? : NamespaceTopicMode = Persistent,
 ) -> Array[String] {
-  get_topics_of_namespace(
-    self.manager,
-    self.service_addr,
-    namespace,
-    pattern?,
-    mode~,
-  )
+  get_topics_of_namespace(self.manager, self.service_addr, ns, pattern?, mode~)
 }
 
 ///|
@@ -1088,7 +1016,7 @@ pub async fn Client::topics_of_namespace(
 /// New topics are discovered at the configured polling interval.
 pub async fn Client::create_pattern_consumer(
   self : Client,
-  namespace : String,
+  ns : String,
   pattern : String,
   subscription : String,
   refresh_interval_ms? : Int = 60000,
@@ -1132,15 +1060,15 @@ pub async fn Client::create_pattern_consumer(
   let regex = @string.Regex::Regex(pattern)
   let consumer = Consumer::pattern(pattern, subscription)
   ignore(self.observe_consumer(consumer, interceptors))
-  let seen : Map[String, Bool] = {}
+  let seen : Map[String, Bool] = Map([])
   let source_policy = if retry_topic is None {
     dead_letter_policy
   } else {
     None
   }
   let refresh = async fn() -> Unit {
-    let discovered = self.topics_of_namespace(namespace)
-    let current : Map[String, Bool] = {}
+    let discovered = self.topics_of_namespace(ns)
+    let current : Map[String, Bool] = Map([])
     for name in discovered {
       let topic = base_topic_name(name)
       if regex.execute(topic) is Some(_) {
@@ -1193,12 +1121,8 @@ pub async fn Client::create_pattern_consumer(
       seen.remove(topic)
     }
   }
-  refresh() catch {
-    e => {
-      consumer.close()
-      raise e
-    }
-  }
+  errdefer consumer.close()
+  refresh()
   if retry_topic is Some(retry) && dead_letter_policy is Some(policy) {
     ignore(
       self.attach_retry_source(

@@ -94,7 +94,7 @@ async test "auto-scaled consumer grows FLOW from one to its configured maximum" 
 ///|
 async test "auto-scaled consumer rejects a zero maximum" {
   @async.with_task_group(async fn(group) {
-    let addr = start_mock_broker(group, async fn(_addr, _peer) { () })
+    let addr = start_mock_broker(group, fn(_addr, _peer) { () })
     let manager = ConnectionManager::new(group)
     let invalid : Result[SingleConsumer, Error] = Ok(
       SingleConsumer::create(

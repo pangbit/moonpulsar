@@ -192,7 +192,7 @@ pub fn[T] TypedTableView::keys(self : TypedTableView[T]) -> Array[String] {
 pub fn[T] TypedTableView::entries(
   self : TypedTableView[T],
 ) -> Map[String, T] raise PulsarError {
-  let result : Map[String, T] = {}
+  let result : Map[String, T] = Map([])
   for key, payload in self.raw.entries() {
     result[key] = self.codec.decode(payload)
   }

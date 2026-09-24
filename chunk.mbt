@@ -44,7 +44,7 @@ priv struct ChunkAssembly {
 }
 
 ///|
-struct ChunkResult {
+priv struct ChunkResult {
   payload : Bytes?
   ids : Array[MessageId]
   is_chunk : Bool
@@ -161,7 +161,7 @@ fn ChunkAssembler::accept(
   if index == 0 {
     // A repeated first chunk can be a redelivery of the same broker entry.
     self.discard(uuid, acknowledge=false)
-    if self.pending.size() >= self.policy.max_pending_messages &&
+    if self.pending.length() >= self.policy.max_pending_messages &&
       !self.pending.contains(uuid) {
       self.evict_oldest()
     }

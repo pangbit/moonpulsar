@@ -59,12 +59,8 @@ async fn ClientMemoryLimiter::acquire(
     )
     self.waiters.push({ token, ready, })
     self.mu.release()
-    ready.get() catch {
-      e => {
-        self.remove_waiter(token)
-        raise e
-      }
-    }
+    errdefer self.remove_waiter(token)
+    ready.get()
   }
 }
 

@@ -2,7 +2,7 @@
 // acknowledged as a whole until every contained message was acknowledged.
 
 ///|
-struct BatchAckState {
+priv struct BatchAckState {
   acknowledged : Array[Bool]
   generation : Int
 }

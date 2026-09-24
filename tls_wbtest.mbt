@@ -1,6 +1,7 @@
 // TLS connection tests use a disposable localhost certificate in testdata/tls.
 
 ///|
+#warnings("-alert_internal")
 async fn start_tls_mock_broker(
   group : @async.TaskGroup[Unit],
   connections? : Int = 1,

@@ -67,7 +67,7 @@ async test "partitioned producer routes keyed messages consistently" {
       kind=@aqueue.Kind::Unbounded,
     )
     let addr = start_partitioned_broker(group, 2, async fn(_addr, peer) {
-      let topics : Map[UInt64, String] = {}
+      let topics : Map[UInt64, String] = Map([])
       // 2 PRODUCER + 4 SEND
       for _ in 0..<6 {
         let frame = peer.next()
@@ -99,7 +99,7 @@ async test "partitioned producer routes keyed messages consistently" {
     ignore(producer.send(ProducerMessage::new(b"b1", key="beta")))
     ignore(producer.send(ProducerMessage::new(b"a2", key="alpha")))
     ignore(producer.send(ProducerMessage::new(b"b2", key="beta")))
-    let by_payload : Map[String, String] = {}
+    let by_payload : Map[String, String] = Map([])
     for _ in 0..<4 {
       let (topic, payload) = got.get()
       by_payload[@utf8.decode(payload)] = topic
@@ -124,7 +124,7 @@ async fn check_producer_routing(
       kind=@aqueue.Kind::Unbounded,
     )
     let addr = start_partitioned_broker(group, 3, async fn(_addr, peer) {
-      let partitions : Map[UInt64, Int] = {}
+      let partitions : Map[UInt64, Int] = Map([])
       for _ in 0..<(3 + expected.length()) {
         let frame = peer.next()
         if frame.cmd.producer is Some(req) {

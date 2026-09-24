@@ -249,11 +249,11 @@ test "chunk assembler rejects gaps and oversized declarations" {
   meta.total_chunk_msg_size = Some(6)
   meta.chunk_id = Some(1)
   assert_true(chunks.accept(meta, id, b"def").payload is None)
-  assert_eq(chunks.pending.size(), 0)
+  assert_eq(chunks.pending.length(), 0)
   meta.chunk_id = Some(0)
   meta.total_chunk_msg_size = Some(MAX_CHUNKED_MESSAGE_BYTES + 1)
   assert_true(chunks.accept(meta, id, b"abc").payload is None)
-  assert_eq(chunks.pending.size(), 0)
+  assert_eq(chunks.pending.length(), 0)
   meta.total_chunk_msg_size = Some(6)
   meta.uuid = None
   assert_true(chunks.accept(meta, id, b"abc").payload is None)
@@ -261,14 +261,14 @@ test "chunk assembler rejects gaps and oversized declarations" {
   assert_true(chunks.accept(meta, id, b"abc").payload is None)
   meta.chunk_id = Some(1)
   assert_true(chunks.accept(meta, id, b"defg").payload is None)
-  assert_eq(chunks.pending.size(), 0)
+  assert_eq(chunks.pending.length(), 0)
   meta.uuid = Some("short")
   meta.total_chunk_msg_size = Some(7)
   meta.chunk_id = Some(0)
   assert_true(chunks.accept(meta, id, b"abc").payload is None)
   meta.chunk_id = Some(1)
   assert_true(chunks.accept(meta, id, b"def").payload is None)
-  assert_eq(chunks.pending.size(), 0)
+  assert_eq(chunks.pending.length(), 0)
 }
 
 ///|
@@ -288,7 +288,7 @@ test "chunk assembler releases completed payloads and caps pending messages" {
     meta.chunk_id = Some(0)
     assert_true(chunks.accept(meta, id, b"a").payload is None)
   }
-  assert_eq(chunks.pending.size(), MAX_PENDING_CHUNKED_MESSAGES)
+  assert_eq(chunks.pending.length(), MAX_PENDING_CHUNKED_MESSAGES)
   assert_eq(chunks.buffered_bytes, MAX_PENDING_CHUNKED_MESSAGES)
   let meta = test_metadata()
   meta.uuid = Some("pending-100")
@@ -325,11 +325,11 @@ async test "chunk policy limits pending messages and expires incomplete buffers"
     meta.chunk_id = Some(0)
     ignore(chunks.accept(meta, id, b"a"))
   }
-  assert_eq(chunks.pending.size(), 1)
+  assert_eq(chunks.pending.length(), 1)
   assert_eq(chunks.buffered_bytes, 1)
   @async.sleep(30)
   chunks.evict_expired()
-  assert_eq(chunks.pending.size(), 0)
+  assert_eq(chunks.pending.length(), 0)
   assert_eq(chunks.buffered_bytes, 0)
 }
 

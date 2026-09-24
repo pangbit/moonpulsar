@@ -82,7 +82,7 @@ async test "KeyShared policy is sent with subscription" {
 ///|
 async test "KeyShared policy cannot be used with another subscription mode" {
   @async.with_task_group(async fn(group) {
-    let addr = start_mock_broker(group, async fn(_addr, _peer) {  })
+    let addr = start_mock_broker(group, fn(_addr, _peer) {  })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
     let invalid : Result[SingleConsumer, Error] = Ok(

@@ -118,25 +118,12 @@ pub async fn SingleReader::create(
     raise ConnectionClosed
   }
   if include_start_message_id && start_message_id == Some(MessageId::latest()) {
-    let last = reader.last_message_id() catch {
-      e => {
-        reader.close() catch {
-          _ => ()
-        }
-        raise e
-      }
-    }
+    errdefer (reader.close() catch { _ => () })
+    let last = reader.last_message_id()
     if last.entry_id != 18446744073709551615 {
       reader.start_bound.val = Some(last)
       reader.last_seen.val = Some(last)
-      reader.resubscribe(Some(last)) catch {
-        e => {
-          reader.close() catch {
-            _ => ()
-          }
-          raise e
-        }
-      }
+      reader.resubscribe(Some(last))
     }
   }
   group.spawn_bg(

@@ -5,6 +5,12 @@ struct AvroTestRecord {
 } derive(Eq, Debug)
 
 ///|
+pub extend AvroTestRecord with Eq::{not_equal, equal}
+
+///|
+pub extend AvroTestRecord with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
 fn avro_record_codec() -> SchemaCodec[AvroTestRecord] raise PulsarError {
   SchemaCodec::avro(
     b"{\"type\":\"record\",\"name\":\"AvroTestRecord\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"},{\"name\":\"name\",\"type\":\"string\"}]}",
@@ -14,7 +20,7 @@ fn avro_record_codec() -> SchemaCodec[AvroTestRecord] raise PulsarError {
         ("name", @avro_codec.Datum::String(value.name)),
       ])
     },
-    fn(datum) {
+    datum => {
       match datum {
         @avro_codec.Datum::Record(
           [

@@ -6,7 +6,7 @@ pub(all) struct TopicName {
   /// "persistent" or "non-persistent"
   domain : String
   tenant : String
-  namespace : String
+  namespace_ : String
   topic : String
 } derive(Eq, Debug)
 
@@ -32,13 +32,13 @@ pub fn TopicName::parse(full : String) -> TopicName raise PulsarError {
       }
   }
   match rest.split("/").collect() {
-    [tenant, namespace, topic] if safe_admin_segment(tenant) &&
-      safe_admin_segment(namespace) &&
+    [tenant, ns, topic] if safe_admin_segment(tenant) &&
+      safe_admin_segment(ns) &&
       safe_admin_segment(topic) =>
       {
         domain,
         tenant: tenant.to_owned(),
-        namespace: namespace.to_owned(),
+        namespace_: ns.to_owned(),
         topic: topic.to_owned(),
       }
     _ => raise LookupFailed("malformed topic name: \{full}")
@@ -61,11 +61,11 @@ pub fn Admin::new(base_url : String, token? : String) -> Admin {
 ///|
 async fn Admin::request(
   self : Admin,
-  method : @http.RequestMethod,
+  request_method : @http.RequestMethod,
   path : String,
   body? : Bytes,
 ) -> (Int, Bytes) {
-  let headers = {}
+  let headers = Map([])
   if body is Some(_) {
     headers[@http.CaseInsensitiveString("Content-Type")] = "application/json"
   }
@@ -73,15 +73,14 @@ async fn Admin::request(
     headers[@http.CaseInsensitiveString("Authorization")] = "Bearer " + t
   }
   let url = self.base_url + path
-  let (resp, data) = match (method, body) {
+  let (resp, data) = match (request_method, body) {
     (@http.RequestMethod::Get, _) => @http.get(url, headers~)
-    (@http.RequestMethod::Delete, _) => @http.request(url, method, headers, b"")
-    (_, Some(b)) => @http.request(url, method, headers, b)
-    (_, None) => @http.request(url, method, headers, b"")
+    (@http.RequestMethod::Delete, _) =>
+      @http.request(url, request_method, headers, b"")
+    (_, Some(b)) => @http.request(url, request_method, headers, b)
+    (_, None) => @http.request(url, request_method, headers, b"")
   }
-  let payload = data.binary() catch {
-    _ => raise InvalidFrame("admin: unreadable response body")
-  }
+  let payload = data.binary()
   if resp.code < 200 || resp.code >= 300 {
     let text = @utf8.decode(payload) catch { _ => "<binary>" }
     raise ServerError(code=resp.code, message="admin \{path}: \{text}")
@@ -91,7 +90,7 @@ async fn Admin::request(
 
 ///|
 fn topic_path(name : TopicName) -> String {
-  "/admin/v2/\{name.domain}/\{name.tenant}/\{name.namespace}/\{name.topic}"
+  "/admin/v2/\{name.domain}/\{name.tenant}/\{name.namespace_}/\{name.topic}"
 }
 
 ///|
@@ -222,19 +221,16 @@ fn admin_string_array(payload : Bytes) -> Array[String] raise PulsarError {
 pub async fn Admin::list_topics(
   self : Admin,
   tenant : String,
-  namespace : String,
+  ns : String,
   domain? : String = "persistent",
 ) -> Array[String] {
   guard domain == "persistent" || domain == "non-persistent" else {
     raise LookupFailed("invalid topic domain: \{domain}")
   }
-  guard safe_admin_segment(tenant) && safe_admin_segment(namespace) else {
+  guard safe_admin_segment(tenant) && safe_admin_segment(ns) else {
     raise LookupFailed("invalid namespace")
   }
-  let (_, payload) = self.request(
-    Get,
-    "/admin/v2/\{domain}/\{tenant}/\{namespace}",
-  )
+  let (_, payload) = self.request(Get, "/admin/v2/\{domain}/\{tenant}/\{ns}")
   admin_string_array(payload)
 }
 
@@ -243,18 +239,18 @@ pub async fn Admin::list_topics(
 pub async fn Admin::list_partitioned_topics(
   self : Admin,
   tenant : String,
-  namespace : String,
+  ns : String,
   domain? : String = "persistent",
 ) -> Array[String] {
   guard domain == "persistent" || domain == "non-persistent" else {
     raise LookupFailed("invalid topic domain: \{domain}")
   }
-  guard safe_admin_segment(tenant) && safe_admin_segment(namespace) else {
+  guard safe_admin_segment(tenant) && safe_admin_segment(ns) else {
     raise LookupFailed("invalid namespace")
   }
   let (_, payload) = self.request(
     Get,
-    "/admin/v2/\{domain}/\{tenant}/\{namespace}/partitioned",
+    "/admin/v2/\{domain}/\{tenant}/\{ns}/partitioned",
   )
   admin_string_array(payload)
 }

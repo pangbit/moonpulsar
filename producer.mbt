@@ -393,7 +393,7 @@ fn SingleProducer::on_connection_closed(
 async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
   guard self.reconnect_with is Some(provider) else { return }
   let policy = self.reconnect_policy
-  let method = @async.RetryMethod::ExponentialDelay(
+  let retry_method = @async.RetryMethod::ExponentialDelay(
     initial=policy.initial_backoff_ms,
     factor=2.0,
     maximum=policy.max_backoff_ms,
@@ -435,10 +435,14 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
   }
   let run = async fn() -> Unit {
     if policy.max_retries < 0 {
-      @async.retry(method, fatal_error=fn(e) { e is ProducerClosed }, attempt)
+      @async.retry(
+        retry_method,
+        fatal_error=fn(e) { e is ProducerClosed },
+        attempt,
+      )
     } else {
       @async.retry(
-        method,
+        retry_method,
         max_retry=policy.max_retries,
         fatal_error=fn(e) { e is ProducerClosed },
         attempt,
@@ -558,14 +562,10 @@ pub async fn SingleProducer::send_async(
   }
   let size = msg.payload.length()
   if self.memory_limiter is Some(limiter) {
-    limiter.acquire(size, self.block_if_queue_full) catch {
-      e => {
-        if slots is Some(queue) {
-          ignore(queue.try_put(()) catch { _ => false })
-        }
-        raise e
-      }
-    }
+    errdefer (if slots is Some(queue) {
+      ignore(queue.try_put(()) catch { _ => false })
+    })
+    limiter.acquire(size, self.block_if_queue_full)
   }
   if self.closed {
     if self.memory_limiter is Some(limiter) {
@@ -576,16 +576,16 @@ pub async fn SingleProducer::send_async(
     }
     raise ProducerClosed
   }
-  let inner = self.send_async_unbounded(msg) catch {
-    e => {
+  let inner = {
+    errdefer {
       if self.memory_limiter is Some(limiter) {
         limiter.release(size)
       }
       if slots is Some(queue) {
         ignore(queue.try_put(()) catch { _ => false })
       }
-      raise e
     }
+    self.send_async_unbounded(msg)
   }
   if slots is None && self.memory_limiter is None {
     return inner
@@ -872,14 +872,10 @@ pub async fn SingleProducer::send_txn(
   }
   let size = msg.payload.length()
   if self.memory_limiter is Some(limiter) {
-    limiter.acquire(size, self.block_if_queue_full) catch {
-      e => {
-        if slots is Some(queue) {
-          ignore(queue.try_put(()) catch { _ => false })
-        }
-        raise e
-      }
-    }
+    errdefer (if slots is Some(queue) {
+      ignore(queue.try_put(()) catch { _ => false })
+    })
+    limiter.acquire(size, self.block_if_queue_full)
   }
   if self.closed {
     if self.memory_limiter is Some(limiter) {
@@ -1328,8 +1324,10 @@ pub async fn Producer::send_async(
   msg : ProducerMessage,
 ) -> ReceiptFuture {
   let message = self.before_send_message(msg)
-  let (inner, group) = self.send_async_raw(message) catch {
-    e => {
+  let result = Ok(self.send_async_raw(message)) catch { e => Err(e) }
+  let (inner, group) = match result {
+    Ok(value) => value
+    Err(e) => {
       self.on_send_result(message, Err(e))
       raise e
     }

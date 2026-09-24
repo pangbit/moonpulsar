@@ -419,7 +419,7 @@ fn SingleConsumer::attach(self : SingleConsumer, conn : Connection) -> Unit {
 async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
   guard self.reconnect_with is Some(provider) else { return }
   let policy = self.reconnect_policy
-  let method = @async.RetryMethod::ExponentialDelay(
+  let retry_method = @async.RetryMethod::ExponentialDelay(
     initial=policy.initial_backoff_ms,
     factor=2.0,
     maximum=policy.max_backoff_ms,
@@ -448,10 +448,14 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
   }
   let run = async fn() -> Unit {
     if policy.max_retries < 0 {
-      @async.retry(method, fatal_error=fn(e) { e is ConsumerClosed }, attempt)
+      @async.retry(
+        retry_method,
+        fatal_error=fn(e) { e is ConsumerClosed },
+        attempt,
+      )
     } else {
       @async.retry(
-        method,
+        retry_method,
         max_retry=policy.max_retries,
         fatal_error=fn(e) { e is ConsumerClosed },
         attempt,
@@ -537,12 +541,10 @@ async fn SingleConsumer::request_one(self : SingleConsumer) -> Unit {
     !self.demand_active &&
     self.buffered_messages == 0 {
     self.demand_active = true
-    self.send_flow(1) catch {
-      e => {
-        self.demand_active = false
-        raise e
-      }
+    errdefer {
+      self.demand_active = false
     }
+    self.send_flow(1)
   }
 }
 
@@ -1173,8 +1175,14 @@ pub async fn SingleConsumer::seek(
   self.consumer_id = conn.next_request_id()
   self.ack_dispatcher.consumer_id = self.consumer_id
   conn.message_handlers[self.consumer_id] = fn(frame) { self.on_frame(frame) }
-  let subscribed = conn.request(self.subscribe_command(conn.next_request_id())) catch {
-    e => {
+  let subscribe_result = Ok(
+    conn.request(self.subscribe_command(conn.next_request_id())),
+  ) catch {
+    e => Err(e)
+  }
+  let subscribed = match subscribe_result {
+    Ok(value) => value
+    Err(e) => {
       self.on_connection_closed(Some(e))
       raise e
     }
@@ -1604,8 +1612,10 @@ async fn Consumer::receive_untracked(self : Consumer) -> Message {
 ///|
 /// Receive the next message, blocking until one is available.
 pub async fn Consumer::receive(self : Consumer) -> Message {
-  let message = self.receive_untracked() catch {
-    error => {
+  let result = Ok(self.receive_untracked()) catch { error => Err(error) }
+  let message = match result {
+    Ok(value) => value
+    Err(error) => {
       self.observe_receive_error(error)
       raise error
     }
@@ -1617,8 +1627,10 @@ pub async fn Consumer::receive(self : Consumer) -> Message {
 ///|
 /// Non-blocking receive: returns `None` if no message is buffered.
 pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
-  self.try_receive_raw() catch {
-    error => {
+  let result = Ok(self.try_receive_raw()) catch { error => Err(error) }
+  match result {
+    Ok(value) => value
+    Err(error) => {
       self.observe_receive_error(error)
       raise error
     }
@@ -1847,7 +1859,7 @@ pub async fn Consumer::seek(self : Consumer, position : SeekPosition) -> Unit {
               if state.consumers.length() == 1 ||
                 (
                   id.partition >= 0 &&
-                  sub.topic().ends_with("-partition-\{id.partition}")
+                  sub.topic().has_suffix("-partition-\{id.partition}")
                 ) {
                 candidates.push(sub)
               }
@@ -1956,7 +1968,7 @@ pub fn Consumer::topics(self : Consumer) -> Array[String] {
     ConsumerImpl::Single(c) => [c.topic()]
     ConsumerImpl::Partitioned(state) => {
       let topics = []
-      let seen : Map[String, Bool] = {}
+      let seen : Map[String, Bool] = Map([])
       for sub in state.consumers {
         let topic = base_topic_name(sub.topic())
         if !seen.contains(topic) {

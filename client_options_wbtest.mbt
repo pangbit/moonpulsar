@@ -8,7 +8,7 @@ test "client options reject invalid timeouts and competing authentication" {
   assert_true(invalid is Err(InvalidFrame(_)))
   let token = TokenAuth::new("one")
   let competing : Result[ClientOptions, Error] = Ok(
-    ClientOptions::new("pulsar://localhost:6650", auth=token, auth_provider=async fn() {
+    ClientOptions::new("pulsar://localhost:6650", auth=token, auth_provider=fn() {
       { method_name: "token", data: b"two", }
     }),
   ) catch {
@@ -78,7 +78,7 @@ async test "Athenz role token supplier refreshes on broker challenge" {
       )
     })
     let calls : Ref[Int] = { val: 0, }
-    let provider = athenz_role_token_provider(async fn() {
+    let provider = athenz_role_token_provider(fn() {
       calls.val += 1
       "role-\{calls.val}"
     })
@@ -121,7 +121,7 @@ async test "OAuth2 client credentials encode form and refresh tokens" {
     let calls : Ref[Int] = { val: 0, }
     with_mock_admin(
       group,
-      async fn(request, payload) {
+      (request, payload) => {
         assert_eq(request.meth, @http.RequestMethod::Post)
         assert_eq(request.path, "/token")
         assert_eq(
@@ -152,7 +152,7 @@ async test "OAuth2 token endpoint failures reject authentication" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, _payload) {
+      fn(request, _payload) {
         match request.path {
           "/denied" => (401, "private error")
           "/malformed" => (200, "not JSON")
@@ -191,7 +191,7 @@ async test "OAuth2 provider refreshes for a broker authentication challenge" {
     let issued : Ref[Int] = { val: 0, }
     with_mock_admin(
       group,
-      async fn(_request, _payload) {
+      fn(_request, _payload) {
         issued.val += 1
         (200, "{\"access_token\":\"token-\{issued.val}\"}")
       },

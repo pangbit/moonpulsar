@@ -5,7 +5,7 @@
 /// (status code, body). Stops when the client disconnects.
 async fn with_mock_admin(
   group : @async.TaskGroup[Unit],
-  respond : async (@http.Request, Bytes) -> (Int, String),
+  respond : (@http.Request, Bytes) -> (Int, String) raise,
   body : async (String) -> Unit,
 ) -> Unit {
   let server = @http.Server::Server(@socket.Addr::parse("127.0.0.1:0"))
@@ -41,7 +41,7 @@ async test "create partitioned topic" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, payload) {
+      (request, payload) => {
         assert_eq(request.meth, @http.RequestMethod::Put)
         assert_eq(
           request.path,
@@ -63,7 +63,7 @@ async test "list topics parses JSON" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, _payload) {
+      (request, _payload) => {
         assert_eq(request.meth, @http.RequestMethod::Get)
         assert_true(request.path == "/admin/v2/persistent/public/default")
         (
@@ -86,7 +86,7 @@ async test "list non-persistent topics selects the correct domain" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, _payload) {
+      (request, _payload) => {
         assert_eq(request.path, "/admin/v2/non-persistent/public/default")
         (200, "[\"non-persistent://public/default/events\"]")
       },
@@ -109,7 +109,7 @@ async test "list partitioned topics uses partitioned namespace endpoint" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, _payload) {
+      (request, _payload) => {
         assert_eq(
           request.path,
           "/admin/v2/persistent/public/default/partitioned",
@@ -131,7 +131,7 @@ async test "partitioned topic stats request per partition detail" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, _payload) {
+      (request, _payload) => {
         assert_eq(
           request.path,
           "/admin/v2/persistent/public/default/pt/partitioned-stats?perPartition=true",
@@ -154,7 +154,7 @@ async test "admin error surfaces status code and body" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(_request, _payload) { (409, "Partitioned topic already exists") },
+      (_request, _payload) => (409, "Partitioned topic already exists"),
       async fn(url) {
         let admin = Admin::new(url)
         let result : Result[Unit, Error] = Ok(
@@ -172,7 +172,7 @@ async test "admin error surfaces status code and body" {
 test "topic name parsing" {
   let name = TopicName::parse("persistent://public/default/my-topic")
   assert_eq(name.tenant, "public")
-  assert_eq(name.namespace, "default")
+  assert_eq(name.namespace_, "default")
   assert_eq(name.topic, "my-topic")
   assert_eq(name.domain, "persistent")
   let bad : Result[TopicName, Error] = Ok(TopicName::parse("public/default/t")) catch {
@@ -196,7 +196,7 @@ async test "create non-persistent topic" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, payload) {
+      (request, payload) => {
         assert_eq(request.meth, @http.RequestMethod::Put)
         assert_eq(
           request.path,
@@ -217,7 +217,7 @@ async test "update partition count" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, payload) {
+      (request, payload) => {
         assert_eq(request.meth, @http.RequestMethod::Post)
         assert_eq(
           request.path,
@@ -240,7 +240,7 @@ async test "partition count parses metadata" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, _payload) {
+      (request, _payload) => {
         assert_eq(
           request.path,
           "/admin/v2/persistent/public/default/events/partitions",
@@ -262,7 +262,7 @@ async test "partition metadata rejects missing or fractional counts" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(_request, _payload) { (200, "{\"partitions\":1.5}") },
+      (_request, _payload) => (200, "{\"partitions\":1.5}"),
       async fn(url) {
         let result : Result[Int, Error] = Ok(
           Admin::new(url).partition_count("persistent://public/default/events"),
@@ -304,7 +304,7 @@ async test "list subscriptions" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, _payload) {
+      (request, _payload) => {
         assert_eq(
           request.path,
           "/admin/v2/persistent/public/default/events/subscriptions",
@@ -328,7 +328,7 @@ async test "delete subscription" {
   @async.with_task_group(async fn(group) {
     with_mock_admin(
       group,
-      async fn(request, _payload) {
+      (request, _payload) => {
         assert_eq(request.meth, @http.RequestMethod::Delete)
         assert_eq(
           request.path,
@@ -353,7 +353,7 @@ async test "create subscription sends earliest and latest cursor positions" {
     let calls : Ref[Int] = { val: 0, }
     with_mock_admin(
       group,
-      async fn(request, payload) {
+      (request, payload) => {
         assert_eq(request.meth, @http.RequestMethod::Put)
         assert_eq(
           request.path,
@@ -387,7 +387,7 @@ async test "admin subscription backlog operations use documented endpoints" {
     let calls : Ref[Int] = { val: 0, }
     with_mock_admin(
       group,
-      async fn(request, payload) {
+      (request, payload) => {
         assert_eq(request.meth, @http.RequestMethod::Post)
         assert_eq(payload.length(), 0)
         let suffix = match calls.val {

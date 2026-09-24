@@ -71,15 +71,9 @@ pub async fn Consumer::reconsume_later(
     },
   )
   let producer = if to_dead_letter { dlq.producer } else { retry.producer }
-  ignore(
-    producer.send(outgoing) catch {
-      e => {
-        message.nack() catch {
-          _ => ()
-        }
-        raise e
-      }
-    },
-  )
+  {
+    errdefer (message.nack() catch { _ => () })
+    ignore(producer.send(outgoing))
+  }
   message.ack()
 }

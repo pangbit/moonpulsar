@@ -21,7 +21,6 @@ struct PendingRequest {
 ///|
 /// A single connection to a Pulsar broker speaking the binary protocol.
 pub struct Connection {
-  priv addr : String
   priv reader : &@io.Reader
   priv writer : &@io.Writer
   priv auth : AuthData?
@@ -108,7 +107,6 @@ pub async fn Connection::connect(
     (tcp, tcp, fn() { tcp.close() })
   }
   let conn = Connection::{
-    addr,
     reader,
     writer,
     auth,

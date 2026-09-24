@@ -22,9 +22,7 @@ pub fn[T] SchemaCodec::new(
 ///|
 /// UTF-8 string payloads with Pulsar's STRING schema.
 pub fn SchemaCodec::string() -> SchemaCodec[String] {
-  SchemaCodec::new(SchemaInfo::string(), fn(value) { @utf8.encode(value) }, fn(
-    payload,
-  ) {
+  SchemaCodec::new(SchemaInfo::string(), fn(value) { @utf8.encode(value) }, payload => {
     @utf8.decode(payload) catch {
       _ => raise InvalidFrame("invalid UTF-8 string payload")
     }
@@ -43,13 +41,13 @@ pub fn SchemaCodec::bytes() -> SchemaCodec[Bytes] {
 pub fn SchemaCodec::int8() -> SchemaCodec[Int] {
   SchemaCodec::new(
     SchemaInfo::int8(),
-    fn(value) {
+    value => {
       guard value >= -128 && value <= 127 else {
         raise InvalidFrame("INT8 value out of range")
       }
       Bytes::from_array([value.to_byte()])
     },
-    fn(payload) {
+    payload => {
       guard payload.length() == 1 else {
         raise InvalidFrame("INT8 payload must be one byte")
       }
@@ -69,7 +67,7 @@ pub fn SchemaCodec::int8() -> SchemaCodec[Int] {
 pub fn SchemaCodec::int16(little_endian? : Bool = false) -> SchemaCodec[Int] {
   SchemaCodec::new(
     SchemaInfo::int16(),
-    fn(value) {
+    value => {
       guard value >= -32768 && value <= 32767 else {
         raise InvalidFrame("INT16 value out of range")
       }
@@ -79,7 +77,7 @@ pub fn SchemaCodec::int16(little_endian? : Bool = false) -> SchemaCodec[Int] {
         Bytes::from_array([(value >> 8).to_byte(), value.to_byte()])
       }
     },
-    fn(payload) {
+    payload => {
       guard payload.length() == 2 else {
         raise InvalidFrame("INT16 payload must be two bytes")
       }
@@ -115,7 +113,7 @@ pub fn SchemaCodec::int32(little_endian? : Bool = false) -> SchemaCodec[Int] {
       }
       buf.to_bytes()
     },
-    fn(payload) {
+    payload => {
       guard payload.length() == 4 else {
         raise InvalidFrame("INT32 payload must be four bytes")
       }
@@ -149,7 +147,7 @@ pub fn SchemaCodec::int64(little_endian? : Bool = false) -> SchemaCodec[Int64] {
         value.reinterpret_as_uint64().to_be_bytes()
       }
     },
-    fn(payload) {
+    payload => {
       guard payload.length() == 8 else {
         raise InvalidFrame("INT64 payload must be eight bytes")
       }
@@ -170,9 +168,7 @@ pub fn SchemaCodec::int64(little_endian? : Bool = false) -> SchemaCodec[Int64] {
 
 ///|
 pub fn SchemaCodec::float() -> SchemaCodec[Float] {
-  SchemaCodec::new(SchemaInfo::float(), fn(value) { value.to_be_bytes() }, fn(
-    payload,
-  ) {
+  SchemaCodec::new(SchemaInfo::float(), fn(value) { value.to_be_bytes() }, payload => {
     guard payload.length() == 4 else {
       raise InvalidFrame("FLOAT payload must be four bytes")
     }
@@ -185,7 +181,7 @@ pub fn SchemaCodec::double() -> SchemaCodec[Double] {
   SchemaCodec::new(
     SchemaInfo::double(),
     fn(value) { value.reinterpret_as_uint64().to_be_bytes() },
-    fn(payload) {
+    payload => {
       guard payload.length() == 8 else {
         raise InvalidFrame("DOUBLE payload must be eight bytes")
       }
@@ -206,8 +202,8 @@ pub fn[T : ToJson + FromJson] SchemaCodec::json(
 ) -> SchemaCodec[T] {
   SchemaCodec::new(
     SchemaInfo::json(definition),
-    fn(value) { @utf8.encode(value.to_json().stringify()) },
-    fn(payload) {
+    fn(value) { @utf8.encode(ToJson::to_json(value).stringify()) },
+    payload => {
       let text = @utf8.decode(payload) catch {
         _ => raise InvalidFrame("invalid UTF-8 JSON payload")
       }
@@ -238,13 +234,13 @@ pub fn[T] SchemaCodec::avro(
   }
   SchemaCodec::new(
     SchemaInfo::avro(definition),
-    fn(value) {
+    value => {
       let datum = to_datum(value)
       @avro_codec.encode(schema, datum) catch {
         _ => raise InvalidFrame("could not encode Avro payload")
       }
     },
-    fn(payload) {
+    payload => {
       let datum = @avro_codec.decode(schema, payload) catch {
         _ => raise InvalidFrame("invalid Avro payload")
       }
@@ -270,16 +266,16 @@ pub fn[M : @lib.Read + @lib.Write] SchemaCodec::protobuf(
 ) -> SchemaCodec[M] {
   SchemaCodec::new(
     SchemaInfo::protobuf(definition),
-    fn(value) {
+    value => {
       let buffer = @buffer.Buffer()
-      value.write(buffer) catch {
+      @lib.Write::write(value, buffer) catch {
         _ => raise InvalidFrame("could not encode Protobuf payload")
       }
       buffer.to_bytes()
     },
-    fn(payload) {
+    payload => {
       let reader = @lib.BytesReader::from_bytes(payload)
-      M::read_with_limit(@lib.LimitedReader(reader)) catch {
+      @lib.Read::read_with_limit(@lib.LimitedReader(reader)) catch {
         _ => raise InvalidFrame("invalid Protobuf payload")
       }
     },
@@ -300,16 +296,16 @@ pub fn[M : @lib.Read + @lib.Write] SchemaCodec::protobuf_native(
   )
   SchemaCodec::new(
     info,
-    fn(value) {
+    value => {
       let buffer = @buffer.Buffer()
-      value.write(buffer) catch {
+      @lib.Write::write(value, buffer) catch {
         _ => raise InvalidFrame("could not encode Protobuf Native payload")
       }
       buffer.to_bytes()
     },
-    fn(payload) {
+    payload => {
       let reader = @lib.BytesReader::from_bytes(payload)
-      M::read_with_limit(@lib.LimitedReader(reader)) catch {
+      @lib.Read::read_with_limit(@lib.LimitedReader(reader)) catch {
         _ => raise InvalidFrame("invalid Protobuf Native payload")
       }
     },

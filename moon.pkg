@@ -13,6 +13,7 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
+  "moonbitlang/core/debug",
   "moonbitlang/core/encoding/base64",
   "moonbit-community/flate/zlib",
   "Milky2018/zstd",

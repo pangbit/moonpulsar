@@ -171,7 +171,7 @@ pub fn SchemaInfo::protobuf_native(
   for file in files.file {
     if file.name is Some(name) && name == root_file {
       let prefix = match file.package_ {
-        Some(package) if package != "" => package + "."
+        Some(pkg_name) if pkg_name != "" => pkg_name + "."
         _ => ""
       }
       for message in file.message_type {

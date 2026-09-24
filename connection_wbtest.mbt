@@ -3,7 +3,7 @@
 ///|
 async test "handshake completes and reports server version" {
   @async.with_task_group(async fn(group) {
-    let addr = start_mock_broker(group, async fn(_addr, _peer) {  })
+    let addr = start_mock_broker(group, fn(_addr, _peer) {  })
     let conn = Connection::connect(group, addr)
     assert_eq(conn.server_version(), "mock-broker 1.0")
     assert_eq(conn.remote_protocol_version(), 21)
@@ -17,7 +17,7 @@ async test "handshake retains broker maximum message size" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(
       group,
-      async fn(_addr, _peer) {  },
+      fn(_addr, _peer) {  },
       max_message_size=1048576,
     )
     let conn = Connection::connect(group, addr)

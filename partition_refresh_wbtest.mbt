@@ -12,7 +12,7 @@ async test "producer discovers an added partition and routes to it" {
       group,
       1,
       async fn(_addr, peer) {
-        let topics : Map[UInt64, String] = {}
+        let topics : Map[UInt64, String] = Map([])
         for i in 0..<2 {
           let frame = peer.next()
           guard frame.cmd.producer is Some(req) else {

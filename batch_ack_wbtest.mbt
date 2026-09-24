@@ -4,7 +4,7 @@
 fn batch_test_payload(size : Int) -> Bytes raise {
   let messages : Array[ProducerMessage] = []
   for index in 0..<size {
-    messages.push(ProducerMessage::new(index.to_string().to_bytes()))
+    messages.push(ProducerMessage::new(@utf8.encode(index.to_string())))
   }
   encode_batch_payload(messages)
 }

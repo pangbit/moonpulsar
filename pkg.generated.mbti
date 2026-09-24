@@ -78,6 +78,9 @@ pub(all) suberror PulsarError {
   RequestTimeout
   AuthenticationFailed(String)
 } derive(@debug.Debug)
+pub fn PulsarError::output(Self, &Logger) -> Unit
+pub fn PulsarError::to_repr(Self) -> @debug.Repr
+pub fn PulsarError::to_string(Self) -> String
 pub impl Show for PulsarError
 
 // Types and methods
@@ -116,15 +119,16 @@ pub(all) struct AuthData {
   method_name : String
   data : Bytes
 } derive(@debug.Debug)
+pub fn AuthData::to_repr(Self) -> @debug.Repr
 
 pub(all) struct BasicAuth {
   username : String
   password : String
 }
+pub fn BasicAuth::auth_data(Self) -> Bytes
+pub fn BasicAuth::method_name(Self) -> String
 pub fn BasicAuth::new(String, String) -> Self raise PulsarError
 pub impl Authentication for BasicAuth
-
-type BatchAckState
 
 type BatchAckTracker
 
@@ -134,6 +138,7 @@ pub(all) struct BatchingConfig {
   max_delay_ms : Int
 } derive(@debug.Debug)
 pub fn BatchingConfig::default() -> Self
+pub fn BatchingConfig::to_repr(Self) -> @debug.Repr
 
 type ChunkAssembler
 
@@ -141,8 +146,6 @@ pub struct ChunkAssemblyPolicy {
   // private fields
 }
 pub fn ChunkAssemblyPolicy::new(expiry_ms? : Int, max_pending_messages? : Int, auto_ack_incomplete? : Bool) -> Self raise PulsarError
-
-type ChunkResult
 
 pub struct Client {
   // private fields
@@ -199,6 +202,9 @@ pub(all) struct ClientMetricsSnapshot {
   consumer_reconnects : Int64
   reconnect_failures : Int64
 } derive(Eq, @debug.Debug)
+pub fn ClientMetricsSnapshot::equal(Self, Self) -> Bool
+pub fn ClientMetricsSnapshot::not_equal(Self, Self) -> Bool
+pub fn ClientMetricsSnapshot::to_repr(Self) -> @debug.Repr
 
 pub struct ClientOptions {
   // private fields
@@ -212,6 +218,9 @@ pub(all) enum CompressionCodec {
   Zstd
   Snappy
 } derive(Eq, @debug.Debug)
+pub fn CompressionCodec::equal(Self, Self) -> Bool
+pub fn CompressionCodec::not_equal(Self, Self) -> Bool
+pub fn CompressionCodec::to_repr(Self) -> @debug.Repr
 
 pub struct Connection {
   // private fields
@@ -284,6 +293,7 @@ pub(all) struct IncomingFrame {
   payload : Bytes?
   wire_size : Int
 } derive(@debug.Debug)
+pub fn IncomingFrame::to_repr(Self) -> @debug.Repr
 
 pub struct KeySharedPolicy {
   // private fields
@@ -329,8 +339,18 @@ pub(all) struct MessageId {
   batch_index : Int
   partition : Int
 } derive(Compare, Eq, Hash, @debug.Debug)
+pub fn MessageId::compare(Self, Self) -> Int
 pub fn MessageId::earliest() -> Self
+pub fn MessageId::equal(Self, Self) -> Bool
+pub fn MessageId::hash(Self) -> Int
+pub fn MessageId::hash_combine(Self, Hasher) -> Unit
 pub fn MessageId::latest() -> Self
+pub fn MessageId::not_equal(Self, Self) -> Bool
+pub fn MessageId::op_ge(Self, Self) -> Bool
+pub fn MessageId::op_gt(Self, Self) -> Bool
+pub fn MessageId::op_le(Self, Self) -> Bool
+pub fn MessageId::op_lt(Self, Self) -> Bool
+pub fn MessageId::to_repr(Self) -> @debug.Repr
 
 pub struct NackBackoff {
   // private fields
@@ -344,6 +364,9 @@ pub(all) enum NamespaceTopicMode {
   NonPersistent
   AllTopics
 } derive(Eq, @debug.Debug)
+pub fn NamespaceTopicMode::equal(Self, Self) -> Bool
+pub fn NamespaceTopicMode::not_equal(Self, Self) -> Bool
+pub fn NamespaceTopicMode::to_repr(Self) -> @debug.Repr
 
 type PendingRequest
 
@@ -370,6 +393,9 @@ pub(all) enum ProducerAccessMode {
   WaitForExclusive
   ExclusiveWithFencing
 } derive(Eq, @debug.Debug)
+pub fn ProducerAccessMode::equal(Self, Self) -> Bool
+pub fn ProducerAccessMode::not_equal(Self, Self) -> Bool
+pub fn ProducerAccessMode::to_repr(Self) -> @debug.Repr
 
 pub struct ProducerInterceptor {
   // private fields
@@ -417,6 +443,7 @@ pub(all) struct RetryPolicy {
   max_backoff_ms : Int
 } derive(@debug.Debug)
 pub fn RetryPolicy::default() -> Self
+pub fn RetryPolicy::to_repr(Self) -> @debug.Repr
 
 pub struct SchemaCodec[T] {
   // private fields
@@ -448,15 +475,18 @@ pub(all) struct SchemaInfo {
 pub fn SchemaInfo::avro(Bytes) -> Self
 pub fn SchemaInfo::bytes() -> Self
 pub fn SchemaInfo::double() -> Self
+pub fn SchemaInfo::equal(Self, Self) -> Bool
 pub fn SchemaInfo::float() -> Self
 pub fn SchemaInfo::int16() -> Self
 pub fn SchemaInfo::int32() -> Self
 pub fn SchemaInfo::int64() -> Self
 pub fn SchemaInfo::int8() -> Self
 pub fn SchemaInfo::json(Bytes) -> Self
+pub fn SchemaInfo::not_equal(Self, Self) -> Bool
 pub fn SchemaInfo::protobuf(Bytes) -> Self
 pub fn SchemaInfo::protobuf_native(Bytes, String, String) -> Self raise PulsarError
 pub fn SchemaInfo::string() -> Self
+pub fn SchemaInfo::to_repr(Self) -> @debug.Repr
 
 pub(all) enum SeekPosition {
   PositionId(MessageId)
@@ -469,6 +499,7 @@ pub(all) struct SendReceipt {
   producer_id : UInt64
   producer_name : String
 } derive(@debug.Debug)
+pub fn SendReceipt::to_repr(Self) -> @debug.Repr
 
 pub struct SingleConsumer {
   // private fields
@@ -514,6 +545,9 @@ pub(all) enum SubscriptionInitialPosition {
   Latest
   Earliest
 } derive(Eq, @debug.Debug)
+pub fn SubscriptionInitialPosition::equal(Self, Self) -> Bool
+pub fn SubscriptionInitialPosition::not_equal(Self, Self) -> Bool
+pub fn SubscriptionInitialPosition::to_repr(Self) -> @debug.Repr
 
 pub(all) enum SubscriptionType {
   Exclusive
@@ -521,6 +555,9 @@ pub(all) enum SubscriptionType {
   Failover
   KeyShared
 } derive(Eq, @debug.Debug)
+pub fn SubscriptionType::equal(Self, Self) -> Bool
+pub fn SubscriptionType::not_equal(Self, Self) -> Bool
+pub fn SubscriptionType::to_repr(Self) -> @debug.Repr
 
 pub struct TableView {
   // private fields
@@ -538,16 +575,21 @@ pub fn TableView::size(Self) -> Int
 pub(all) struct TokenAuth {
   token : String
 }
+pub fn TokenAuth::auth_data(Self) -> Bytes
+pub fn TokenAuth::method_name(Self) -> String
 pub fn TokenAuth::new(String) -> Self
 pub impl Authentication for TokenAuth
 
 pub(all) struct TopicName {
   domain : String
   tenant : String
-  namespace : String
+  namespace_ : String
   topic : String
 } derive(Eq, @debug.Debug)
+pub fn TopicName::equal(Self, Self) -> Bool
+pub fn TopicName::not_equal(Self, Self) -> Bool
 pub fn TopicName::parse(String) -> Self raise PulsarError
+pub fn TopicName::to_repr(Self) -> @debug.Repr
 
 pub struct Transaction {
   // private fields
@@ -582,6 +624,9 @@ pub(all) struct VersionedSchema {
   info : SchemaInfo
   version : Bytes?
 } derive(Eq, @debug.Debug)
+pub fn VersionedSchema::equal(Self, Self) -> Bool
+pub fn VersionedSchema::not_equal(Self, Self) -> Bool
+pub fn VersionedSchema::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

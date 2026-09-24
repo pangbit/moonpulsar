@@ -53,7 +53,7 @@ fn der_read(
 
 ///|
 fn der_sequence(data : Bytes) -> Bytes raise PulsarError {
-  let offset = Ref::new(0)
+  let offset = Ref(0)
   let sequence = der_read(data, offset, 0x30)
   guard offset.val == data.length() else {
     raise InvalidFrame("trailing RSA key DER data")
@@ -79,7 +79,7 @@ fn der_integer(data : Bytes, offset : Ref[Int]) -> Bytes raise PulsarError {
 
 ///|
 fn der_rsa_algorithm(data : Bytes) -> Unit raise PulsarError {
-  let offset = Ref::new(0)
+  let offset = Ref(0)
   let oid = der_read(data, offset, 0x06)
   guard oid == b"\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01" else {
     raise InvalidFrame("key is not RSA")
@@ -114,7 +114,7 @@ fn pem_body(pem : Bytes, label : String) -> Bytes raise PulsarError {
 ///|
 fn parse_pkcs1_public(der : Bytes) -> EncryptionPublicKey raise PulsarError {
   let body = der_sequence(der)
-  let offset = Ref::new(0)
+  let offset = Ref(0)
   let modulus = der_integer(body, offset)
   let exponent = der_integer(body, offset)
   guard offset.val == body.length() &&
@@ -137,7 +137,7 @@ pub fn EncryptionPublicKey::from_pem(
     return parse_pkcs1_public(pem_body(pem, "RSA PUBLIC KEY"))
   }
   let body = der_sequence(pem_body(pem, "PUBLIC KEY"))
-  let offset = Ref::new(0)
+  let offset = Ref(0)
   der_rsa_algorithm(der_read(body, offset, 0x30))
   let bits = der_read(body, offset, 0x03)
   guard offset.val == body.length() && bits.length() > 1 && bits[0] == b'\x00' else {
@@ -149,7 +149,7 @@ pub fn EncryptionPublicKey::from_pem(
 ///|
 fn parse_pkcs1_private(der : Bytes) -> EncryptionPrivateKey raise PulsarError {
   let body = der_sequence(der)
-  let offset = Ref::new(0)
+  let offset = Ref(0)
   let version = der_integer(body, offset)
   guard version == b"\x00" else {
     raise InvalidFrame("unsupported RSA private key version")
@@ -180,7 +180,7 @@ pub fn EncryptionPrivateKey::from_pem(
     return parse_pkcs1_private(pem_body(pem, "RSA PRIVATE KEY"))
   }
   let body = der_sequence(pem_body(pem, "PRIVATE KEY"))
-  let offset = Ref::new(0)
+  let offset = Ref(0)
   let version = der_integer(body, offset)
   guard version == b"\x00" else {
     raise InvalidFrame("unsupported PKCS#8 key version")

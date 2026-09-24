@@ -14,7 +14,7 @@ fn avro_interop_codec() -> @pulsar.SchemaCodec[AvroInteropRecord] raise @pulsar.
         ("name", @avro_codec.Datum::String(value.name)),
       ])
     },
-    fn(datum) {
+    datum => {
       match datum {
         @avro_codec.Datum::Record(
           [

@@ -473,7 +473,7 @@ async test "broker CLOSE_CONSUMER re-subscribes on an open connection" {
       conn,
       "persistent://public/default/seek",
       "seek-sub",
-      reconnect_with=async fn() { conn },
+      reconnect_with=fn() { conn },
     )
     let message = @async.with_timeout(3000, async fn() { consumer.receive() })
     assert_eq(message.payload(), b"after-close")

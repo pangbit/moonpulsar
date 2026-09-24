@@ -38,7 +38,7 @@ test "custom schema codec uses supplied conversion" {
   let codec = SchemaCodec::new(
     SchemaInfo::bytes(),
     fn(value : String) { @utf8.encode("prefix:" + value) },
-    fn(payload : Bytes) {
+    (payload : Bytes) => {
       let text = @utf8.decode(payload) catch {
         _ => raise InvalidFrame("invalid payload")
       }

@@ -4,8 +4,10 @@
 fn sample_data() -> Bytes {
   let buf = @buffer.Buffer()
   for i in 0..<2000 {
-    buf.write_string(
-      "message number \{i}: the quick brown fox jumps over the lazy dog. ",
+    buf.write_bytes(
+      @utf8.encode(
+        "message number \{i}: the quick brown fox jumps over the lazy dog. ",
+      ),
     )
   }
   buf.to_bytes()

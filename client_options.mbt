@@ -167,7 +167,7 @@ pub fn oauth2_client_credentials_provider(
     form += "&scope=" + oauth2_form_component(value)
   }
   async fn() {
-    let headers = {}
+    let headers = Map([])
     headers[@http.CaseInsensitiveString("Content-Type")] = "application/x-www-form-urlencoded"
     let (response, data) = @http.request(
       token_endpoint,
@@ -181,9 +181,7 @@ pub fn oauth2_client_credentials_provider(
         message="OAuth2 token endpoint rejected credentials",
       )
     }
-    let payload = data.binary() catch {
-      _ => raise InvalidFrame("OAuth2 token response is unreadable")
-    }
+    let payload = data.binary()
     let json = @json.parse(@utf8.decode(payload)) catch {
       _ => raise InvalidFrame("OAuth2 token response is not JSON")
     }

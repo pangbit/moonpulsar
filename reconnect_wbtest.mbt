@@ -203,7 +203,7 @@ async test "finite producer reconnect policy fails pending sends and closes" {
       group,
       conn,
       "persistent://public/default/finite-producer",
-      reconnect_with=async fn() {
+      reconnect_with=() => {
         attempts.val += 1
         raise ConnectFailed("forced reconnect failure")
       },
@@ -251,7 +251,7 @@ async test "finite consumer reconnect policy closes after exhausted attempt" {
       conn,
       "persistent://public/default/finite-consumer",
       "sub",
-      reconnect_with=async fn() {
+      reconnect_with=() => {
         attempts.val += 1
         raise ConnectFailed("forced reconnect failure")
       },

@@ -47,7 +47,7 @@ async fn main {
     )
     ignore(producer_a.send(@pulsar.ProducerMessage::new(b"a")))
     ignore(producer_b.send(@pulsar.ProducerMessage::new(b"b")))
-    let received : Map[String, String] = {}
+    let received : Map[String, String] = Map([])
     for _ in 0..<2 {
       let message = @async.with_timeout(10000, async fn() { consumer.receive() })
       received[message.topic()] = @utf8.decode(message.payload())
