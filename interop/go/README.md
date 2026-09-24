@@ -39,6 +39,22 @@ type-suffixed companions afterward with your broker's Admin API.
 The full three-step exchange passed on Pulsar 4.2.4 and an isolated Pulsar
 3.3.9 broker.
 
+## Compressed chunk interoperability
+
+On a disposable Linux test host with Docker, Go and MoonBit, run from the
+repository root:
+
+```sh
+bash scripts/test-chunk-interop-live.sh 4.2.4
+bash scripts/test-chunk-interop-live.sh 3.3.9
+```
+
+The script creates an isolated Broker and one 256 KiB random payload, then
+checks Go-to-MoonBit and MoonBit-to-Go chunk assembly for LZ4, Zlib, Zstd and
+Snappy. Both producers force 32 KiB chunks. Pulsar's Go client uses raw Snappy
+blocks for message compression; MoonBit's public framed-stream helper is a
+separate format. The script removes its Broker and payload on exit.
+
 ## Encryption interoperability
 
 `encryption/main.go` and `examples/encryption_interop` exchange RSA-OAEP-SHA1

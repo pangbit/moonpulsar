@@ -1,6 +1,6 @@
-// Snappy compression in the framing format used by Pulsar's Go/Python
-// clients (google snappy framing, 3-byte little-endian chunk lengths,
-// masked CRC32-C checksums):
+// Pulsar message compression uses raw Snappy blocks. The public
+// snappy_compress/snappy_decompress helpers retain Google's framed stream
+// format (3-byte little-endian chunk lengths, masked CRC32-C checksums):
 //
 //   stream:  chunk 0xFF "sNaPpY" then data chunks
 //   data chunk: type(1) + length(3, little-endian, includes checksum)
@@ -8,7 +8,7 @@
 //   chunk 0x01 carries uncompressed data instead
 
 ///|
-const XERIAL_CHUNK_MAX : Int = 65536
+const SNAPPY_FRAMED_CHUNK_MAX : Int = 65536
 
 ///|
 fn mask_crc(crc : UInt) -> UInt {
@@ -57,11 +57,17 @@ fn snappy_emit_literal(out : @buffer.Buffer, data : BytesView) -> Unit {
     out.write_byte(61 << 2)
     out.write_byte(n.to_byte())
     out.write_byte((n >> 8).to_byte())
-  } else {
+  } else if n < 16777216 {
     out.write_byte(62 << 2)
     out.write_byte(n.to_byte())
     out.write_byte((n >> 8).to_byte())
     out.write_byte((n >> 16).to_byte())
+  } else {
+    out.write_byte(63 << 2)
+    out.write_byte(n.to_byte())
+    out.write_byte((n >> 8).to_byte())
+    out.write_byte((n >> 16).to_byte())
+    out.write_byte((n >> 24).to_byte())
   }
   out.write_bytes(data)
 }
@@ -229,7 +235,7 @@ fn snappy_copy_from(
 }
 
 ///|
-/// Compress `data` into the snappy xerial framing format.
+/// Compress `data` into Google's Snappy framed stream format.
 pub fn snappy_compress(data : Bytes) -> Bytes {
   let out = @buffer.Buffer()
   // stream identifier chunk
@@ -238,10 +244,10 @@ pub fn snappy_compress(data : Bytes) -> Bytes {
   out.write_bytes(b"sNaPpY")
   let mut offset = 0
   while offset < data.length() {
-    let end = if offset + XERIAL_CHUNK_MAX > data.length() {
+    let end = if offset + SNAPPY_FRAMED_CHUNK_MAX > data.length() {
       data.length()
     } else {
-      offset + XERIAL_CHUNK_MAX
+      offset + SNAPPY_FRAMED_CHUNK_MAX
     }
     let block = data[offset:end].to_owned()
     let compressed = snappy_compress_block(block)
@@ -264,7 +270,7 @@ pub fn snappy_compress(data : Bytes) -> Bytes {
 }
 
 ///|
-/// Decompress snappy xerial-framed data.
+/// Decompress Google's Snappy framed stream format.
 pub fn snappy_decompress(data : Bytes) -> Bytes raise PulsarError {
   let out : Array[Byte] = []
   let mut pos = 0

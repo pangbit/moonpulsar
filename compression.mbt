@@ -48,7 +48,7 @@ pub fn compress(
       @zstd.compress(payload) catch {
         _ => raise InvalidFrame("zstd compress failed")
       }
-    Snappy => snappy_compress(payload)
+    Snappy => snappy_compress_block(payload)
   }
 }
 
@@ -74,6 +74,10 @@ pub fn decompress(
       @zstd.decompress(payload) catch {
         _ => raise InvalidFrame("zstd decompress failed")
       }
-    Snappy => snappy_decompress(payload)
+    Snappy => {
+      let out : Array[Byte] = []
+      snappy_decompress_block(payload, out)
+      Bytes::from_array(out)
+    }
   }
 }

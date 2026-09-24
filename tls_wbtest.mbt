@@ -5,6 +5,7 @@
 async fn start_tls_mock_broker(
   group : @async.TaskGroup[Unit],
   connections? : Int = 1,
+  keep_open? : Bool = false,
 ) -> String {
   let server = @socket.TcpServer::TcpServer(@socket.Addr::parse("127.0.0.1:0"))
   let addr = server.addr.to_string()
@@ -33,7 +34,24 @@ async fn start_tls_mock_broker(
         info.protocol_version = Some(21)
         connected.connected = Some(info)
         tls.write(encode_command_frame(connected))
-        tls.close()
+        if keep_open {
+          group.spawn_bg(
+            async fn() {
+              defer tls.close()
+              try {
+                while true {
+                  ignore(read_frame(tls))
+                }
+              } catch {
+                _ => ()
+              }
+            },
+            no_wait=true,
+            allow_failure=true,
+          )
+        } else {
+          tls.close()
+        }
       }
     },
     no_wait=true,
@@ -45,7 +63,7 @@ async fn start_tls_mock_broker(
 ///|
 async test "custom CA is reused after reconnect" {
   @async.with_task_group(async fn(group) {
-    let addr = start_tls_mock_broker(group, connections=2)
+    let addr = start_tls_mock_broker(group, connections=2, keep_open=true)
     let client = Client::connect_tls_with_ca(
       group,
       "pulsar+ssl://\{addr}",

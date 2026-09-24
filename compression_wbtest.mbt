@@ -69,6 +69,13 @@ test "xxhash32 known vectors" {
 
 ///|
 test "snappy roundtrip" {
+  // The pinned Go client uses raw Snappy blocks for Pulsar wire payloads.
+  assert_eq(compress(Snappy, b"hello"), b"\x05\x10hello")
+  assert_eq(decompress(Snappy, b"\x05\x10hello"), b"hello")
+  let malformed : Result[Bytes, Error] = Ok(decompress(Snappy, b"\x05\x10hi")) catch {
+    error => Err(error)
+  }
+  assert_true(malformed is Err(InvalidFrame(_)))
   let data = sample_data()
   let compressed = compress(Snappy, data)
   assert_true(compressed.length() < data.length() / 4)
@@ -98,6 +105,17 @@ test "snappy decodes cramjam reference frames" {
     expected2.write_bytes(b"abcdefgh")
   }
   assert_eq(snappy_decompress(framed2), expected2.to_bytes())
+}
+
+///|
+test "snappy raw literal above 16 MiB uses four length bytes" {
+  let input = Bytes::make(16777217, b'z')
+  let encoded = @buffer.Buffer()
+  snappy_emit_literal(encoded, input)
+  let bytes = encoded.to_bytes()
+  assert_eq(bytes.length(), input.length() + 5)
+  assert_eq(bytes[0], b'\xfc')
+  assert_eq(bytes[4], b'\x01')
 }
 
 ///|

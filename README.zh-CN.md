@@ -40,7 +40,7 @@
 
 ## 已知限制
 
-- Snappy 使用 **google framing** 变体，与 Go/Python 客户端一致；Java 客户端使用 xerial framing，不能解码这种格式。官方 Java 与 Go 客户端之间也存在这一差异。
+- Pulsar 消息中的 Snappy 使用原始 block，与固定版本 Go 客户端一致；公开的 `snappy_compress`、`snappy_decompress` 辅助函数仍处理 Google framed stream。Java 客户端使用 xerial framing，不能解码原始 block；官方 Java 与 Go 客户端也存在这一差异。
 - 测试所用的 Pulsar 4.2.4 broker 在已有非分区 Topic 上创建分区元数据时返回 HTTP 409。需要转换时，应把数据迁移到新的分区 Topic。
 - 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz ZTS 服务私钥模式签发 RSA NToken；证书模式使用 `AthenzZtsOptions::new(..., certificate_file=..., ca_pem_file=...)`、HTTPS ZTS URL 及证书私钥。两种模式都会请求角色令牌、重试暂时故障，并在过期前刷新；ZTS URL 填写 `/zts/v1` 之前的服务根地址。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。证书模式已在 macOS 与 Linux 通过要求客户端证书的本地 ZTS 模拟服务；隔离的 4.2.4 和 3.3.9 Athenz 认证 broker 已通过角色令牌文件与 RSA 服务 NToken 向 ZTS 模拟服务交换令牌后的收发验证；尚未连接外部 Athenz 服务。
 - 替换 PEM 文件后再次调用 `MessageCrypto::load_public_key_file` 或 `load_private_key_file` 即可轮换密钥；新发送与解密使用新密钥。解密失败默认采用 `Fail`，返回 `InvalidFrame` 并停止受影响的消费者或 Reader。`Consume` 交付原始密文，`Message::decryption_failed()` 为 `true`，应用自行决定是否 ACK；加密批次无法按此方式交付。RSA-OAEP-SHA1 与 ECIES 包裹 AES-256-GCM 密钥；ECIES 使用 native OpenSSL 3 适配层，已用 P-256、P-384 和 P-521 密钥验证。native 随机源是 `/dev/urandom`。[Go RSA 加密互通](interop/go/README.md)与 [Java EC 加密互通](interop/java/README.md)均在 4.2.4 和 3.3.9 通过；固定版本 Go 客户端默认加密只接受 RSA。RSA 与 P-521 ECIES 加密消息已在隔离的 4.2.4 和 3.3.9 broker 上，经双向 TLS 与官方 Go/Java 客户端双向互通。
@@ -66,7 +66,7 @@
 
 - 生产/消费往返、同步和异步发送、批量发送（broker 正确返回 `batch_index`）
 - NACK 重投、Shared 订阅和 Reader 回放
-- 官方客户端读取 LZ4 / Zlib / Zstd / Snappy 压缩消息（Snappy 为 google framing）
+- 官方客户端读取 LZ4 / Zlib / Zstd / 原始 Snappy 压缩消息
 - 通过 Admin 创建的分区 Topic、按 key 路由和合并消费
 - 事务协调器通道、事务发送、提交与回读
 - broker 重启后的自动重连（生产者重放和消费者重新订阅）
@@ -82,6 +82,7 @@
 - 4.2.4 与 3.3.9 上的批次消息 flush 前超时与后续消息成功投递
 - 4.2.4 与 3.3.9 上两个生产者共享客户端待发送负载字节预算
 - 独立 4.2.4 和 3.3.9 容器及专用命名空间中，`examples/memory_budget` 在 1 MiB 共享预算下通过顺序收发、分块接收和 Reader 回放。`scripts/test-chunk-live.sh` 还在两个版本上验证了消费者与 Reader 未完成分块过期 ACK、共享预算耗尽与释放、普通接收队列超额，以及新客户端回放恢复。
+- `scripts/test-chunk-interop-live.sh` 在隔离的 4.2.4 和 3.3.9 Broker 上，以 256 KiB 随机负载与固定版本官方 Go 客户端双向交换强制 32 KiB 分块的 LZ4、Zlib、Zstd 和原始 Snappy 压缩消息。
 - 4.2.4 与 3.3.9 上自动扩容接收队列的收发与确认；精确 FLOW 扩容由 mock broker 验证
 - 4.2.4 与 3.3.9 上生产者拦截器修改负载和观察回执
 - 4.2.4 与 3.3.9 上消费者拦截器观察交付与 ACK
@@ -154,6 +155,7 @@ async fn main {
 | `examples/athenz_cert` | 使用客户端证书向 ZTS 换取角色令牌 |
 | `examples/auth_challenge` | 应答 Broker 发出的认证挑战 |
 | `examples/memory_budget` | 真实 Broker 上的生产、接收、分块和 Reader 共享预算往返测试 |
+| `examples/chunk_interop` | 与官方 Go 客户端双向交换压缩分块消息 |
 | `examples/tls` | 验证 TLS 收发、可选客户端证书/私钥及 broker 重启检查 |
 | `examples/token_rotation` | 同一客户端下验证无效 Token 拒绝和文件 Token 轮换 |
 | `examples/token_reconnect` | 文件 Token 与 Broker 签名密钥轮换后，原有生产者和消费者恢复 |

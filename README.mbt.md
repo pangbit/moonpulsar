@@ -43,7 +43,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 
 Not yet / known gaps:
 
-- Snappy uses the **google framing** variant (matching the Go/Python clients); Java clients expect xerial framing and cannot decode it — the same incompatibility exists between the official Java and Go clients
+- Pulsar Snappy messages use raw blocks, matching the pinned Go client. The public `snappy_compress` and `snappy_decompress` helpers still handle Google framed streams. Java clients use xerial framing and cannot decode raw Snappy; the official Java and Go clients have the same incompatibility
 - The tested Pulsar 4.2.4 broker rejected creation of partitioned metadata over an existing non-partitioned topic with HTTP 409. Migrate data into a new partitioned topic when this change is needed.
 - Retry-letter handling is available through `retry_topic` on single, multi-topic and pattern consumers, or the explicit `create_retry_consumer` constructor. Athenz ZTS service-key exchange signs a fresh RSA NToken; certificate mode uses `AthenzZtsOptions::new(..., certificate_file=..., ca_pem_file=...)` with an HTTPS ZTS URL and the certificate's private key. Both modes fetch a role token, retry transient failures and refresh before expiry; the ZTS URL is the server base URL before `/zts/v1`. OAuth2 currently requests a fresh token for each connection or challenge; a local token endpoint was validated against the authenticated 4.2.4 broker, but no external identity provider was tested. Certificate mode passed a client-certificate-requiring local ZTS fixture on macOS and Linux; an isolated Athenz-authenticated broker passed file-token and signed RSA service-NToken ZTS exchange send/receive on 4.2.4 and 3.3.9. The ZTS endpoint was a disposable fixture, not an external Athenz service.
 - `MessageCrypto::load_public_key_file` and `load_private_key_file` can be called again after replacing PEM files; new sends and reads use the replaced key. Decryption defaults to `Fail`, which reports `InvalidFrame` and stops the affected consumer/reader. `Consume` delivers the raw ciphertext with `Message::decryption_failed() == true` so the application can decide whether to ACK; encrypted batches cannot be delivered this way. `Discard` skips the message and sends an individual ACK from a consumer; a reader skips it without an ACK. RSA-OAEP-SHA1 and ECIES wrap AES-256-GCM keys; ECIES uses the native OpenSSL 3 adapter and has been checked with P-256, P-384 and P-521 keys. The native random source is `/dev/urandom`. [Go RSA interoperability](interop/go/README.md) and [Java EC interoperability](interop/java/README.md) passed on 4.2.4 and 3.3.9; the pinned Go client's default crypto accepts only RSA keys. RSA and P-521 ECIES encryption over mutually authenticated TLS passed bidirectional Go/Java interoperability on isolated 4.2.4 and 3.3.9 brokers.
@@ -70,7 +70,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 
 - produce / consume roundtrip, sync + async send, batching (broker-side `batch_index` echoed correctly)
 - nack redelivery, shared subscriptions, reader replay
-- LZ4 / Zlib / Zstd / Snappy payloads consumed back by official clients (Snappy: google framing)
+- LZ4 / Zlib / Zstd / raw Snappy payloads consumed back by official clients
 - partitioned topics (admin-created, key routing, merged consumption)
 - transactions: TC channel, transactional produce, commit, read-back
 - automatic reconnection across a broker restart (producer replay + consumer re-subscribe)
@@ -87,6 +87,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - a buffered batch message expires before flush while the next message is delivered on 4.2.4 and 3.3.9
 - two producers sharing a client-wide pending payload-byte budget on 4.2.4 and 3.3.9
 - `examples/memory_budget` passed a 1 MiB shared budget across sequential send/receive, chunked delivery and Reader replay in isolated 4.2.4 and 3.3.9 containers with a dedicated namespace. `scripts/test-chunk-live.sh` also verifies consumer and Reader incomplete-chunk expiry ACK, shared-budget failure and release, retained receive-queue overflow, and recovery by replay on both versions.
+- `scripts/test-chunk-interop-live.sh` exchanges forced 32 KiB compressed chunks with the pinned official Go client in both directions. LZ4, Zlib, Zstd and raw Snappy passed with a 256 KiB random payload on isolated 4.2.4 and 3.3.9 Brokers.
 - an auto-scaled receive queue sending and acknowledging messages on 4.2.4 and 3.3.9; exact FLOW growth is covered by the mock broker
 - producer interceptor payload transformation and receipt callback on 4.2.4 and 3.3.9
 - consumer interceptor delivery and ACK callback on 4.2.4 and 3.3.9
@@ -161,6 +162,7 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/athenz_cert` | certificate-authenticated ZTS role-token exchange |
 | `examples/auth_challenge` | respond to a Broker-issued authentication challenge |
 | `examples/memory_budget` | bounded producer, consumer, chunk and Reader roundtrip on a real broker |
+| `examples/chunk_interop` | compressed chunk exchange with the official Go client |
 | `examples/tls` | verified TLS send/receive, optional client certificate/key and broker-restart check |
 | `examples/token_rotation` | invalid-token rejection and valid file-token rotation on one client |
 | `examples/token_reconnect` | active producer/consumer recovery after file-token and broker signing-key rotation |
