@@ -56,7 +56,7 @@
 - 创建消费者时传入 `interceptors=[ConsumerInterceptor::new(before_consume=..., on_receive_error=..., on_ack=..., on_nack=...)]`。钩子在应用收取消息、`receive()` / `try_receive()` 失败，以及消息或 ID 的 ACK/nack 调用结束时触发；要求 broker 确认的 ACK 被拒绝时，`on_ack` 收到错误。未要求确认的 ACK 回调只代表帧已提交，不代表 broker 已确认。
 - 使用 `let metrics = ClientMetrics::new()` 和 `ClientOptions::new(url, on_event=fn(event) { metrics.record(event) })` 取得本地计数快照，包括发送与失败、接收与失败、ACK/nack 与失败、重连结果。事件回调同步执行；外部 tracing 可从 `ClientEvent::SendCompleted` 与 `ClientEvent::MessageReceived` 读取消息属性。内建 span 与导出器仍未实现。
 - `Connection::max_message_size` 可读取 broker 握手报告的上限；生产者会按此限制编码后的帧，并可自动选择分块大小。
-- `pulsar+ssl://` 使用 `moonbitlang/async/tls`。自定义 CA 握手和重连由本地 TLS mock 覆盖；此前的真实 broker 测试使用带 token 认证的明文 TCP。当前 TLS 客户端 API 不提供用于双向 TLS 的客户端证书。
+- `pulsar+ssl://` 使用 `moonbitlang/async/tls`。本地 TLS mock 覆盖自定义 CA 校验与重连。隔离的 Pulsar 4.2.4 和 3.3.9 broker 已通过 CA 校验下的收发，并拒绝无关 CA；4.2.4 还通过了 broker 重启后复用同一生产者和消费者的测试。TLS 加 token 以及双向 TLS 尚未验证；当前 TLS 客户端 API 不提供客户端证书。
 
 ## 真实 broker 验证记录
 
@@ -148,6 +148,7 @@ async fn main {
 | `examples/auth_token` | token 认证（`PULSAR_TOKEN` 环境变量） |
 | `examples/oauth2` | 从令牌端点获取 OAuth2 客户端凭据 |
 | `examples/athenz` | 读取由 sidecar 维护的 Athenz 角色令牌文件 |
+| `examples/tls` | 验证 TLS 收发及可选的 broker 重启检查 |
 | `examples/producer_compression` | Zstd 压缩负载 |
 | `examples/reader` | 从头回放 Topic |
 | `examples/encryption_interop` | Go/MoonBit 加密互通、Reader 回放及重试/死信转发 |
@@ -160,6 +161,11 @@ async fn main {
 ```sh
 moon run examples/producer --target native
 ```
+
+连接 TLS broker 时设置 `PULSAR_TLS_URL` 和 `PULSAR_TLS_CA_FILE`，并可通过
+`PULSAR_TOPIC`、`PULSAR_SUBSCRIPTION` 隔离测试资源。设置
+`PULSAR_TLS_RECONNECT_CHECK=1` 后，在首次收发完成的提示出现时重启 broker；
+示例等待 30 秒，再用同一客户端发送和接收。
 
 扩展集成场景接受 `PULSAR_URL`、`PULSAR_TOKEN`、`PULSAR_TEST_PREFIX` 和可选的 `PULSAR_ADMIN_URL`：
 

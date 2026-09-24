@@ -11,17 +11,31 @@ async fn main {
       Some(ca_file) => @pulsar.Client::connect_tls_with_ca(group, url, ca_file)
       None => @pulsar.Client::connect_tls_insecure(group, url)
     }
-    let topic = "persistent://public/default/moonpulsar-tls"
+    let topic = @env.get_env_var("PULSAR_TOPIC").unwrap_or(
+      "persistent://public/default/moonpulsar-tls",
+    )
+    let subscription = @env.get_env_var("PULSAR_SUBSCRIPTION").unwrap_or(
+      "tls-subscription",
+    )
     let producer = client.create_producer(topic)
     ignore(producer.send(@pulsar.ProducerMessage::new(b"over TLS")))
     let consumer = client.create_consumer(
       topic,
-      "tls-subscription",
+      subscription,
       initial_position=Earliest,
     )
     let message = consumer.receive()
     println("received over TLS: \{@utf8.decode(message.payload())}")
     message.ack()
+    if @env.get_env_var("PULSAR_TLS_RECONNECT_CHECK") is Some(_) {
+      println("TLS roundtrip complete; restart the broker now")
+      @async.sleep(30000)
+      ignore(producer.send(@pulsar.ProducerMessage::new(b"over TLS again")))
+      let next = consumer.receive()
+      assert_eq(next.payload(), b"over TLS again")
+      next.ack()
+      println("received after TLS broker restart")
+    }
     consumer.close()
     producer.close()
     client.close()
