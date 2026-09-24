@@ -1050,6 +1050,39 @@ pub async fn SingleConsumer::ack(
 }
 
 ///|
+/// Acknowledge several IDs. Ordinary IDs share one ACK frame; batch indexes
+/// retain their per-entry bitmap handling. An empty list has no effect.
+pub async fn SingleConsumer::ack_ids(
+  self : SingleConsumer,
+  ids : Array[MessageId],
+  await_response? : Bool = false,
+) -> Unit {
+  let ordinary : Array[MessageId] = []
+  for id in ids {
+    if id.batch_index >= 0 {
+      self.ack(id, await_response~)
+    } else {
+      for chunk_id in self.chunk_acks.get(id).unwrap_or([id]) {
+        ordinary.push(chunk_id)
+      }
+    }
+  }
+  if !ordinary.is_empty() {
+    self.ack_dispatcher.ack(
+      @proto.CommandAck_AckType::Individual,
+      ordinary,
+      await_response~,
+    )
+    for id in ids {
+      if id.batch_index < 0 {
+        self.ack_pending.remove(id)
+        self.chunk_acks.remove(id)
+      }
+    }
+  }
+}
+
+///|
 /// Acknowledge cumulatively: this message and all before it.
 pub async fn SingleConsumer::ack_cumulative(
   self : SingleConsumer,
@@ -1117,6 +1150,16 @@ pub async fn SingleConsumer::nack(
   let ids = self.chunk_acks.get(id).unwrap_or([id])
   self.chunk_acks.remove(id)
   send_redeliver(self.conn_ref.val, self.consumer_id, ids)
+}
+
+///|
+/// Return the broker's last message ID for this consumer's topic.
+pub async fn SingleConsumer::last_message_id(
+  self : SingleConsumer,
+) -> MessageId {
+  guard !self.closed.val else { raise ConsumerClosed }
+  guard !self.reconnecting.val else { raise ConnectionClosed }
+  query_last_message_id(self.conn_ref.val, self.consumer_id)
 }
 
 ///|
@@ -1700,6 +1743,50 @@ pub async fn Consumer::ack(
 }
 
 ///|
+/// Acknowledge multiple IDs belonging to a single-topic consumer.
+pub async fn Consumer::ack_ids(
+  self : Consumer,
+  ids : Array[MessageId],
+  await_response? : Bool = false,
+) -> Unit {
+  match self.inner {
+    ConsumerImpl::Single(c) => {
+      let ordinary : Array[MessageId] = []
+      for id in ids {
+        if id.batch_index >= 0 {
+          self.ack(id, await_response~)
+        } else {
+          ordinary.push(id)
+        }
+      }
+      if !ordinary.is_empty() {
+        let result : Result[Unit, Error] = Ok(
+          c.ack_ids(ordinary, await_response~),
+        ) catch {
+          e => Err(e)
+        }
+        for id in ordinary {
+          self.observe_ack(id, result)
+        }
+        match result {
+          Ok(_) =>
+            if self.dead_letter is Some(dlq) {
+              for id in ordinary {
+                dlq.nacked.remove((c.topic(), id))
+              }
+            }
+          Err(e) => raise e
+        }
+      }
+    }
+    ConsumerImpl::Partitioned(_) =>
+      raise InvalidFrame(
+        "ack by id needs the message's own consumer; use message.ack()",
+      )
+  }
+}
+
+///|
 async fn Consumer::ack_raw(
   self : Consumer,
   id : MessageId,
@@ -1833,6 +1920,26 @@ async fn Consumer::nack_raw(self : Consumer, id : MessageId) -> Unit {
         "nack by id needs the message's own consumer; use message.nack()",
       )
   }
+}
+
+///|
+/// Return the broker's last message ID for each subscribed topic.
+pub async fn Consumer::last_message_ids(
+  self : Consumer,
+) -> Map[String, MessageId] {
+  let result : Map[String, MessageId] = Map([])
+  match self.inner {
+    ConsumerImpl::Single(c) => result[c.topic()] = c.last_message_id()
+    ConsumerImpl::Partitioned(state) => {
+      guard !state.closed.val else { raise ConsumerClosed }
+      for sub in state.consumers {
+        for topic, id in sub.last_message_ids() {
+          result[topic] = id
+        }
+      }
+    }
+  }
+  result
 }
 
 ///|

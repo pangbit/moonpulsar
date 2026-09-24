@@ -75,6 +75,35 @@ async test "client rejects invalid consumer and chunking options before lookup" 
       e => Err(e)
     }
     assert_true(no_topics is Err(InvalidFrame(_)))
+    let multi_zero : Result[Consumer, Error] = Ok(
+      client.create_multi_topic_consumer([topic], "sub", receiver_queue_size=0),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(multi_zero is Err(InvalidFrame(_)))
+    let pattern_zero : Result[Consumer, Error] = Ok(
+      client.create_pattern_consumer(
+        "public/default",
+        "options.*",
+        "sub",
+        receiver_queue_size=0,
+      ),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(pattern_zero is Err(InvalidFrame(_)))
+    let retry_zero : Result[Consumer, Error] = Ok(
+      client.create_retry_consumer(
+        topic,
+        "sub",
+        "persistent://public/default/retry",
+        DeadLetterPolicy::new(1U, "persistent://public/default/dlq"),
+        receiver_queue_size=0,
+      ),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(retry_zero is Err(InvalidFrame(_)))
     let negative_queue : Result[Consumer, Error] = Ok(
       client.create_consumer(topic, "sub", receiver_queue_size=-1),
     ) catch {
@@ -166,6 +195,25 @@ async test "client rejects invalid consumer and chunking options before lookup" 
       e => Err(e)
     }
     assert_true(duplicate_retry is Err(InvalidFrame(_)))
+    client.close()
+  })
+}
+
+///|
+async test "partitioned consumer rejects a zero receive queue" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_partitioned_broker(group, 2, fn(_addr, _peer) {  })
+    let client = Client::connect(group, "pulsar://\{addr}")
+    let result : Result[Consumer, Error] = Ok(
+      client.create_consumer(
+        "persistent://public/default/partitioned-zero",
+        "sub",
+        receiver_queue_size=0,
+      ),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(InvalidFrame(_)))
     client.close()
   })
 }

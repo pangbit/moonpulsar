@@ -500,13 +500,21 @@ pub async fn SingleReader::last_message_id(self : SingleReader) -> MessageId {
     }
     raise ConsumerClosed
   }
+  query_last_message_id(self.conn, self.consumer_id)
+}
+
+///|
+async fn query_last_message_id(
+  conn : Connection,
+  consumer_id : UInt64,
+) -> MessageId {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID
   let req = @proto.CommandGetLastMessageId::default()
-  req.consumer_id = self.consumer_id
-  req.request_id = self.conn.next_request_id()
+  req.consumer_id = consumer_id
+  req.request_id = conn.next_request_id()
   cmd.get_last_message_id = Some(req)
-  let reply = self.conn.request(cmd)
+  let reply = conn.request(cmd)
   guard reply.get_last_message_id_response is Some(resp) else {
     raise UnexpectedResponse("expected GET_LAST_MESSAGE_ID_RESPONSE")
   }
@@ -811,6 +819,23 @@ pub async fn Reader::last_message_id(self : Reader) -> MessageId {
     ReaderImpl::Many(_) =>
       raise InvalidFrame("partitioned reader has no single last message ID")
   }
+}
+
+///|
+/// Return the broker's last message ID for each topic this reader follows.
+/// Partitioned readers report each partition topic separately.
+pub async fn Reader::last_message_ids(self : Reader) -> Map[String, MessageId] {
+  let result : Map[String, MessageId] = Map([])
+  match self.inner {
+    ReaderImpl::One(r) => result[r.topic] = r.last_message_id()
+    ReaderImpl::Many(state) => {
+      guard !state.closed.val else { raise ConsumerClosed }
+      for r in state.readers {
+        result[r.topic] = r.last_message_id()
+      }
+    }
+  }
+  result
 }
 
 ///|

@@ -14,15 +14,23 @@ async fn main {
     }
     let metrics = @pulsar.ClientMetrics::new()
     let observe = fn(event : @pulsar.ClientEvent) { metrics.record(event) }
-    let options = match @env.get_env_var("PULSAR_TOKEN") {
-      Some(token) =>
+    let options = match
+      (@env.get_env_var("PULSAR_TOKEN_FILE"), @env.get_env_var("PULSAR_TOKEN")) {
+      (Some(path), _) =>
+        @pulsar.ClientOptions::new(
+          url,
+          auth_provider=@pulsar.token_file_provider(path),
+          max_connections_per_broker=pool_size,
+          on_event=observe,
+        )
+      (None, Some(token)) =>
         @pulsar.ClientOptions::new(
           url,
           auth=@pulsar.TokenAuth::new(token),
           max_connections_per_broker=pool_size,
           on_event=observe,
         )
-      None =>
+      (None, None) =>
         @pulsar.ClientOptions::new(
           url,
           max_connections_per_broker=pool_size,
@@ -55,6 +63,29 @@ async fn main {
     }
     assert_eq(received.get(topic_a), Some("a"))
     assert_eq(received.get(topic_b), Some("b"))
+    let source_ids = consumer.last_message_ids()
+    assert_true(source_ids.contains(topic_a) && source_ids.contains(topic_b))
+    let list_topic = "persistent://public/default/\{prefix}-ack-list"
+    let list_producer = client.create_producer(list_topic)
+    let list_consumer = client.create_consumer(
+      list_topic,
+      "\{prefix}-ack-list-sub",
+      initial_position=Earliest,
+    )
+    ignore(list_producer.send(@pulsar.ProducerMessage::new(b"list-a")))
+    ignore(list_producer.send(@pulsar.ProducerMessage::new(b"list-b")))
+    let list_first = @async.with_timeout(10000, async fn() {
+      list_consumer.receive()
+    })
+    let list_second = @async.with_timeout(10000, async fn() {
+      list_consumer.receive()
+    })
+    list_consumer.ack_ids(
+      [list_first.id(), list_second.id()],
+      await_response=true,
+    )
+    list_consumer.close()
+    list_producer.close()
     println("live batch ACK: begin")
     let batch_topic = "persistent://public/default/\{prefix}-batch-ack"
     let batch_producer = client.create_producer(batch_topic, batching=@pulsar.BatchingConfig::{
@@ -184,14 +215,21 @@ async fn main {
     surviving_message.ack()
     batch_timeout_consumer.close()
     batch_timeout_producer.close()
-    let memory_options = match @env.get_env_var("PULSAR_TOKEN") {
-      Some(token) =>
+    let memory_options = match
+      (@env.get_env_var("PULSAR_TOKEN_FILE"), @env.get_env_var("PULSAR_TOKEN")) {
+      (Some(path), _) =>
+        @pulsar.ClientOptions::new(
+          url,
+          auth_provider=@pulsar.token_file_provider(path),
+          max_memory_bytes=5,
+        )
+      (None, Some(token)) =>
         @pulsar.ClientOptions::new(
           url,
           auth=@pulsar.TokenAuth::new(token),
           max_memory_bytes=5,
         )
-      None => @pulsar.ClientOptions::new(url, max_memory_bytes=5)
+      (None, None) => @pulsar.ClientOptions::new(url, max_memory_bytes=5)
     }
     let memory_client = @pulsar.Client::connect_with_options(
       group, memory_options,
@@ -461,6 +499,9 @@ async fn main {
     assert_eq(
       inclusive_message.map(fn(m) { m.payload() }),
       Some(b"position-first"),
+    )
+    assert_true(
+      inclusive_reader.last_message_ids().contains(reader_position_topic),
     )
     inclusive_reader.close()
     let latest_inclusive_reader = client.create_reader(

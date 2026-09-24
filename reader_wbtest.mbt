@@ -364,6 +364,44 @@ async test "reader has_message_available via last message id" {
 }
 
 ///|
+async test "partitioned reader returns last message id per topic" {
+  @async.with_task_group(async fn(group) {
+    let first = "persistent://public/default/last-partition-0"
+    let second = "persistent://public/default/last-partition-1"
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      expect_subscribe(peer)
+      for entry in 1..<3 {
+        let frame = peer.next()
+        guard frame.cmd.get_last_message_id is Some(req) else {
+          fail("expected GET_LAST_MESSAGE_ID")
+        }
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
+        let resp = @proto.CommandGetLastMessageIdResponse::default()
+        resp.request_id = req.request_id
+        let id = @proto.MessageIdData::default()
+        id.ledger_id = 3
+        id.entry_id = entry.reinterpret_as_uint().to_uint64()
+        resp.last_message_id = id
+        reply.get_last_message_id_response = Some(resp)
+        peer.send_command(reply)
+      }
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let r0 = SingleReader::create(group, conn, first)
+    let r1 = SingleReader::create(group, conn, second)
+    let reader = Reader::partitioned(group, [r0, r1])
+    let ids = reader.last_message_ids()
+    assert_eq(ids.get(first).map(fn(id) { id.entry_id }), Some(1UL))
+    assert_eq(ids.get(second).map(fn(id) { id.entry_id }), Some(2UL))
+    reader.close()
+    manager.close()
+  })
+}
+
+///|
 async test "reader seek by message id re-subscribes at the position" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {

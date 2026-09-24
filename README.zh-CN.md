@@ -13,7 +13,7 @@
 - 生产者拦截器可在分区路由前修改消息，并观察 broker 回执或发送失败；调用方不等待异步回执时也会触发结果回调。
 - 消费者拦截器可观察应用收到消息、`receive()` / `try_receive()` 失败，以及 `Message::ack`、`Message::nack` 和按 ID 确认的执行结果。
 - `ClientOptions::new(on_event=...)` 提供结构化发送、接收、ACK/nack 和重连事件；`ClientMetrics` 统计结果次数。事件中的消息属性可供外部 tracing 实现使用。
-- 消费者：Exclusive、Shared、Failover、KeyShared 订阅（含自动拆分和固定哈希范围策略）；可选 broker 确认的单条/累计 ACK、负面 ACK 与可选的指数退避重投、ACK 超时、按消息 ID 或时间戳 seek、取消订阅、FLOW 许可控制、单主题零接收队列按需请求、可选接收队列自动扩容，以及批量消息拆包和可选的批次索引 ACK
+- 消费者：Exclusive、Shared、Failover、KeyShared 订阅（含自动拆分和固定哈希范围策略）；可选 broker 确认的单条/累计/ID 列表 ACK、负面 ACK 与可选的指数退避重投、ACK 超时、按消息 ID 或时间戳 seek、取消订阅、FLOW 许可控制、非分区单主题零接收队列按需请求、可选接收队列自动扩容，以及批量消息拆包和可选的批次索引 ACK
 - 死信策略：消息超过允许的失败次数后转发到死信 Topic，保留负载、key、排序 key、属性和事件时间；死信生产者收到 broker 回执后才确认源消息
 - 重试信 Topic 消费者：普通订阅可设置 `retry_topic`，也可使用显式构造函数；`reconsume_later` 延迟重新投递，达到上限后转入死信 Topic
 - 可按最新或指定版本查询 Schema；生产者在消息中附带 broker 分配的版本，消费者可读取 `schema_version()`
@@ -49,6 +49,7 @@
 - 批次消息默认在全部索引确认后发送整批 ACK；消费者设置 `enable_batch_index_ack=true` 后可逐索引确认，broker 需启用 `acknowledgmentAtBatchIndexLevelEnabled`。默认模式下，未完成整批的 ACK 不能请求 broker 确认。事务 ACK 支持两种模式，并等待每次 broker ACK 响应；broker 还需启用事务。
 - 固定版本的 Go 客户端消费 MoonBit 发送的加密空载荷时，会返回 16 字节 AES-GCM 标签：其消费路径在 `UncompressedSize` 为零时未替换解密后的缓冲区。MoonBit 能正确解密 Go 发出的加密空载荷；运行 `interop/go/encryption receive-empty` 可复现 Go 侧限制。
 - 消费者可设置 `ack_grouping=AckGroupingOptions::new(max_size=1000, max_time_ms=100)`，按数量或时间合并 ACK；默认不启用。要求 broker 确认的 ACK 和事务 ACK 会先冲刷缓存再立即发送；关闭或 seek 前冲刷，重连时丢弃未发出的 ACK 以便 broker 重投。
+- `Consumer::ack_ids([id1, id2])` 将普通 ID 合入一个 ACK 帧，批次索引 ID 保持位图处理。`Consumer::last_message_ids()` 与 `Reader::last_message_ids()` 返回按来源 Topic（含分区 Topic）索引的最后 ID。零接收队列只适用于非分区单主题消费者；分区、多 Topic、重试和模式订阅会明确报错。
 - `send_timeout_ms` 从批次消息进入生产者缓冲队列时开始计时；在 flush 前过期的消息会从批次中移除。非批次消息仍从 SEND 帧登记时计时。SEND 后超时不代表 broker 一定拒绝消息，重试时应使用稳定的生产者名称和序列号。
 - `ClientOptions::new(max_memory_bytes=...)` 限制同一客户端创建的所有生产者占用的待发送负载字节数；消息元数据、连接及其他分配不计入。`block_if_queue_full=false` 时超额返回 `ClientMemoryFull`，否则等待回执、失败、超时或客户端关闭释放额度。
 - 消费者设置 `auto_scaled_receiver_queue=true` 后，从 1 个 FLOW 许可开始；队列曾满且下一次读取时已空，预取上限倍增，直至 `receiver_queue_size`。此选项不能与零接收队列同时使用。组合消费者会向每个来源传递此选项，其合并队列仍单独缓冲。
@@ -176,7 +177,7 @@ broker 拒绝轮换后的无效 Token，再让同一客户端用第二个有效 
 可设置 `PULSAR_URL`、`PULSAR_TOPIC` 和 `PULSAR_SUBSCRIPTION` 隔离测试资源；
 示例不会修改传入的 Token 文件。
 
-扩展集成场景接受 `PULSAR_URL`、`PULSAR_TOKEN`、`PULSAR_TEST_PREFIX` 和可选的 `PULSAR_ADMIN_URL`：
+扩展集成场景接受 `PULSAR_URL`、`PULSAR_TOKEN` 或 `PULSAR_TOKEN_FILE`、`PULSAR_TEST_PREFIX` 和可选的 `PULSAR_ADMIN_URL`：
 
 ```sh
 PULSAR_URL=pulsar://127.0.0.1:6650 PULSAR_TEST_PREFIX=moonpulsar-check \

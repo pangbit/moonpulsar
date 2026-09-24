@@ -17,6 +17,188 @@ async fn expect_subscribe(peer : MockPeer) -> Unit {
 }
 
 ///|
+async test "composite consumer returns last message id per source" {
+  @async.with_task_group(async fn(group) {
+    let first = "persistent://public/default/consumer-last-a"
+    let second = "persistent://public/default/consumer-last-b"
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      expect_subscribe(peer)
+      for entry in 1..<3 {
+        let frame = peer.next()
+        guard frame.cmd.get_last_message_id is Some(req) else {
+          fail("expected GET_LAST_MESSAGE_ID")
+        }
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
+        let resp = @proto.CommandGetLastMessageIdResponse::default()
+        resp.request_id = req.request_id
+        let id = @proto.MessageIdData::default()
+        id.ledger_id = 4
+        id.entry_id = entry.reinterpret_as_uint().to_uint64()
+        resp.last_message_id = id
+        reply.get_last_message_id_response = Some(resp)
+        peer.send_command(reply)
+      }
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let c0 = SingleConsumer::create(group, conn, first, "sub")
+    let c1 = SingleConsumer::create(group, conn, second, "sub")
+    let consumer = Consumer::partitioned(group, [
+      Consumer::single(c0),
+      Consumer::single(c1),
+    ])
+    let ids = consumer.last_message_ids()
+    assert_eq(ids.get(first).map(fn(id) { id.entry_id }), Some(1UL))
+    assert_eq(ids.get(second).map(fn(id) { id.entry_id }), Some(2UL))
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "consumer acknowledges multiple ordinary IDs in one frame" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let frame = peer.next()
+      guard frame.cmd.ack is Some(ack) else { fail("expected ACK") }
+      assert_eq(ack.message_id.length(), 2)
+      assert_eq(ack.message_id[0].entry_id, 1UL)
+      assert_eq(ack.message_id[1].entry_id, 2UL)
+      drain_closes(peer)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let consumer = Consumer::single(
+      SingleConsumer::create(
+        group, conn, "persistent://public/default/ack-ids", "sub",
+      ),
+    )
+    let first : MessageId = {
+      ledger_id: 1,
+      entry_id: 1,
+      batch_index: -1,
+      partition: -1,
+    }
+    let second : MessageId = { ..first, entry_id: 2, }
+    consumer.ack_ids([])
+    consumer.ack_ids([first, second])
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "confirmed ID-list ACK can retry after broker rejection" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      for attempt in 0..<2 {
+        let frame = peer.next()
+        guard frame.cmd.ack is Some(ack) && ack.request_id is Some(id) else {
+          fail("expected confirmed ID-list ACK")
+        }
+        assert_eq(ack.message_id.length(), 2)
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::ACK_RESPONSE
+        let response = @proto.CommandAckResponse::default()
+        response.consumer_id = ack.consumer_id
+        response.request_id = Some(id)
+        if attempt == 0 {
+          response.error = Some(@proto.ServerError::MetadataError)
+          response.message = Some("ack denied")
+        }
+        reply.ack_response = Some(response)
+        peer.send_command(reply)
+      }
+      drain_closes(peer)
+    })
+    let manager = ConnectionManager::new(group)
+    let consumer = Consumer::single(
+      SingleConsumer::create(
+        group,
+        manager.get(addr),
+        "persistent://public/default/ack-ids-retry",
+        "sub",
+      ),
+    )
+    let first : MessageId = {
+      ledger_id: 1,
+      entry_id: 1,
+      batch_index: -1,
+      partition: -1,
+    }
+    let second : MessageId = { ..first, entry_id: 2, }
+    let observed : Array[Bool] = []
+    consumer.set_interceptors([
+      ConsumerInterceptor::new(on_ack=fn(_id, result) {
+        observed.push(result is Ok(_))
+      }),
+    ])
+    let failed : Result[Unit, Error] = Ok(
+      consumer.ack_ids([first, second], await_response=true),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(failed is Err(ServerError(message="ack denied", ..)))
+    consumer.ack_ids([first, second], await_response=true)
+    assert_eq(observed, [false, false, true, true])
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "last message ID query recovers after malformed broker reply" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      for attempt in 0..<2 {
+        let frame = peer.next()
+        guard frame.cmd.get_last_message_id is Some(req) else {
+          fail("expected GET_LAST_MESSAGE_ID")
+        }
+        let reply = @proto.BaseCommand::default()
+        if attempt == 0 {
+          reply.type_ = @proto.BaseCommand_Type::SUCCESS
+          let success = @proto.CommandSuccess::default()
+          success.request_id = req.request_id
+          reply.success = Some(success)
+        } else {
+          reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
+          let response = @proto.CommandGetLastMessageIdResponse::default()
+          response.request_id = req.request_id
+          let id = @proto.MessageIdData::default()
+          id.ledger_id = 2
+          id.entry_id = 8
+          response.last_message_id = id
+          reply.get_last_message_id_response = Some(response)
+        }
+        peer.send_command(reply)
+      }
+      drain_closes(peer)
+    })
+    let manager = ConnectionManager::new(group)
+    let topic = "persistent://public/default/last-recovery"
+    let consumer = Consumer::single(
+      SingleConsumer::create(group, manager.get(addr), topic, "sub"),
+    )
+    let malformed : Result[Map[String, MessageId], Error] = Ok(
+      consumer.last_message_ids(),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(malformed is Err(UnexpectedResponse(_)))
+    let ids = consumer.last_message_ids()
+    assert_eq(ids.get(topic).map(fn(id) { id.entry_id }), Some(8UL))
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
 fn message_frame(
   consumer_id : UInt64,
   ledger_id : UInt64,

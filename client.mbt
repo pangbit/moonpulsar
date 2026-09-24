@@ -432,6 +432,11 @@ pub async fn Client::create_consumer(
   let manager = self.manager
   let addr = self.service_addr
   let partitions = get_partition_count(manager, addr, topic)
+  guard partitions == 0 || receiver_queue_size != 0 else {
+    raise InvalidFrame(
+      "zero receive queue requires a single non-partitioned topic",
+    )
+  }
   if partitions == 0 {
     let conn = lookup_topic(manager, addr, topic)
     let single = SingleConsumer::create(
@@ -636,6 +641,11 @@ pub async fn Client::create_retry_consumer(
     topic != dead_letter_policy.topic() else {
     raise InvalidFrame("source, retry, and dead-letter topics must differ")
   }
+  guard receiver_queue_size != 0 else {
+    raise InvalidFrame(
+      "zero receive queue requires a single non-partitioned topic",
+    )
+  }
   let create = async fn(name : String) -> Consumer {
     self.create_consumer(
       name,
@@ -719,6 +729,11 @@ pub async fn Client::create_multi_topic_consumer(
 ) -> Consumer {
   guard !topics.is_empty() else {
     raise InvalidFrame("multi-topic consumer requires at least one topic")
+  }
+  guard receiver_queue_size != 0 else {
+    raise InvalidFrame(
+      "zero receive queue requires a single non-partitioned topic",
+    )
   }
   if retry_topic is Some(retry) {
     guard dead_letter_policy is Some(policy) &&
@@ -1049,6 +1064,11 @@ pub async fn Client::create_pattern_consumer(
   }
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
+  }
+  guard receiver_queue_size != 0 else {
+    raise InvalidFrame(
+      "zero receive queue requires a single non-partitioned topic",
+    )
   }
   if retry_topic is Some(retry) {
     guard dead_letter_policy is Some(policy) &&

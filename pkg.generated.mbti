@@ -251,9 +251,11 @@ pub struct Consumer {
 }
 pub async fn Consumer::ack(Self, MessageId, await_response? : Bool) -> Unit
 pub async fn Consumer::ack_cumulative(Self, MessageId, await_response? : Bool) -> Unit
+pub async fn Consumer::ack_ids(Self, Array[MessageId], await_response? : Bool) -> Unit
 pub async fn Consumer::ack_txn(Self, Transaction, MessageId, await_response? : Bool) -> Unit
 pub async fn Consumer::close(Self) -> Unit
 pub fn Consumer::is_closed(Self) -> Bool
+pub async fn Consumer::last_message_ids(Self) -> Map[String, MessageId]
 pub async fn Consumer::nack(Self, MessageId) -> Unit
 pub fn Consumer::partitioned(@async.TaskGroup[Unit], Array[Self]) -> Self
 pub async fn Consumer::receive(Self) -> Message
@@ -428,6 +430,7 @@ pub async fn Reader::close(Self) -> Unit
 pub async fn Reader::has_message_available(Self) -> Bool
 pub fn Reader::is_closed(Self) -> Bool
 pub async fn Reader::last_message_id(Self) -> MessageId
+pub async fn Reader::last_message_ids(Self) -> Map[String, MessageId]
 pub async fn Reader::next(Self) -> Message?
 pub fn Reader::partitioned(@async.TaskGroup[Unit], Array[SingleReader]) -> Self
 pub async fn Reader::seek(Self, SeekPosition) -> Unit
@@ -506,10 +509,12 @@ pub struct SingleConsumer {
 }
 pub async fn SingleConsumer::ack(Self, MessageId, await_response? : Bool) -> Unit
 pub async fn SingleConsumer::ack_cumulative(Self, MessageId, await_response? : Bool) -> Unit
+pub async fn SingleConsumer::ack_ids(Self, Array[MessageId], await_response? : Bool) -> Unit
 pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId, await_response? : Bool) -> Unit
 pub async fn SingleConsumer::close(Self) -> Unit
 pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, reconnect_with? : async () -> Connection, schema? : SchemaInfo, message_crypto? : MessageCrypto, reconnect_policy? : RetryPolicy, chunk_policy? : ChunkAssemblyPolicy, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, on_event? : (ClientEvent) -> Unit) -> Self
 pub fn SingleConsumer::is_closed(Self) -> Bool
+pub async fn SingleConsumer::last_message_id(Self) -> MessageId
 pub async fn SingleConsumer::nack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::receive(Self) -> Message
 pub async fn SingleConsumer::seek(Self, SeekPosition) -> Unit
