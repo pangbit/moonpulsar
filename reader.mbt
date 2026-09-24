@@ -146,6 +146,7 @@ pub async fn SingleReader::create(
           return
         }
         reader.chunks.evict_expired()
+        reader.ack_evicted_chunks()
       }
     },
     no_wait=true,
@@ -192,6 +193,25 @@ fn SingleReader::discard_before_start(
 ///|
 fn SingleReader::stop_chunk_sweeper(self : SingleReader) -> Unit {
   ignore(self.chunk_sweeper_stop.try_put(()) catch { _ => false })
+}
+
+///|
+fn SingleReader::ack_evicted_chunks(self : SingleReader) -> Unit {
+  let ids = self.chunks.take_evicted()
+  if ids.is_empty() {
+    return
+  }
+  let conn = self.conn_ref.val
+  let consumer_id = self.consumer_id
+  self.group.spawn_bg(
+    async fn() {
+      send_ack(conn, consumer_id, @proto.CommandAck_AckType::Individual, ids) catch {
+        _ => ()
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
 }
 
 ///|
@@ -324,6 +344,7 @@ fn SingleReader::dispatch_message(
   }
   let base_id = MessageId::from_proto(message.message_id)
   let chunk = self.chunks.accept(metadata, base_id, raw_payload)
+  self.ack_evicted_chunks()
   guard chunk.payload is Some(assembled) else {
     if chunk.is_chunk {
       self.group.spawn_bg(

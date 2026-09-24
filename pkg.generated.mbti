@@ -130,7 +130,7 @@ type ChunkAssembler
 pub struct ChunkAssemblyPolicy {
   // private fields
 }
-pub fn ChunkAssemblyPolicy::new(expiry_ms? : Int, max_pending_messages? : Int) -> Self raise PulsarError
+pub fn ChunkAssemblyPolicy::new(expiry_ms? : Int, max_pending_messages? : Int, auto_ack_incomplete? : Bool) -> Self raise PulsarError
 
 type ChunkResult
 

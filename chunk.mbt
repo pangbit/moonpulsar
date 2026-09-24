@@ -17,17 +17,19 @@ const CHUNK_EXPIRY_MS : Int = 60000
 pub struct ChunkAssemblyPolicy {
   priv expiry_ms : Int
   priv max_pending_messages : Int
+  priv auto_ack_incomplete : Bool
 }
 
 ///|
 pub fn ChunkAssemblyPolicy::new(
   expiry_ms? : Int = CHUNK_EXPIRY_MS,
   max_pending_messages? : Int = MAX_PENDING_CHUNKED_MESSAGES,
+  auto_ack_incomplete? : Bool = false,
 ) -> ChunkAssemblyPolicy raise PulsarError {
   guard expiry_ms > 0 && max_pending_messages > 0 else {
     raise InvalidFrame("chunk expiry and pending limit must be positive")
   }
-  { expiry_ms, max_pending_messages, }
+  { expiry_ms, max_pending_messages, auto_ack_incomplete, }
 }
 
 ///|
@@ -52,6 +54,7 @@ struct ChunkResult {
 struct ChunkAssembler {
   pending : Map[String, ChunkAssembly]
   mut buffered_bytes : Int
+  mut evicted_ids : Array[MessageId]
   policy : ChunkAssemblyPolicy
 }
 
@@ -60,9 +63,11 @@ fn ChunkAssembler::new(policy? : ChunkAssemblyPolicy) -> ChunkAssembler {
   {
     pending: {},
     buffered_bytes: 0,
+    evicted_ids: [],
     policy: policy.unwrap_or({
       expiry_ms: CHUNK_EXPIRY_MS,
       max_pending_messages: MAX_PENDING_CHUNKED_MESSAGES,
+      auto_ack_incomplete: false,
     }),
   }
 }
@@ -71,14 +76,31 @@ fn ChunkAssembler::new(policy? : ChunkAssemblyPolicy) -> ChunkAssembler {
 fn ChunkAssembler::clear(self : ChunkAssembler) -> Unit {
   self.pending.clear()
   self.buffered_bytes = 0
+  self.evicted_ids = []
 }
 
 ///|
-fn ChunkAssembler::discard(self : ChunkAssembler, uuid : String) -> Unit {
+fn ChunkAssembler::discard(
+  self : ChunkAssembler,
+  uuid : String,
+  acknowledge? : Bool = true,
+) -> Unit {
   if self.pending.get(uuid) is Some(part) {
     self.buffered_bytes -= part.size
     self.pending.remove(uuid)
+    if acknowledge && self.policy.auto_ack_incomplete {
+      for id in part.ids {
+        self.evicted_ids.push(id)
+      }
+    }
   }
+}
+
+///|
+fn ChunkAssembler::take_evicted(self : ChunkAssembler) -> Array[MessageId] {
+  let ids = self.evicted_ids
+  self.evicted_ids = []
+  ids
 }
 
 ///|
@@ -137,7 +159,8 @@ fn ChunkAssembler::accept(
     return empty
   }
   if index == 0 {
-    self.discard(uuid)
+    // A repeated first chunk can be a redelivery of the same broker entry.
+    self.discard(uuid, acknowledge=false)
     if self.pending.size() >= self.policy.max_pending_messages &&
       !self.pending.contains(uuid) {
       self.evict_oldest()
@@ -180,8 +203,9 @@ fn ChunkAssembler::accept(
     return empty
   }
   self.pending[uuid] = updated
-  self.discard(uuid)
-  if updated.size != total {
+  let complete = updated.size == total
+  self.discard(uuid, acknowledge=!complete)
+  if !complete {
     return empty
   }
   {

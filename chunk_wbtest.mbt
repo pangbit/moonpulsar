@@ -336,6 +336,9 @@ async test "chunk policy limits pending messages and expires incomplete buffers"
 ///|
 async test "consumer sweeps incomplete chunks without new messages" {
   @async.with_task_group(async fn(group) {
+    let sent_ack : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
     let addr = start_mock_broker(group, async fn(_addr, peer) {
       expect_subscribe(peer)
       let metadata = test_metadata()
@@ -345,7 +348,23 @@ async test "consumer sweeps incomplete chunks without new messages" {
       metadata.chunk_id = Some(0)
       let (cmd, meta, body) = message_frame(1UL, 1UL, 1UL, b"a", metadata)
       peer.send_message(cmd, meta, body)
-      ignore(peer.next())
+      let mut saw_ack = false
+      while true {
+        let frame = peer.next()
+        if frame.cmd.ack is Some(_) {
+          saw_ack = true
+        }
+        if frame.cmd.close_consumer is Some(close) {
+          let reply = @proto.BaseCommand::default()
+          reply.type_ = @proto.BaseCommand_Type::SUCCESS
+          let success = @proto.CommandSuccess::default()
+          success.request_id = close.request_id
+          reply.success = Some(success)
+          peer.send_command(reply)
+          sent_ack.put(saw_ack)
+          return
+        }
+      }
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
@@ -369,6 +388,7 @@ async test "consumer sweeps incomplete chunks without new messages" {
     assert_eq(consumer.chunks.buffered_bytes, 0)
     consumer.close()
     manager.close()
+    assert_eq(sent_ack.get(), false)
   })
 }
 
@@ -404,6 +424,137 @@ async test "reader sweeps incomplete chunks without new messages" {
         @async.sleep(5)
       }
     })
+    assert_eq(reader.chunks.buffered_bytes, 0)
+    reader.close()
+    manager.close()
+  })
+}
+
+///|
+async test "chunk policy exposes evicted IDs for optional acknowledgment" {
+  let policy = ChunkAssemblyPolicy::new(
+    expiry_ms=20,
+    max_pending_messages=1,
+    auto_ack_incomplete=true,
+  )
+  let chunks = ChunkAssembler::new(policy~)
+  let first : MessageId = {
+    ledger_id: 1UL,
+    entry_id: 1UL,
+    batch_index: -1,
+    partition: -1,
+  }
+  let second = { ..first, entry_id: 2UL, }
+  for (uuid, id) in [("first", first), ("second", second)] {
+    let meta = test_metadata()
+    meta.uuid = Some(uuid)
+    meta.num_chunks_from_msg = Some(2)
+    meta.total_chunk_msg_size = Some(2)
+    meta.chunk_id = Some(0)
+    ignore(chunks.accept(meta, id, b"a"))
+  }
+  assert_eq(chunks.take_evicted(), [first])
+  @async.sleep(30)
+  chunks.evict_expired()
+  assert_eq(chunks.take_evicted(), [second])
+  assert_true(chunks.take_evicted().is_empty())
+  let complete = test_metadata()
+  complete.uuid = Some("complete")
+  complete.num_chunks_from_msg = Some(2)
+  complete.total_chunk_msg_size = Some(2)
+  complete.chunk_id = Some(0)
+  ignore(chunks.accept(complete, first, b"a"))
+  complete.chunk_id = Some(1)
+  ignore(chunks.accept(complete, second, b"b"))
+  assert_true(chunks.take_evicted().is_empty())
+  complete.uuid = Some("redelivered-first")
+  complete.chunk_id = Some(0)
+  ignore(chunks.accept(complete, first, b"a"))
+  ignore(chunks.accept(complete, first, b"a"))
+  assert_true(chunks.take_evicted().is_empty())
+}
+
+///|
+async test "consumer ACKs incomplete chunks on expiry when configured" {
+  @async.with_task_group(async fn(group) {
+    let acked : @aqueue.Queue[Array[@proto.MessageIdData]] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let metadata = test_metadata()
+      metadata.uuid = Some("ack-expiry")
+      metadata.num_chunks_from_msg = Some(2)
+      metadata.total_chunk_msg_size = Some(2)
+      metadata.chunk_id = Some(0)
+      let (cmd, meta, body) = message_frame(1UL, 10UL, 11UL, b"a", metadata)
+      peer.send_message(cmd, meta, body)
+      while true {
+        let frame = peer.next()
+        if frame.cmd.ack is Some(ack) {
+          acked.put(ack.message_id)
+          return
+        }
+      }
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let consumer = SingleConsumer::create(
+      group,
+      conn,
+      "persistent://public/default/chunk-ack-expiry",
+      "sub",
+      chunk_policy=ChunkAssemblyPolicy::new(
+        expiry_ms=20,
+        auto_ack_incomplete=true,
+      ),
+    )
+    let ids = @async.with_timeout(1000, async fn() { acked.get() })
+    assert_eq(ids.length(), 1)
+    assert_eq(ids[0].entry_id, 11UL)
+    assert_eq(consumer.chunks.buffered_bytes, 0)
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "reader ACKs incomplete chunks on expiry when configured" {
+  @async.with_task_group(async fn(group) {
+    let acked : @aqueue.Queue[Array[@proto.MessageIdData]] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let metadata = test_metadata()
+      metadata.uuid = Some("reader-ack-expiry")
+      metadata.num_chunks_from_msg = Some(2)
+      metadata.total_chunk_msg_size = Some(2)
+      metadata.chunk_id = Some(0)
+      let (cmd, meta, body) = message_frame(1UL, 20UL, 21UL, b"a", metadata)
+      peer.send_message(cmd, meta, body)
+      while true {
+        let frame = peer.next()
+        if frame.cmd.ack is Some(ack) {
+          acked.put(ack.message_id)
+          return
+        }
+      }
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let reader = SingleReader::create(
+      group,
+      conn,
+      "persistent://public/default/chunk-reader-ack-expiry",
+      chunk_policy=ChunkAssemblyPolicy::new(
+        expiry_ms=20,
+        auto_ack_incomplete=true,
+      ),
+    )
+    let ids = @async.with_timeout(1000, async fn() { acked.get() })
+    assert_eq(ids.length(), 1)
+    assert_eq(ids[0].entry_id, 21UL)
     assert_eq(reader.chunks.buffered_bytes, 0)
     reader.close()
     manager.close()
