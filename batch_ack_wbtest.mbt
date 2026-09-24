@@ -152,6 +152,129 @@ async test "batch-index ACK sends remaining-bit sets and confirms each index" {
 }
 
 ///|
+async test "transactional batch-index ACK registers subscription and retries rejected bitmap" {
+  @async.with_task_group(async fn(group) {
+    let topic = "persistent://public/default/txn-batch-index"
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let connect = peer.next()
+      guard connect.cmd.tc_client_connect_request is Some(req) else {
+        fail("expected TC_CLIENT_CONNECT_REQUEST")
+      }
+      let response = @proto.BaseCommand::default()
+      response.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_RESPONSE
+      let result = @proto.CommandTcClientConnectResponse::default()
+      result.request_id = req.request_id
+      response.tc_client_connect_response = Some(result)
+      peer.send_command(response)
+      let create = peer.next()
+      guard create.cmd.new_txn is Some(req) else { fail("expected NEW_TXN") }
+      let response = @proto.BaseCommand::default()
+      response.type_ = @proto.BaseCommand_Type::NEW_TXN_RESPONSE
+      let result = @proto.CommandNewTxnResponse::default()
+      result.request_id = req.request_id
+      result.txnid_most_bits = Some(3UL)
+      result.txnid_least_bits = Some(42UL)
+      response.new_txn_response = Some(result)
+      peer.send_command(response)
+      let subscribe = peer.next()
+      guard subscribe.cmd.subscribe is Some(req) else {
+        fail("expected SUBSCRIBE")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = req.request_id
+      reply.success = Some(success)
+      peer.send_command(reply)
+      let flow = peer.next()
+      guard flow.cmd.flow is Some(_) else { fail("expected FLOW") }
+      let metadata = test_metadata()
+      metadata.num_messages_in_batch = Some(2)
+      let (cmd, meta, payload) = message_frame(
+        req.consumer_id,
+        60UL,
+        61UL,
+        batch_test_payload(2),
+        metadata,
+      )
+      peer.send_message(cmd, meta, payload)
+      for attempt in 0..<3 {
+        let bits = [2L, 2L, 1L][attempt]
+        let register = peer.next()
+        guard register.cmd.add_subscription_to_txn is Some(req) else {
+          fail("expected ADD_SUBSCRIPTION_TO_TXN")
+        }
+        assert_eq(req.subscription[0].topic, topic)
+        assert_eq(req.subscription[0].subscription, "sub")
+        let response = @proto.BaseCommand::default()
+        response.type_ = @proto.BaseCommand_Type::ADD_SUBSCRIPTION_TO_TXN_RESPONSE
+        let result = @proto.CommandAddSubscriptionToTxnResponse::default()
+        result.request_id = req.request_id
+        response.add_subscription_to_txn_response = Some(result)
+        peer.send_command(response)
+        let frame = peer.next()
+        guard frame.cmd.ack is Some(ack) && ack.request_id is Some(id) else {
+          fail("expected transactional confirmed batch ACK")
+        }
+        assert_eq(ack.txnid_most_bits, Some(3UL))
+        assert_eq(ack.txnid_least_bits, Some(42UL))
+        assert_eq(ack.message_id[0].ack_set, [bits])
+        assert_eq(ack.message_id[0].batch_size, Some(2))
+        let response = @proto.BaseCommand::default()
+        response.type_ = @proto.BaseCommand_Type::ACK_RESPONSE
+        let result = @proto.CommandAckResponse::default()
+        result.consumer_id = ack.consumer_id
+        result.request_id = Some(id)
+        if attempt == 0 {
+          result.error = Some(@proto.ServerError::MetadataError)
+          result.message = Some("retry transaction ACK")
+        }
+        response.ack_response = Some(result)
+        peer.send_command(response)
+      }
+      let end = peer.next()
+      guard end.cmd.end_txn is Some(req) else { fail("expected END_TXN") }
+      let response = @proto.BaseCommand::default()
+      response.type_ = @proto.BaseCommand_Type::END_TXN_RESPONSE
+      let result = @proto.CommandEndTxnResponse::default()
+      result.request_id = req.request_id
+      response.end_txn_response = Some(result)
+      peer.send_command(response)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let coord = @async.with_timeout(3000, async fn() {
+      TransactionCoordinator::attach(conn, 0UL, owns_connection=false)
+    })
+    let txn = @async.with_timeout(3000, async fn() { coord.new_transaction() })
+    let consumer = @async.with_timeout(3000, async fn() {
+      SingleConsumer::create(
+        group,
+        conn,
+        topic,
+        "sub",
+        enable_batch_index_ack=true,
+      )
+    })
+    let first = @async.with_timeout(3000, async fn() { consumer.receive() })
+    let second = @async.with_timeout(3000, async fn() { consumer.receive() })
+    let rejected : Result[Unit, Error] = Ok(
+      @async.with_timeout(3000, async fn() { first.ack_txn(txn) }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      rejected is Err(ServerError(message="retry transaction ACK", ..)),
+    )
+    @async.with_timeout(3000, async fn() { first.ack_txn(txn) })
+    @async.with_timeout(3000, async fn() { second.ack_txn(txn) })
+    @async.with_timeout(3000, async fn() { txn.abort() })
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
 test "batch ACK bitmap crosses 64-bit word boundary" {
   let acknowledged : Array[Bool] = []
   for _ in 0..<65 {

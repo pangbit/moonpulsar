@@ -693,6 +693,7 @@ fn SingleConsumer::push_message(
     single,
     payload,
     redelivery_count,
+    subscription=self.subscription,
     ack_tracker=self.ack_pending,
     batch_ack_tracker=self.batch_acks,
     ack_dispatcher=self.ack_dispatcher,
@@ -721,6 +722,7 @@ fn build_message(
   single : @proto.SingleMessageMetadata?,
   payload : Bytes,
   redelivery_count : UInt,
+  subscription? : String,
   ack_tracker? : Map[MessageId, Int],
   batch_ack_tracker? : BatchAckTracker,
   ack_dispatcher? : AckDispatcher,
@@ -734,6 +736,7 @@ fn build_message(
     consumer_id,
     id: { ..base_id, batch_index, },
     topic,
+    subscription,
     payload,
     key: match single {
       Some(s) =>
@@ -1078,6 +1081,7 @@ pub async fn SingleConsumer::ack_txn(
   id : MessageId,
   await_response? : Bool = false,
 ) -> Unit {
+  txn.add_subscription(self.topic, self.subscription)
   if id.batch_index >= 0 {
     self.batch_acks.ack(
       self.conn_ref.val,

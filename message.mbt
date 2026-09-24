@@ -134,6 +134,7 @@ pub struct Message {
   priv consumer_id : UInt64
   priv id : MessageId
   priv topic : String
+  priv subscription : String?
   priv payload : Bytes
   priv key : String?
   priv ordering_key : Bytes?
@@ -315,6 +316,10 @@ async fn Message::ack_txn_raw(
   txn : Transaction,
   await_response : Bool,
 ) -> Unit {
+  guard self.subscription is Some(subscription) else {
+    raise InvalidFrame("transactional ACK requires a consumer subscription")
+  }
+  txn.add_subscription(self.topic, subscription)
   if self.id.batch_index >= 0 && self.batch_ack_tracker is Some(tracker) {
     tracker.ack(
       self.conn_ref.val,

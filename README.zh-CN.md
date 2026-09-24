@@ -46,7 +46,7 @@
 - `MessageCrypto::new(public_key_reader=..., private_key_reader=...)` 可接收按名称读取 PEM 字节的同步回调；每次发送或解密都会重新读取，并优先于手动加入的密钥。返回 `None` 表示密钥不可用。
 - `SchemaCodec::avro(definition, to_datum, from_datum)` 提供 Avro 二进制记录的类型化映射；不同版本 Schema 的自动演进仍待实现。`SchemaCodec::protobuf_native(descriptor_set, root_file, root_message)` 使用二进制 `FileDescriptorSet` 和生成的 MoonBit Protobuf 类型；根消息必须存在于描述符中。传统 Protobuf 使用 Avro 风格 JSON Schema。INT16/32/64 默认采用与 Java 客户端一致的大端序，和 Go 客户端互通时设置 `little_endian=true`。[Go 互通测试](interop/go/README.md) 已在 Pulsar 4.2.4 和 3.3.9 上双向验证这些类型与批次负载。
 - 支持显式 `chunk_size` 或按 broker 协商上限自动分块；自动模式要求 broker 公布最大消息尺寸。`ChunkAssemblyPolicy::new(auto_ack_incomplete=true)` 让消费者和 Reader 在未完成分块过期或被淘汰时确认已收到的分块；默认不确认，交由 broker 重投。
-- 批次消息默认在全部索引确认后发送整批 ACK；消费者设置 `enable_batch_index_ack=true` 后可逐索引确认，broker 需启用 `acknowledgmentAtBatchIndexLevelEnabled`。默认模式下，未完成整批的 ACK 不能请求 broker 确认。事务性批次 ACK 仍未实现。
+- 批次消息默认在全部索引确认后发送整批 ACK；消费者设置 `enable_batch_index_ack=true` 后可逐索引确认，broker 需启用 `acknowledgmentAtBatchIndexLevelEnabled`。默认模式下，未完成整批的 ACK 不能请求 broker 确认。事务 ACK 支持两种模式，并等待每次 broker ACK 响应；broker 还需启用事务。
 - 消费者可设置 `ack_grouping=AckGroupingOptions::new(max_size=1000, max_time_ms=100)`，按数量或时间合并 ACK；默认不启用。要求 broker 确认的 ACK 和事务 ACK 会先冲刷缓存再立即发送；关闭或 seek 前冲刷，重连时丢弃未发出的 ACK 以便 broker 重投。
 - `send_timeout_ms` 从批次消息进入生产者缓冲队列时开始计时；在 flush 前过期的消息会从批次中移除。非批次消息仍从 SEND 帧登记时计时。SEND 后超时不代表 broker 一定拒绝消息，重试时应使用稳定的生产者名称和序列号。
 - `ClientOptions::new(max_memory_bytes=...)` 限制同一客户端创建的所有生产者占用的待发送负载字节数；消息元数据、连接及其他分配不计入。`block_if_queue_full=false` 时超额返回 `ClientMemoryFull`，否则等待回执、失败、超时或客户端关闭释放额度。
@@ -151,6 +151,7 @@ async fn main {
 | `examples/reader` | 从头回放 Topic |
 | `examples/encryption_interop` | Go/MoonBit 加密互通、Reader 回放及重试/死信转发 |
 | `examples/transaction_participants` | 在事务中注册生产者及订阅参与者 |
+| `examples/transactional_batch_ack` | 验证整批或逐索引事务 ACK 的回滚重投和提交（`PULSAR_BATCH_INDEX_ACK=true`） |
 | `examples/live_capabilities` | 多 Topic、模式订阅、ACK 超时、seek、分块、事务和可选 Admin REST 的真实 broker 回归场景 |
 
 运行示例：

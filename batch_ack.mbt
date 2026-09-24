@@ -63,13 +63,14 @@ fn batch_ack_set(
   acknowledged : Array[Bool],
   through : Int,
   cumulative : Bool,
+  only_current? : Bool = false,
 ) -> Array[Int64] {
   let words : Array[Int64] = []
   for _ in 0..<((acknowledged.length() + 63) / 64) {
     words.push(0L)
   }
   for index in 0..<acknowledged.length() {
-    let acked = acknowledged[index] ||
+    let acked = (!only_current && acknowledged[index]) ||
       (if cumulative { index <= through } else { index == through })
     if !acked {
       words[index / 64] = words[index / 64] |
@@ -115,20 +116,25 @@ async fn BatchAckTracker::ack(
       break
     }
   }
-  if txn is Some(_) {
-    raise InvalidFrame("transactional batch ACK is not supported")
-  }
   if cumulative && !self.enabled && !all_acked {
     raise InvalidFrame("partial cumulative batch ACK requires batch-index ACK")
   }
   if self.enabled {
-    let bits = batch_ack_set(state.acknowledged, id.batch_index, cumulative)
+    // A transaction registers each index independently with the broker.
+    // Repeating earlier cleared bits conflicts with its pending ACK state.
+    let bits = batch_ack_set(
+      state.acknowledged,
+      id.batch_index,
+      cumulative,
+      only_current=txn is Some(_),
+    )
+    let confirmed = await_response || txn is Some(_)
     if dispatcher is Some(sender) {
       sender.ack(
         ack_type,
         [key],
         txn?,
-        await_response~,
+        await_response=confirmed,
         batch_ack_set=bits,
         batch_size=state.acknowledged.length(),
       )
@@ -139,16 +145,24 @@ async fn BatchAckTracker::ack(
         ack_type,
         [key],
         txn?,
-        await_response~,
+        await_response=confirmed,
         batch_ack_set=bits,
         batch_size=state.acknowledged.length(),
       )
     }
   } else if all_acked {
+    let confirmed = await_response || txn is Some(_)
     if dispatcher is Some(sender) {
-      sender.ack(ack_type, [key], txn?, await_response~)
+      sender.ack(ack_type, [key], txn?, await_response=confirmed)
     } else {
-      send_ack(conn, consumer_id, ack_type, [key], txn?, await_response~)
+      send_ack(
+        conn,
+        consumer_id,
+        ack_type,
+        [key],
+        txn?,
+        await_response=confirmed,
+      )
     }
   } else if await_response {
     raise InvalidFrame(
