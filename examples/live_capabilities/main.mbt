@@ -12,15 +12,22 @@ async fn main {
     } else {
       1
     }
+    let metrics = @pulsar.ClientMetrics::new()
+    let observe = fn(event : @pulsar.ClientEvent) { metrics.record(event) }
     let options = match @env.get_env_var("PULSAR_TOKEN") {
       Some(token) =>
         @pulsar.ClientOptions::new(
           url,
           auth=@pulsar.TokenAuth::new(token),
           max_connections_per_broker=pool_size,
+          on_event=observe,
         )
       None =>
-        @pulsar.ClientOptions::new(url, max_connections_per_broker=pool_size)
+        @pulsar.ClientOptions::new(
+          url,
+          max_connections_per_broker=pool_size,
+          on_event=observe,
+        )
     }
     let client = @pulsar.Client::connect_with_options(group, options)
     let topic_a = "persistent://public/default/\{prefix}-a"
@@ -1062,6 +1069,10 @@ async fn main {
         admin.delete_topic(topic, force=true)
       }
     }
+    let snapshot = metrics.snapshot()
+    assert_true(snapshot.sends > 0L)
+    assert_true(snapshot.received > 0L)
+    assert_true(snapshot.acknowledgments > 0L)
     client.close()
     println(
       "live multi-topic, pattern discovery, dead-letter/retry, schema codecs, admin properties/backlog, ack timeout, chunking, partition expansion, and coordinator lookup OK",

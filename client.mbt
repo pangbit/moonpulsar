@@ -67,6 +67,7 @@ pub struct Client {
   priv service_addr : String
   priv reconnect_policy : RetryPolicy
   priv memory_limiter : ClientMemoryLimiter?
+  priv on_event : ((ClientEvent) -> Unit)?
 }
 
 ///|
@@ -121,6 +122,7 @@ pub async fn Client::connect_with_options(
     memory_limiter: options.max_memory_bytes.map(fn(limit) {
       ClientMemoryLimiter::new(limit)
     }),
+    on_event: options.on_event,
   }
 }
 
@@ -169,6 +171,56 @@ pub fn Client::close(self : Client) -> Unit {
 }
 
 ///|
+fn Client::producer_hooks(
+  self : Client,
+  topic : String,
+  interceptors : Array[ProducerInterceptor],
+) -> Array[ProducerInterceptor] {
+  let hooks : Array[ProducerInterceptor] = []
+  for interceptor in interceptors {
+    hooks.push(interceptor)
+  }
+  if self.on_event is Some(sink) {
+    hooks.push(
+      ProducerInterceptor::new(on_send_result=fn(message, result) {
+        sink(ClientEvent::SendCompleted(topic, message, result))
+      }),
+    )
+  }
+  hooks
+}
+
+///|
+fn Client::observe_consumer(
+  self : Client,
+  consumer : Consumer,
+  interceptors : Array[ConsumerInterceptor],
+) -> Consumer {
+  let hooks : Array[ConsumerInterceptor] = []
+  for interceptor in interceptors {
+    hooks.push(interceptor)
+  }
+  if self.on_event is Some(sink) {
+    let topic = consumer.topic()
+    hooks.push(
+      ConsumerInterceptor::new(
+        before_consume=fn(message) {
+          sink(ClientEvent::MessageReceived(message))
+        },
+        on_ack=fn(id, result) {
+          sink(ClientEvent::Acknowledged(topic, id, result))
+        },
+        on_nack=fn(id, result) {
+          sink(ClientEvent::NegativelyAcknowledged(topic, id, result))
+        },
+      ),
+    )
+  }
+  consumer.set_interceptors(hooks)
+  consumer
+}
+
+///|
 /// Create a producer for `topic`. The topic is looked up and the producer
 /// is attached to the owning broker.
 pub async fn Client::create_producer(
@@ -198,6 +250,7 @@ pub async fn Client::create_producer(
   if (chunk_size is Some(_) || automatic_chunking) && batching is Some(_) {
     raise InvalidFrame("chunking and batching cannot be combined")
   }
+  let hooks = self.producer_hooks(topic, interceptors)
   let manager = self.manager
   let addr = self.service_addr
   let partitions = get_partition_count(manager, addr, topic)
@@ -221,9 +274,10 @@ pub async fn Client::create_producer(
       block_if_queue_full~,
       send_timeout_ms?,
       memory_limiter?=self.memory_limiter,
+      on_event?=self.on_event,
     )
     let producer = Producer::single(single)
-    producer.set_interceptors(interceptors)
+    producer.set_interceptors(hooks)
     return producer
   }
   let create_partition = async fn(i : Int) -> Producer {
@@ -250,6 +304,7 @@ pub async fn Client::create_producer(
         block_if_queue_full~,
         send_timeout_ms?,
         memory_limiter?=self.memory_limiter,
+        on_event?=self.on_event,
       ),
     )
   }
@@ -268,7 +323,7 @@ pub async fn Client::create_producer(
     subs.push(partition)
   }
   let producer = Producer::partitioned(subs, routing~)
-  producer.set_interceptors(interceptors)
+  producer.set_interceptors(hooks)
   self.manager.group.spawn_bg(
     async fn() {
       while !producer.is_closed() && !manager.is_closed() {
@@ -394,13 +449,13 @@ pub async fn Client::create_consumer(
       enable_batch_index_ack~,
       ack_grouping?,
       auto_scaled_receiver_queue~,
+      on_event?=self.on_event,
     )
     let consumer = self.with_dead_letter(
       Consumer::single(single),
       dead_letter_policy,
     )
-    consumer.set_interceptors(interceptors)
-    return consumer
+    return self.observe_consumer(consumer, interceptors)
   }
   let create_partition = async fn(i : Int) -> Consumer {
     let partition_topic = "\{topic}-partition-\{i}"
@@ -432,6 +487,7 @@ pub async fn Client::create_consumer(
         enable_batch_index_ack~,
         ack_grouping?,
         auto_scaled_receiver_queue~,
+        on_event?=self.on_event,
       ),
     )
   }
@@ -474,8 +530,7 @@ pub async fn Client::create_consumer(
     allow_failure=true,
   )
   let consumer = self.with_dead_letter(consumer, dead_letter_policy)
-  consumer.set_interceptors(interceptors)
-  consumer
+  self.observe_consumer(consumer, interceptors)
 }
 
 ///|
@@ -620,8 +675,7 @@ pub async fn Client::create_retry_consumer(
     }
   }
   combined.set_retry_letter(retry_topic, producer)
-  combined.set_interceptors(interceptors)
-  combined
+  self.observe_consumer(combined, interceptors)
 }
 
 ///|
@@ -711,7 +765,7 @@ pub async fn Client::create_multi_topic_consumer(
     }
   }
   let combined = Consumer::partitioned(self.manager.group, consumers)
-  combined.set_interceptors(interceptors)
+  let combined = self.observe_consumer(combined, interceptors)
   guard retry_topic is Some(retry) && dead_letter_policy is Some(policy) else {
     return combined
   }
@@ -1003,7 +1057,7 @@ pub async fn Client::create_pattern_consumer(
   }
   let regex = @string.Regex::Regex(pattern)
   let consumer = Consumer::pattern(pattern, subscription)
-  consumer.set_interceptors(interceptors)
+  ignore(self.observe_consumer(consumer, interceptors))
   let seen : Map[String, Bool] = {}
   let source_policy = if retry_topic is None {
     dead_letter_policy

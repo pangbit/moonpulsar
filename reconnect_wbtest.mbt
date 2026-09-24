@@ -93,7 +93,20 @@ async test "producer reconnects and replays unconfirmed message" {
     let lookup_addr = start_mock_broker(group, async fn(_addr, peer) {
       two_stage_lookup(peer, b1, b2)
     })
-    let client = Client::connect(group, "pulsar://\{lookup_addr}")
+    let metrics = ClientMetrics::new()
+    let observed : Array[String] = []
+    let client = Client::connect_with_options(
+      group,
+      ClientOptions::new("pulsar://\{lookup_addr}", on_event=fn(event) {
+        metrics.record(event)
+        match event {
+          ProducerReconnecting(_) => observed.push("reconnecting")
+          ProducerReconnected(_, Ok(_)) => observed.push("reconnected")
+          SendCompleted(_, _, Ok(_)) => observed.push("sent")
+          _ => ()
+        }
+      }),
+    )
     let producer = client.create_producer(
       "persistent://public/default/t",
       properties={ "owner": "test" },
@@ -102,6 +115,11 @@ async test "producer reconnects and replays unconfirmed message" {
     let future = producer.send_async(ProducerMessage::new(b"important"))
     let receipt = @async.with_timeout(10000, async fn() { future.wait() })
     assert_eq(receipt.message_id.ledger_id, 10)
+    assert_true(observed.contains("reconnecting"))
+    assert_true(observed.contains("reconnected"))
+    assert_true(observed.contains("sent"))
+    assert_eq(metrics.snapshot().sends, 1L)
+    assert_eq(metrics.snapshot().producer_reconnects, 1L)
     producer.close()
     client.close()
   })
@@ -130,13 +148,34 @@ async test "consumer re-subscribes after connection break" {
     let lookup_addr = start_mock_broker(group, async fn(_addr, peer) {
       two_stage_lookup(peer, b1, b2)
     })
-    let client = Client::connect(group, "pulsar://\{lookup_addr}")
+    let metrics = ClientMetrics::new()
+    let observed : Array[String] = []
+    let client = Client::connect_with_options(
+      group,
+      ClientOptions::new("pulsar://\{lookup_addr}", on_event=fn(event) {
+        metrics.record(event)
+        match event {
+          ConsumerReconnecting(_) => observed.push("reconnecting")
+          ConsumerReconnected(_, Ok(_)) => observed.push("reconnected")
+          MessageReceived(_) => observed.push("received")
+          Acknowledged(_, _, Ok(_)) => observed.push("acked")
+          _ => ()
+        }
+      }),
+    )
     let consumer = client.create_consumer(
       "persistent://public/default/t", "sub-1",
     )
     let message = @async.with_timeout(10000, async fn() { consumer.receive() })
     assert_eq(message.payload(), b"after")
     message.ack()
+    assert_true(observed.contains("reconnecting"))
+    assert_true(observed.contains("reconnected"))
+    assert_true(observed.contains("received"))
+    assert_true(observed.contains("acked"))
+    assert_eq(metrics.snapshot().received, 1L)
+    assert_eq(metrics.snapshot().acknowledgments, 1L)
+    assert_eq(metrics.snapshot().consumer_reconnects, 1L)
     consumer.close()
     client.close()
   })
@@ -159,7 +198,8 @@ async test "finite producer reconnect policy fails pending sends and closes" {
       initial_backoff_ms: 1,
       max_backoff_ms: 1,
     }
-    let producer = SingleProducer::create(
+    let metrics = ClientMetrics::new()
+    let producer = SingleProducer::create_with_memory(
       group,
       conn,
       "persistent://public/default/finite-producer",
@@ -168,6 +208,7 @@ async test "finite producer reconnect policy fails pending sends and closes" {
         raise ConnectFailed("forced reconnect failure")
       },
       reconnect_policy=policy,
+      on_event=fn(event) { metrics.record(event) },
     )
     let future = producer.send_async(ProducerMessage::new(b"pending"))
     let result : Result[SendReceipt, Error] = Ok(
@@ -177,6 +218,8 @@ async test "finite producer reconnect policy fails pending sends and closes" {
     }
     assert_true(result is Err(ConnectionClosed))
     assert_eq(attempts.val, 1)
+    assert_eq(metrics.snapshot().producer_reconnects, 1L)
+    assert_eq(metrics.snapshot().reconnect_failures, 1L)
     let second : Result[SendReceipt, Error] = Ok(
       producer.send(ProducerMessage::new(b"after-failure")),
     ) catch {
@@ -202,6 +245,7 @@ async test "finite consumer reconnect policy closes after exhausted attempt" {
       initial_backoff_ms: 1,
       max_backoff_ms: 1,
     }
+    let metrics = ClientMetrics::new()
     let consumer = SingleConsumer::create(
       group,
       conn,
@@ -212,6 +256,7 @@ async test "finite consumer reconnect policy closes after exhausted attempt" {
         raise ConnectFailed("forced reconnect failure")
       },
       reconnect_policy=policy,
+      on_event=fn(event) { metrics.record(event) },
     )
     let result : Result[Message, Error] = Ok(
       @async.with_timeout(3000, async fn() { consumer.receive() }),
@@ -220,6 +265,8 @@ async test "finite consumer reconnect policy closes after exhausted attempt" {
     }
     assert_true(result is Err(ConnectionClosed))
     assert_eq(attempts.val, 1)
+    assert_eq(metrics.snapshot().consumer_reconnects, 1L)
+    assert_eq(metrics.snapshot().reconnect_failures, 1L)
     assert_true(consumer.closed.val)
     manager.close()
   })

@@ -205,6 +205,7 @@ pub struct SingleConsumer {
   priv reconnect_with : (async () -> Connection)?
   priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
+  priv on_event : ((ClientEvent) -> Unit)?
   priv seeking : Ref[Bool]
   priv seek_mu : @async.Mutex
   priv group : @async.TaskGroup[Unit]
@@ -237,6 +238,7 @@ pub async fn SingleConsumer::create(
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
   auto_scaled_receiver_queue? : Bool = false,
+  on_event? : (ClientEvent) -> Unit,
 ) -> SingleConsumer {
   guard ack_timeout_ms >= 0 else {
     raise InvalidFrame("ack timeout must not be negative")
@@ -298,6 +300,7 @@ pub async fn SingleConsumer::create(
     reconnect_with,
     reconnect_policy,
     reconnecting: { val: false, },
+    on_event,
     seeking: { val: false, },
     seek_mu: @async.Mutex::Mutex(),
     group,
@@ -452,14 +455,17 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
       )
     }
   }
-  run() catch {
-    _ =>
-      if !self.closed.val {
-        self.closed.val = true
-        self.stop_chunk_sweeper()
-        self.ack_dispatcher.stop()
-        self.messages.close(error=ConnectionClosed, clear=true)
-      }
+  let result : Result[Unit, Error] = Ok(run()) catch { e => Err(e) }
+  if self.on_event is Some(sink) {
+    sink(ClientEvent::ConsumerReconnected(self.topic, result))
+  }
+  if result is Err(_) {
+    if !self.closed.val {
+      self.closed.val = true
+      self.stop_chunk_sweeper()
+      self.ack_dispatcher.stop()
+      self.messages.close(error=ConnectionClosed, clear=true)
+    }
   }
   self.reconnecting.val = false
 }
@@ -484,6 +490,9 @@ fn SingleConsumer::on_connection_closed(
     return
   }
   self.reconnecting.val = true
+  if self.on_event is Some(sink) {
+    sink(ClientEvent::ConsumerReconnecting(self.topic))
+  }
   self.group.spawn_bg(
     async fn() { self.reconnect() },
     no_wait=true,

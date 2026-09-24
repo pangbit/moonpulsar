@@ -17,6 +17,7 @@ pub struct ClientOptions {
   priv max_connections_per_broker : Int
   priv connection_idle_timeout_ms : Int?
   priv max_memory_bytes : Int?
+  priv on_event : ((ClientEvent) -> Unit)?
 }
 
 ///|
@@ -35,6 +36,7 @@ pub fn ClientOptions::new(
   max_connections_per_broker? : Int = 1,
   connection_idle_timeout_ms? : Int,
   max_memory_bytes? : Int,
+  on_event? : (ClientEvent) -> Unit,
 ) -> ClientOptions raise PulsarError {
   guard connection_timeout_ms > 0 &&
     operation_timeout_ms > 0 &&
@@ -79,6 +81,7 @@ pub fn ClientOptions::new(
     max_connections_per_broker,
     connection_idle_timeout_ms,
     max_memory_bytes,
+    on_event,
   }
 }
 

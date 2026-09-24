@@ -97,6 +97,7 @@ pub struct SingleProducer {
   priv reconnecting : Ref[Bool]
   priv pending_slots : @aqueue.Queue[Unit]?
   priv memory_limiter : ClientMemoryLimiter?
+  priv on_event : ((ClientEvent) -> Unit)?
   priv block_if_queue_full : Bool
   priv send_timeout_ms : Int?
   priv compression : CompressionCodec
@@ -183,6 +184,7 @@ async fn SingleProducer::create_with_memory(
   block_if_queue_full? : Bool = false,
   send_timeout_ms? : Int,
   memory_limiter? : ClientMemoryLimiter,
+  on_event? : (ClientEvent) -> Unit,
 ) -> SingleProducer {
   if max_pending_messages is Some(limit) && limit <= 0 {
     raise InvalidFrame("max pending messages must be positive")
@@ -232,6 +234,7 @@ async fn SingleProducer::create_with_memory(
     reconnecting: { val: false, },
     pending_slots,
     memory_limiter,
+    on_event,
     block_if_queue_full,
     send_timeout_ms,
     compression,
@@ -362,6 +365,9 @@ fn SingleProducer::on_connection_closed(
     return
   }
   self.reconnecting.val = true
+  if self.on_event is Some(sink) {
+    sink(ClientEvent::ProducerReconnecting(self.topic))
+  }
   self.group.spawn_bg(
     async fn() { self.reconnect() },
     no_wait=true,
@@ -426,11 +432,13 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
       )
     }
   }
-  run() catch {
-    _ => {
-      self.closed = true
-      self.fail_all(ConnectionClosed)
-    }
+  let result : Result[Unit, Error] = Ok(run()) catch { e => Err(e) }
+  if self.on_event is Some(sink) {
+    sink(ClientEvent::ProducerReconnected(self.topic, result))
+  }
+  if result is Err(_) {
+    self.closed = true
+    self.fail_all(ConnectionClosed)
   }
   self.reconnecting.val = false
 }

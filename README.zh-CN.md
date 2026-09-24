@@ -12,6 +12,7 @@
 - 生产者：同步与异步发送、共享/独占/等待独占/抢占式访问模式、生产者元数据、按条数/字节数/延迟触发的批量发送、手动 flush、broker 回执与发送错误传递；可限制待发送消息数和客户端共享的负载字节数、选择满队列等待或立即报错，并设置覆盖批次缓冲时间的发送超时
 - 生产者拦截器可在分区路由前修改消息，并观察 broker 回执或发送失败；调用方不等待异步回执时也会触发结果回调。
 - 消费者拦截器可观察应用收到消息，以及 `Message::ack`、`Message::nack` 和按 ID 确认的执行结果。
+- `ClientOptions::new(on_event=...)` 提供结构化发送、接收、ACK/nack 和重连事件；`ClientMetrics` 统计结果次数。事件中的消息属性可供外部 tracing 实现使用。
 - 消费者：Exclusive、Shared、Failover、KeyShared 订阅（含自动拆分和固定哈希范围策略）；可选 broker 确认的单条/累计 ACK、负面 ACK 与可选的指数退避重投、ACK 超时、按消息 ID 或时间戳 seek、取消订阅、FLOW 许可控制、单主题零接收队列按需请求、可选接收队列自动扩容，以及批量消息拆包和可选的批次索引 ACK
 - 死信策略：消息超过允许的失败次数后转发到死信 Topic，保留负载、key、排序 key、属性和事件时间；死信生产者收到 broker 回执后才确认源消息
 - 重试信 Topic 消费者：普通订阅可设置 `retry_topic`，也可使用显式构造函数；`reconsume_later` 延迟重新投递，达到上限后转入死信 Topic
@@ -48,6 +49,7 @@
 - 消费者设置 `auto_scaled_receiver_queue=true` 后，从 1 个 FLOW 许可开始；队列曾满且下一次读取时已空，预取上限倍增，直至 `receiver_queue_size`。此选项不能与零接收队列同时使用。组合消费者会向每个来源传递此选项，其合并队列仍单独缓冲。
 - 创建生产者时传入 `interceptors=[ProducerInterceptor::new(before_send=..., on_send_result=...)]`。钩子按顺序作用于逻辑生产者；`on_send_result` 也会收到 `ProducerQueueFull` 等入队前错误。回调同步执行且不能抛错。
 - 创建消费者时传入 `interceptors=[ConsumerInterceptor::new(before_consume=..., on_ack=..., on_nack=...)]`。钩子在应用收取消息及消息或 ID 的 ACK/nack 调用结束时触发；要求 broker 确认的 ACK 被拒绝时，`on_ack` 收到错误。未要求确认的 ACK 回调只代表帧已提交，不代表 broker 已确认。
+- 使用 `let metrics = ClientMetrics::new()` 和 `ClientOptions::new(url, on_event=fn(event) { metrics.record(event) })` 取得本地计数快照，包括发送、失败、接收、ACK/nack 和重连结果。事件回调同步执行；外部 tracing 可从 `ClientEvent::SendCompleted` 与 `ClientEvent::MessageReceived` 读取消息属性。内建 span 与导出器仍未实现。
 - `Connection::max_message_size` 可读取 broker 握手报告的上限；生产者会按此限制编码后的帧，并可自动选择分块大小。
 - `pulsar+ssl://` 使用 `moonbitlang/async/tls`。自定义 CA 握手和重连由本地 TLS mock 覆盖；此前的真实 broker 测试使用带 token 认证的明文 TCP。当前 TLS 客户端 API 不提供用于双向 TLS 的客户端证书。
 
@@ -75,6 +77,7 @@
 - 4.2.4 与 3.3.9 上自动扩容接收队列的收发与确认；精确 FLOW 扩容由 mock broker 验证
 - 4.2.4 与 3.3.9 上生产者拦截器修改负载和观察回执
 - 4.2.4 与 3.3.9 上消费者拦截器观察交付与 ACK
+- 4.2.4 与 3.3.9 上客户端事件与发送、接收、ACK 计数
 
 这些是既有验证记录，不代表当前提交已在所有 broker 配置上重新测试。
 
