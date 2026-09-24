@@ -42,3 +42,28 @@ For a broker requiring client certificates, set `PULSAR_URL` to its
 process and `examples/ec_encryption_interop`. The Java fixture enables CA and
 hostname verification. The same three-step exchange passed over mutually
 authenticated TLS on isolated 4.2.4 and 3.3.9 brokers.
+
+## Avro schema evolution
+
+`AvroEvolutionInterop.java` uses the official Java client's Avro generic
+schema. It writes v1 records with `id: int` and reads them using a v2 schema
+with the alias `identifier`, promoted `long`, and default `active=true`.
+Compile it inside either Pulsar image with:
+
+```sh
+javac -proc:none -cp '/pulsar/lib/*' /tmp/AvroEvolutionInterop.java
+```
+
+Point both processes at the same disposable broker and a fresh
+`PULSAR_TOPIC`, then run:
+
+```sh
+java -cp '/pulsar/lib/*:/tmp' AvroEvolutionInterop send
+moon run examples/avro_evolution_interop --target native
+java -cp '/pulsar/lib/*:/tmp' AvroEvolutionInterop receive
+```
+
+The MoonBit step resolves the Java writer's schema version using
+`Client::decode_avro`, then writes a separate v1 record. The Java step reads
+that record with its v2 schema. Both directions passed on isolated 4.2.4 and
+3.3.9 brokers in a dedicated namespace.

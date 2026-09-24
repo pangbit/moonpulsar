@@ -1,0 +1,10 @@
+import {
+  "pangbit/moonpulsar" @pulsar,
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+  "yugonlian/moon-avro/codec" @avro_codec,
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")
