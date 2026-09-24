@@ -1,4 +1,27 @@
 ///|
+async fn[T : Eq] roundtrip_primitive(
+  client : @pulsar.Client,
+  topic : String,
+  codec : @pulsar.SchemaCodec[T],
+  from_go : T,
+  to_go : T,
+) -> Unit {
+  let consumer = client.create_consumer(
+    topic,
+    "moonpulsar-primitive-interop-\{@async.now()}",
+    initial_position=Earliest,
+    schema=codec.info(),
+  )
+  let received = @async.with_timeout(10000, async fn() { consumer.receive() })
+  assert_true(received.decode(codec) == from_go)
+  received.ack(await_response=true)
+  let producer = client.create_producer(topic, schema=codec.info())
+  ignore(producer.send(@pulsar.ProducerMessage::new(codec.encode(to_go))))
+  producer.close()
+  consumer.close()
+}
+
+///|
 async fn main {
   let topic = @env.get_env_var("PULSAR_TOPIC").unwrap_or(
     "persistent://public/default/moonpulsar-schema-interop",
@@ -67,6 +90,48 @@ async fn main {
     )
     int64_producer.close()
     int64_consumer.close()
+    roundtrip_primitive(
+      client,
+      topic + "-int8",
+      @pulsar.SchemaCodec::int8(),
+      -42,
+      73,
+    )
+    roundtrip_primitive(
+      client,
+      topic + "-int16",
+      @pulsar.SchemaCodec::int16(little_endian=true),
+      -12345,
+      23456,
+    )
+    roundtrip_primitive(
+      client,
+      topic + "-int32",
+      @pulsar.SchemaCodec::int32(little_endian=true),
+      -123456789,
+      987654321,
+    )
+    roundtrip_primitive(
+      client,
+      topic + "-float",
+      @pulsar.SchemaCodec::float(),
+      1.5F,
+      -2.5F,
+    )
+    roundtrip_primitive(
+      client,
+      topic + "-double",
+      @pulsar.SchemaCodec::double(),
+      1.5,
+      -2.5,
+    )
+    roundtrip_primitive(
+      client,
+      topic + "-bytes",
+      @pulsar.SchemaCodec::bytes(),
+      b"from-go",
+      b"from-moonbit",
+    )
     let string_codec = @pulsar.SchemaCodec::string()
     let batch_producer = client.create_producer(
       topic + "-batch",
@@ -87,6 +152,6 @@ async fn main {
     assert_eq(second.wait().message_id.batch_index, 1)
     batch_producer.close()
     client.close()
-    println("Protobuf Native, INT64, and batch Go/MoonBit handoff OK")
+    println("Protobuf Native, numeric schemas, and batch Go/MoonBit handoff OK")
   })
 }

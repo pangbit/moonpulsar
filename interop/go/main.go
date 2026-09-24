@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"reflect"
 	"time"
 
 	"github.com/apache/pulsar-client-go/pulsar"
@@ -16,6 +17,24 @@ import (
 )
 
 const descriptorBase64 = "CmwKKHRlc3RkYXRhL3Byb3RvYnVmX25hdGl2ZV9rZXlfdmFsdWUucHJvdG8SDHB1bHNhci5wcm90byIyCghLZXlWYWx1ZRIQCgNrZXkYASACKAlSA2tleRIUCgV2YWx1ZRgCIAIoCVIFdmFsdWU="
+
+type primitiveCase struct {
+	suffix      string
+	schema      pulsar.Schema
+	fromGo      any
+	fromMoonBit any
+}
+
+func primitives() []primitiveCase {
+	return []primitiveCase{
+		{"int8", pulsar.NewInt8Schema(nil), int8(-42), int8(73)},
+		{"int16", pulsar.NewInt16Schema(nil), int16(-12345), int16(23456)},
+		{"int32", pulsar.NewInt32Schema(nil), int32(-123456789), int32(987654321)},
+		{"float", pulsar.NewFloatSchema(nil), float32(1.5), float32(-2.5)},
+		{"double", pulsar.NewDoubleSchema(nil), float64(1.5), float64(-2.5)},
+		{"bytes", pulsar.NewBytesSchema(nil), []byte("from-go"), []byte("from-moonbit")},
+	}
+}
 
 func checked(err error) {
 	if err != nil {
@@ -57,7 +76,7 @@ func main() {
 	client, err := pulsar.NewClient(options)
 	checked(err)
 	defer client.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 	if os.Args[1] == "send" {
 		producer, err := client.CreateProducer(pulsar.ProducerOptions{Topic: topic, Schema: schema})
@@ -80,8 +99,17 @@ func main() {
 			checked(<-results)
 		}
 		int64Producer.Close()
+		for _, primitive := range primitives() {
+			producer, err := client.CreateProducer(pulsar.ProducerOptions{
+				Topic: topic + "-" + primitive.suffix, Schema: primitive.schema,
+			})
+			checked(err)
+			_, err = producer.Send(ctx, &pulsar.ProducerMessage{Value: primitive.fromGo})
+			checked(err)
+			producer.Close()
+		}
 		fmt.Println("Go Protobuf Native send OK")
-		fmt.Println("Go INT64 send OK")
+		fmt.Println("Go numeric schema send OK")
 		return
 	}
 	consumer, err := client.Subscribe(pulsar.ConsumerOptions{
@@ -107,6 +135,31 @@ func main() {
 		}
 		checked(consumer.Ack(incoming))
 	}
+	for _, primitive := range primitives() {
+		consumer, err := client.Subscribe(pulsar.ConsumerOptions{
+			Topic:                       topic + "-" + primitive.suffix,
+			SubscriptionName:            fmt.Sprintf("moonpulsar-go-%s-interop-%d", primitive.suffix, time.Now().UnixNano()),
+			SubscriptionInitialPosition: pulsar.SubscriptionPositionEarliest,
+			Schema:                      primitive.schema,
+		})
+		checked(err)
+		for {
+			incoming, err := consumer.Receive(ctx)
+			checked(err)
+			decoded := reflect.New(reflect.TypeOf(primitive.fromMoonBit))
+			checked(incoming.GetSchemaValue(decoded.Interface()))
+			value := decoded.Elem().Interface()
+			checked(consumer.Ack(incoming))
+			if reflect.DeepEqual(value, primitive.fromMoonBit) {
+				break
+			}
+			if !reflect.DeepEqual(value, primitive.fromGo) {
+				panic(fmt.Sprintf("%s: unexpected value %v", primitive.suffix, value))
+			}
+		}
+		consumer.Close()
+	}
+	fmt.Println("MoonBit-to-Go numeric schema decode OK")
 	int64Consumer, err := client.Subscribe(pulsar.ConsumerOptions{
 		Topic:                       topic + "-int64",
 		SubscriptionName:            fmt.Sprintf("moonpulsar-go-int64-interop-%d", time.Now().UnixNano()),
