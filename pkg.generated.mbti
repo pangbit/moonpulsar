@@ -318,7 +318,7 @@ pub fn MessageCrypto::decrypt(Self, @proto.MessageMetadata, Bytes) -> Bytes rais
 pub async fn MessageCrypto::encrypt(Self, @proto.MessageMetadata, Bytes, Array[String]) -> Bytes raise PulsarError
 pub async fn MessageCrypto::load_private_key_file(Self, String, String) -> Unit raise PulsarError
 pub async fn MessageCrypto::load_public_key_file(Self, String, String) -> Unit raise PulsarError
-pub fn MessageCrypto::new() -> Self
+pub fn MessageCrypto::new(public_key_reader? : (String) -> Bytes?, private_key_reader? : (String) -> Bytes?) -> Self
 
 pub(all) struct MessageId {
   ledger_id : UInt64

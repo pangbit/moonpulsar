@@ -18,6 +18,24 @@ async fn main {
     crypto.load_private_key_file(
       "test-key", "testdata/encryption/rsa_private.pem",
     )
+    let public_pem = @fs.read_file("testdata/encryption/rsa_public.pem").binary()
+    let private_pem = @fs.read_file("testdata/encryption/rsa_private.pem").binary()
+    let callback_crypto = @pulsar.MessageCrypto::new(
+      public_key_reader=fn(name) {
+        if name == "test-key" {
+          Some(public_pem)
+        } else {
+          None
+        }
+      },
+      private_key_reader=fn(name) {
+        if name == "test-key" {
+          Some(private_pem)
+        } else {
+          None
+        }
+      },
+    )
     let consumer = client.create_consumer(
       topic + "-go",
       "moonpulsar-encryption-interop-\{@async.now()}",
@@ -31,7 +49,7 @@ async fn main {
     let reader = client.create_reader(
       topic + "-go",
       start_message_id=@pulsar.MessageId::earliest(),
-      message_crypto=crypto,
+      message_crypto=callback_crypto,
     )
     let read_back = @async.with_timeout(10000, async fn() { reader.next() })
     assert_eq(read_back.unwrap().payload(), b"encrypted-from-go")
@@ -48,7 +66,7 @@ async fn main {
     let compressed_producer = client.create_producer(
       topic + "-compressed",
       compression=Zlib,
-      message_crypto=crypto,
+      message_crypto=callback_crypto,
       encryption_key_names=["test-key"],
     )
     ignore(

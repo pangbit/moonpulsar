@@ -197,11 +197,55 @@ pub fn EncryptionPrivateKey::from_pem(
 pub struct MessageCrypto {
   priv public_keys : Map[String, EncryptionPublicKey]
   priv private_keys : Map[String, EncryptionPrivateKey]
+  priv public_key_reader : ((String) -> Bytes?)?
+  priv private_key_reader : ((String) -> Bytes?)?
 }
 
 ///|
-pub fn MessageCrypto::new() -> MessageCrypto {
-  { public_keys: Map([]), private_keys: Map([]), }
+/// Optional readers are called for every send or encrypted delivery. A reader
+/// takes precedence over keys added with `add_public_key` / `add_private_key`.
+/// Return `None` when the named key is unavailable; callbacks must be
+/// synchronous and must not raise.
+pub fn MessageCrypto::new(
+  public_key_reader? : (String) -> Bytes?,
+  private_key_reader? : (String) -> Bytes?,
+) -> MessageCrypto {
+  {
+    public_keys: Map([]),
+    private_keys: Map([]),
+    public_key_reader,
+    private_key_reader,
+  }
+}
+
+///|
+fn MessageCrypto::public_key(
+  self : MessageCrypto,
+  name : String,
+) -> EncryptionPublicKey? raise PulsarError {
+  match self.public_key_reader {
+    Some(reader) =>
+      match reader(name) {
+        Some(pem) => Some(EncryptionPublicKey::from_pem(pem))
+        None => None
+      }
+    None => self.public_keys.get(name)
+  }
+}
+
+///|
+fn MessageCrypto::private_key(
+  self : MessageCrypto,
+  name : String,
+) -> EncryptionPrivateKey? raise PulsarError {
+  match self.private_key_reader {
+    Some(reader) =>
+      match reader(name) {
+        Some(pem) => Some(EncryptionPrivateKey::from_pem(pem))
+        None => None
+      }
+    None => self.private_keys.get(name)
+  }
 }
 
 ///|
@@ -277,7 +321,7 @@ pub async fn MessageCrypto::encrypt(
   }
   let recipients = []
   for name in key_names {
-    match self.public_keys.get(name) {
+    match self.public_key(name) {
       Some(key) => recipients.push((name, key))
       None => raise InvalidFrame("encryption public key is unavailable")
     }
@@ -330,7 +374,8 @@ pub fn MessageCrypto::decrypt(
     raise InvalidFrame("unsupported message encryption algorithm")
   }
   for wrapped in metadata.encryption_keys {
-    if self.private_keys.get(wrapped.key) is Some(key) {
+    let available = self.private_key(wrapped.key) catch { _ => None }
+    if available is Some(key) {
       match
         @crypto.rsa_oaep_decrypt_with_or(
           wrapped.value,
