@@ -215,6 +215,29 @@ async fn main {
     memory_buffered.close()
     memory_other.close()
     memory_client.close()
+    let auto_topic = "persistent://public/default/\{prefix}-auto-scale"
+    let auto_producer = client.create_producer(auto_topic)
+    let auto_consumer = client.create_consumer(
+      auto_topic,
+      "\{prefix}-auto-scale-sub",
+      initial_position=Earliest,
+      receiver_queue_size=2,
+      auto_scaled_receiver_queue=true,
+    )
+    ignore(auto_producer.send(@pulsar.ProducerMessage::new(b"first")))
+    ignore(auto_producer.send(@pulsar.ProducerMessage::new(b"second")))
+    let auto_first = @async.with_timeout(10000, async fn() {
+      auto_consumer.receive()
+    })
+    let auto_second = @async.with_timeout(10000, async fn() {
+      auto_consumer.receive()
+    })
+    assert_eq(auto_first.payload(), b"first")
+    assert_eq(auto_second.payload(), b"second")
+    auto_first.ack()
+    auto_second.ack()
+    auto_consumer.close()
+    auto_producer.close()
     let timeout_consumer = client.create_consumer(
       topic_a,
       "\{prefix}-timeout-sub",

@@ -10,7 +10,7 @@
 - `ClientOptions` 可设置连接/操作超时、保活间隔、每 broker 连接池大小及空闲回收、跨生产者待发送负载字节预算、监听器和查找属性；异步认证提供器可在连接及认证挑战时重读 Token 文件
 - Topic 查找、重定向跟随和连接池
 - 生产者：同步与异步发送、共享/独占/等待独占/抢占式访问模式、生产者元数据、按条数/字节数/延迟触发的批量发送、手动 flush、broker 回执与发送错误传递；可限制待发送消息数和客户端共享的负载字节数、选择满队列等待或立即报错，并设置覆盖批次缓冲时间的发送超时
-- 消费者：Exclusive、Shared、Failover、KeyShared 订阅（含自动拆分和固定哈希范围策略）；可选 broker 确认的单条/累计 ACK、负面 ACK 与可选的指数退避重投、ACK 超时、按消息 ID 或时间戳 seek、取消订阅、FLOW 许可控制、单主题零接收队列按需请求，以及批量消息拆包和可选的批次索引 ACK
+- 消费者：Exclusive、Shared、Failover、KeyShared 订阅（含自动拆分和固定哈希范围策略）；可选 broker 确认的单条/累计 ACK、负面 ACK 与可选的指数退避重投、ACK 超时、按消息 ID 或时间戳 seek、取消订阅、FLOW 许可控制、单主题零接收队列按需请求、可选接收队列自动扩容，以及批量消息拆包和可选的批次索引 ACK
 - 死信策略：消息超过允许的失败次数后转发到死信 Topic，保留负载、key、排序 key、属性和事件时间；死信生产者收到 broker 回执后才确认源消息
 - 重试信 Topic 消费者：普通订阅可设置 `retry_topic`，也可使用显式构造函数；`reconsume_later` 延迟重新投递，达到上限后转入死信 Topic
 - 可按最新或指定版本查询 Schema；生产者在消息中附带 broker 分配的版本，消费者可读取 `schema_version()`
@@ -43,6 +43,7 @@
 - 消费者可设置 `ack_grouping=AckGroupingOptions::new(max_size=1000, max_time_ms=100)`，按数量或时间合并 ACK；默认不启用。要求 broker 确认的 ACK 和事务 ACK 会先冲刷缓存再立即发送；关闭或 seek 前冲刷，重连时丢弃未发出的 ACK 以便 broker 重投。
 - `send_timeout_ms` 从批次消息进入生产者缓冲队列时开始计时；在 flush 前过期的消息会从批次中移除。非批次消息仍从 SEND 帧登记时计时。SEND 后超时不代表 broker 一定拒绝消息，重试时应使用稳定的生产者名称和序列号。
 - `ClientOptions::new(max_memory_bytes=...)` 限制同一客户端创建的所有生产者占用的待发送负载字节数；消息元数据、连接及其他分配不计入。`block_if_queue_full=false` 时超额返回 `ClientMemoryFull`，否则等待回执、失败、超时或客户端关闭释放额度。
+- 消费者设置 `auto_scaled_receiver_queue=true` 后，从 1 个 FLOW 许可开始；队列曾满且下一次读取时已空，预取上限倍增，直至 `receiver_queue_size`。此选项不能与零接收队列同时使用。组合消费者会向每个来源传递此选项，其合并队列仍单独缓冲。
 - `Connection::max_message_size` 可读取 broker 握手报告的上限；生产者会按此限制编码后的帧，并可自动选择分块大小。
 - `pulsar+ssl://` 使用 `moonbitlang/async/tls`。自定义 CA 握手和重连由本地 TLS mock 覆盖；此前的真实 broker 测试使用带 token 认证的明文 TCP。当前 TLS 客户端 API 不提供用于双向 TLS 的客户端证书。
 
@@ -67,6 +68,7 @@
 - 4.2.4 与 3.3.9 上的按数量冲刷与关闭前冲刷的 ACK 分组
 - 4.2.4 与 3.3.9 上的批次消息 flush 前超时与后续消息成功投递
 - 4.2.4 与 3.3.9 上两个生产者共享客户端待发送负载字节预算
+- 4.2.4 与 3.3.9 上自动扩容接收队列的收发与确认；精确 FLOW 扩容由 mock broker 验证
 
 这些是既有验证记录，不代表当前提交已在所有 broker 配置上重新测试。
 

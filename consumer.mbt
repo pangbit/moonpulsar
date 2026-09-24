@@ -186,6 +186,9 @@ pub struct SingleConsumer {
   priv messages : @aqueue.Queue[Message]
   priv mut buffered_messages : Int
   priv receiver_permits : Int
+  priv auto_scaled_receiver_queue : Bool
+  priv mut current_receiver_permits : Int
+  priv mut scale_receiver_hint : Bool
   priv mut available_permits : Int
   priv mut demand_active : Bool
   priv mut waiting_receives : Int
@@ -233,12 +236,16 @@ pub async fn SingleConsumer::create(
   chunk_policy? : ChunkAssemblyPolicy,
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
+  auto_scaled_receiver_queue? : Bool = false,
 ) -> SingleConsumer {
   guard ack_timeout_ms >= 0 else {
     raise InvalidFrame("ack timeout must not be negative")
   }
   guard receiver_queue_size >= 0 else {
     raise InvalidFrame("receiver queue size must not be negative")
+  }
+  if auto_scaled_receiver_queue && receiver_queue_size == 0 {
+    raise InvalidFrame("auto-scaled receiver queue requires a positive maximum")
   }
   if key_shared_policy is Some(_) && sub_type != KeyShared {
     raise InvalidFrame("KeyShared policy requires KeyShared subscription")
@@ -264,6 +271,13 @@ pub async fn SingleConsumer::create(
     messages: @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded),
     buffered_messages: 0,
     receiver_permits: receiver_queue_size,
+    auto_scaled_receiver_queue,
+    current_receiver_permits: if auto_scaled_receiver_queue {
+      1
+    } else {
+      receiver_queue_size
+    },
+    scale_receiver_hint: false,
     available_permits: 0,
     demand_active: false,
     waiting_receives: 0,
@@ -297,8 +311,8 @@ pub async fn SingleConsumer::create(
   }
   // start the flow of messages
   if receiver_queue_size > 0 {
-    consumer.send_flow(receiver_queue_size)
-    consumer.available_permits = receiver_queue_size
+    consumer.send_flow(consumer.current_receiver_permits)
+    consumer.available_permits = consumer.current_receiver_permits
   }
   consumer.ack_dispatcher.start(group)
   group.spawn_bg(
@@ -500,8 +514,8 @@ async fn SingleConsumer::reset_flow(self : SingleConsumer) -> Unit {
       self.request_one()
     }
   } else {
-    self.send_flow(self.receiver_permits)
-    self.available_permits = self.receiver_permits
+    self.send_flow(self.current_receiver_permits)
+    self.available_permits = self.current_receiver_permits
   }
 }
 
@@ -667,6 +681,10 @@ fn SingleConsumer::push_message(
   )
   if self.messages.try_put(message) {
     self.buffered_messages += 1
+    if self.auto_scaled_receiver_queue &&
+      self.buffered_messages >= self.current_receiver_permits {
+      self.scale_receiver_hint = true
+    }
   }
 }
 
@@ -867,6 +885,22 @@ fn split_batch_payload(
 }
 
 ///|
+fn SingleConsumer::scale_receiver_queue_on_empty(self : SingleConsumer) -> Unit {
+  if self.auto_scaled_receiver_queue &&
+    self.scale_receiver_hint &&
+    self.buffered_messages == 0 &&
+    self.current_receiver_permits < self.receiver_permits {
+    self.current_receiver_permits = if self.current_receiver_permits >
+      self.receiver_permits / 2 {
+      self.receiver_permits
+    } else {
+      self.current_receiver_permits * 2
+    }
+    self.scale_receiver_hint = false
+  }
+}
+
+///|
 /// Receive the next message, blocking until one is available.
 async fn SingleConsumer::receive_untracked(self : SingleConsumer) -> Message {
   if self.closed.val {
@@ -887,12 +921,13 @@ async fn SingleConsumer::receive_untracked(self : SingleConsumer) -> Message {
     }
     return message
   }
+  self.scale_receiver_queue_on_empty()
   let message = self.messages.get()
   self.buffered_messages -= 1
   self.available_permits -= 1
-  let threshold = self.receiver_permits / 2
+  let threshold = self.current_receiver_permits / 2
   if self.available_permits <= threshold {
-    let refill = self.receiver_permits - self.available_permits
+    let refill = self.current_receiver_permits - self.available_permits
     self.send_flow(refill) catch {
       _ => ()
     }
@@ -932,10 +967,13 @@ fn SingleConsumer::try_receive_untracked(
     }
     return message
   }
+  if message is None {
+    self.scale_receiver_queue_on_empty()
+  }
   if message is Some(_) {
     self.available_permits -= 1
-    if self.available_permits <= self.receiver_permits / 2 {
-      let refill = self.receiver_permits - self.available_permits
+    if self.available_permits <= self.current_receiver_permits / 2 {
+      let refill = self.current_receiver_permits - self.available_permits
       self.available_permits += refill
       self.group.spawn_bg(
         async fn() { self.send_flow(refill) catch { _ => () } },
@@ -1092,6 +1130,7 @@ pub async fn SingleConsumer::seek(
 
   }
   self.buffered_messages = 0
+  self.scale_receiver_hint = false
   self.ack_pending.clear()
   self.batch_acks.clear()
   self.chunks.clear()

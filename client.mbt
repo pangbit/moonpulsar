@@ -316,6 +316,7 @@ pub async fn Client::create_consumer(
   retry_topic? : String,
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
+  auto_scaled_receiver_queue? : Bool = false,
 ) -> Consumer {
   if retry_topic is Some(retry) {
     guard dead_letter_policy is Some(policy) else {
@@ -343,6 +344,7 @@ pub async fn Client::create_consumer(
       chunk_policy?,
       enable_batch_index_ack~,
       ack_grouping?,
+      auto_scaled_receiver_queue~,
     )
   }
   guard partition_refresh_ms > 0 else {
@@ -385,6 +387,7 @@ pub async fn Client::create_consumer(
       chunk_policy?,
       enable_batch_index_ack~,
       ack_grouping?,
+      auto_scaled_receiver_queue~,
     )
     return self.with_dead_letter(Consumer::single(single), dead_letter_policy)
   }
@@ -417,6 +420,7 @@ pub async fn Client::create_consumer(
         chunk_policy?,
         enable_batch_index_ack~,
         ack_grouping?,
+        auto_scaled_receiver_queue~,
       ),
     )
   }
@@ -548,6 +552,7 @@ pub async fn Client::create_retry_consumer(
   chunk_policy? : ChunkAssemblyPolicy,
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
+  auto_scaled_receiver_queue? : Bool = false,
 ) -> Consumer {
   guard retry_topic != "" &&
     retry_topic != topic &&
@@ -576,6 +581,7 @@ pub async fn Client::create_retry_consumer(
       chunk_policy?,
       enable_batch_index_ack~,
       ack_grouping?,
+      auto_scaled_receiver_queue~,
     )
   }
   let source = create(topic)
@@ -629,6 +635,7 @@ pub async fn Client::create_multi_topic_consumer(
   retry_topic? : String,
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
+  auto_scaled_receiver_queue? : Bool = false,
 ) -> Consumer {
   guard !topics.is_empty() else {
     raise InvalidFrame("multi-topic consumer requires at least one topic")
@@ -673,6 +680,7 @@ pub async fn Client::create_multi_topic_consumer(
         chunk_policy?,
         enable_batch_index_ack~,
         ack_grouping?,
+        auto_scaled_receiver_queue~,
       ) catch {
         e => {
           for existing in consumers {
@@ -711,6 +719,7 @@ pub async fn Client::create_multi_topic_consumer(
       chunk_policy?,
       enable_batch_index_ack~,
       ack_grouping?,
+      auto_scaled_receiver_queue~,
     )
   })
 }
@@ -959,6 +968,7 @@ pub async fn Client::create_pattern_consumer(
   retry_topic? : String,
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
+  auto_scaled_receiver_queue? : Bool = false,
 ) -> Consumer {
   guard refresh_interval_ms > 0 else {
     raise InvalidFrame("topic refresh interval must be positive")
@@ -1017,6 +1027,7 @@ pub async fn Client::create_pattern_consumer(
           chunk_policy?,
           enable_batch_index_ack~,
           ack_grouping?,
+          auto_scaled_receiver_queue~,
         )
         consumer.add_source(self.manager.group, sub)
         seen[topic] = true
@@ -1062,6 +1073,7 @@ pub async fn Client::create_pattern_consumer(
           chunk_policy?,
           enable_batch_index_ack~,
           ack_grouping?,
+          auto_scaled_receiver_queue~,
         )
       }),
     )
