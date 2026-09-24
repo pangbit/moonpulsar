@@ -141,6 +141,42 @@ async fn main {
     assert_true(reopened_grouped_consumer.try_receive() is None)
     reopened_grouped_consumer.close()
     grouped_producer.close()
+    let batch_timeout_topic = "persistent://public/default/\{prefix}-batch-timeout"
+    let batch_timeout_consumer = client.create_consumer(
+      batch_timeout_topic,
+      "\{prefix}-batch-timeout-sub",
+      initial_position=Earliest,
+    )
+    let batch_timeout_producer = client.create_producer(
+      batch_timeout_topic,
+      batching=@pulsar.BatchingConfig::{
+        max_messages: 10,
+        max_bytes: 4096,
+        max_delay_ms: 60000,
+      },
+      send_timeout_ms=100,
+    )
+    let expired_future = batch_timeout_producer.send_async(
+      @pulsar.ProducerMessage::new(b"expired-before-flush"),
+    )
+    let expired_result : Result[@pulsar.SendReceipt, Error] = Ok(
+      @async.with_timeout(1000, async fn() { expired_future.wait() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(expired_result is Err(@pulsar.PulsarError::RequestTimeout))
+    let surviving_future = batch_timeout_producer.send_async(
+      @pulsar.ProducerMessage::new(b"sent-after-timeout"),
+    )
+    batch_timeout_producer.flush()
+    ignore(surviving_future.wait())
+    let surviving_message = @async.with_timeout(10000, async fn() {
+      batch_timeout_consumer.receive()
+    })
+    assert_eq(surviving_message.payload(), b"sent-after-timeout")
+    surviving_message.ack()
+    batch_timeout_consumer.close()
+    batch_timeout_producer.close()
     let timeout_consumer = client.create_consumer(
       topic_a,
       "\{prefix}-timeout-sub",

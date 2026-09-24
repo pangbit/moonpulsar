@@ -270,3 +270,107 @@ async test "producer rejects invalid queue and timeout settings" {
     manager.close()
   })
 }
+
+///|
+async test "batch message timeout removes it before flush and releases capacity" {
+  @async.with_task_group(async fn(group) {
+    let sent : @aqueue.Queue[Int?] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_producer(peer)
+      let frame = peer.next()
+      guard frame.cmd.send is Some(send) else { fail("expected SEND") }
+      sent.put(send.num_messages)
+      send_receipt(peer, send.producer_id, send.sequence_id)
+    })
+    let manager = ConnectionManager::new(group)
+    let producer = SingleProducer::create(
+      group,
+      manager.get(addr),
+      "persistent://public/default/batch-queue-timeout",
+      batching={ max_messages: 10, max_bytes: 1000, max_delay_ms: 60000, },
+      max_pending_messages=1,
+      send_timeout_ms=30,
+    )
+    let first = producer.send_async(ProducerMessage::new(b"expired"))
+    let expired : Result[SendReceipt, Error] = Ok(
+      @async.with_timeout(1000, async fn() { first.wait() }),
+    ) catch {
+      e => Err(e)
+    }
+    let second = producer.send_async(ProducerMessage::new(b"survived"))
+    producer.flush()
+    let receipt = second.wait()
+    assert_true(expired is Err(RequestTimeout))
+    assert_eq(sent.get(), Some(1))
+    assert_eq(receipt.sequence_id, 0UL)
+    producer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "batched send timeout includes time spent waiting for flush" {
+  @async.with_task_group(async fn(group) {
+    let release : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_producer(peer)
+      let frame = peer.next()
+      guard frame.cmd.send is Some(send) else { fail("expected SEND") }
+      release.get()
+      send_receipt(peer, send.producer_id, send.sequence_id)
+    })
+    let manager = ConnectionManager::new(group)
+    let producer = SingleProducer::create(
+      group,
+      manager.get(addr),
+      "persistent://public/default/batch-inflight-timeout",
+      batching={ max_messages: 10, max_bytes: 1000, max_delay_ms: 60000, },
+      send_timeout_ms=200,
+    )
+    let future = producer.send_async(ProducerMessage::new(b"late"))
+    @async.sleep(150)
+    producer.flush()
+    let flushed_at = @async.now()
+    let result : Result[SendReceipt, Error] = Ok(
+      @async.with_timeout(1000, async fn() { future.wait() }),
+    ) catch {
+      e => Err(e)
+    }
+    let since_flush = @async.now() - flushed_at
+    release.put(())
+    assert_true(result is Err(RequestTimeout))
+    assert_true(since_flush < 130L)
+    producer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "batch receipt remains readable after its timeout task wakes" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_producer(peer)
+      let frame = peer.next()
+      guard frame.cmd.send is Some(send) else { fail("expected SEND") }
+      send_receipt(peer, send.producer_id, send.sequence_id)
+    })
+    let manager = ConnectionManager::new(group)
+    let producer = SingleProducer::create(
+      group,
+      manager.get(addr),
+      "persistent://public/default/batch-receipt-before-timeout",
+      batching={ max_messages: 10, max_bytes: 1000, max_delay_ms: 60000, },
+      send_timeout_ms=30,
+    )
+    let future = producer.send_async(ProducerMessage::new(b"early"))
+    producer.flush()
+    @async.sleep(50)
+    assert_eq(future.wait().sequence_id, 0UL)
+    producer.close()
+    manager.close()
+  })
+}

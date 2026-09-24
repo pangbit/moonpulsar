@@ -65,6 +65,14 @@ pub async fn ReceiptFuture::wait(self : ReceiptFuture) -> SendReceipt {
 }
 
 ///|
+priv struct BufferedMessage {
+  message : ProducerMessage
+  waiter : @aqueue.Queue[SendReceipt]
+  token : UInt64
+  done : Ref[Bool]
+}
+
+///|
 /// A producer bound to a single topic.
 pub struct SingleProducer {
   priv group : @async.TaskGroup[Unit]
@@ -98,10 +106,11 @@ pub struct SingleProducer {
   priv mut schema_version : Bytes?
   priv batching : BatchingConfig?
   priv batch_mu : @async.Mutex
-  priv mut batch_messages : Array[ProducerMessage]
-  priv mut batch_waiters : Array[@aqueue.Queue[SendReceipt]]
+  priv mut batch_entries : Array[BufferedMessage]
   priv mut batch_bytes : Int
   priv mut batch_timer_running : Bool
+  priv mut batch_timer_generation : UInt64
+  priv mut next_batch_token : UInt64
   priv mut closed : Bool
 }
 
@@ -191,10 +200,11 @@ pub async fn SingleProducer::create(
     schema_version: None,
     batching,
     batch_mu: @async.Mutex::Mutex(),
-    batch_messages: [],
-    batch_waiters: [],
+    batch_entries: [],
     batch_bytes: 0,
     batch_timer_running: false,
+    batch_timer_generation: 0UL,
+    next_batch_token: 0UL,
     closed: false,
   }
   producer.attach(conn)
@@ -394,11 +404,12 @@ fn SingleProducer::fail_all(self : SingleProducer, error : PulsarError) -> Unit 
   self.pending.clear()
   self.timeout_generation.clear()
   self.payloads.clear()
-  for waiter in self.batch_waiters {
-    waiter.close(error~, clear=true)
+  for entry in self.batch_entries {
+    entry.done.val = true
+    entry.waiter.close(error~, clear=true)
   }
-  self.batch_waiters.clear()
-  self.batch_messages.clear()
+  self.batch_entries.clear()
+  self.batch_bytes = 0
 }
 
 ///|
@@ -790,26 +801,46 @@ async fn SingleProducer::enqueue_batch(
   let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
     kind=@aqueue.Kind::Blocking(1),
   )
+  let done : Ref[Bool] = { val: false, }
   self.batch_mu.acquire()
-  self.batch_messages.push(msg)
-  self.batch_waiters.push(waiter)
+  if self.closed {
+    self.batch_mu.release()
+    raise ProducerClosed
+  }
+  self.next_batch_token += 1UL
+  let entry : BufferedMessage = {
+    message: msg,
+    waiter,
+    token: self.next_batch_token,
+    done,
+  }
+  self.batch_entries.push(entry)
   self.batch_bytes += msg.payload.length()
   guard self.batching is Some(config) else {
     self.batch_mu.release()
     raise ProducerClosed
   }
-  let full = self.batch_messages.length() >= config.max_messages ||
+  let full = self.batch_entries.length() >= config.max_messages ||
     self.batch_bytes >= config.max_bytes
   if !full && !self.batch_timer_running {
     self.batch_timer_running = true
+    self.batch_timer_generation += 1UL
+    let generation = self.batch_timer_generation
     let delay = config.max_delay_ms
     self.group.spawn_bg(
-      async fn() { self.flush_after(delay) },
+      async fn() { self.flush_after(delay, generation) },
       no_wait=true,
       allow_failure=true,
     )
   }
   self.batch_mu.release()
+  if self.send_timeout_ms is Some(timeout) {
+    self.group.spawn_bg(
+      async fn() { self.expire_buffered(entry, timeout) },
+      no_wait=true,
+      allow_failure=true,
+    )
+  }
   if full {
     self.flush()
   }
@@ -817,12 +848,40 @@ async fn SingleProducer::enqueue_batch(
 }
 
 ///|
+async fn SingleProducer::expire_buffered(
+  self : SingleProducer,
+  entry : BufferedMessage,
+  timeout_ms : Int,
+) -> Unit {
+  @async.sleep(timeout_ms)
+  self.batch_mu.acquire()
+  defer self.batch_mu.release()
+  if entry.done.val {
+    return
+  }
+  for index in 0..<self.batch_entries.length() {
+    if self.batch_entries[index].token == entry.token {
+      ignore(self.batch_entries.remove(index))
+      self.batch_bytes -= entry.message.payload.length()
+      if self.batch_entries.is_empty() {
+        self.batch_timer_running = false
+        self.batch_timer_generation += 1UL
+      }
+      break
+    }
+  }
+  entry.done.val = true
+  entry.waiter.close(error=RequestTimeout, clear=true)
+}
+
+///|
 async fn SingleProducer::flush_after(
   self : SingleProducer,
   delay_ms : Int,
+  generation : UInt64,
 ) -> Unit {
   @async.sleep(delay_ms)
-  self.flush() catch {
+  self.flush_with_generation(expected_generation=generation) catch {
     _ => ()
   }
 }
@@ -830,30 +889,54 @@ async fn SingleProducer::flush_after(
 ///|
 /// Flush any buffered batch immediately.
 pub async fn SingleProducer::flush(self : SingleProducer) -> Unit {
+  self.flush_with_generation()
+}
+
+///|
+async fn SingleProducer::flush_with_generation(
+  self : SingleProducer,
+  expected_generation? : UInt64,
+) -> Unit {
   self.batch_mu.acquire()
   defer self.batch_mu.release()
-  self.batch_timer_running = false
-  if self.batch_messages.is_empty() {
+  if expected_generation is Some(generation) &&
+    generation != self.batch_timer_generation {
     return
   }
-  let messages = self.batch_messages
-  let waiters = self.batch_waiters
-  self.batch_messages = []
-  self.batch_waiters = []
+  self.batch_timer_running = false
+  self.batch_timer_generation += 1UL
+  if self.batch_entries.is_empty() {
+    return
+  }
+  let entries = self.batch_entries
+  let messages = entries.map(fn(entry) { entry.message })
+  self.batch_entries = []
   self.batch_bytes = 0
-  errdefer (for waiter in waiters {
-    waiter.close(error=ConnectionClosed, clear=true)
+  errdefer (for entry in entries {
+    entry.done.val = true
+    entry.waiter.close(error=ConnectionClosed, clear=true)
   })
   let batch_waiter = self.send_messages(messages)
   // forward the batch receipt to every message waiter
   let n = messages.length()
   self.group.spawn_bg(
     async fn() {
-      errdefer (for waiter in waiters {
-        waiter.close(error=ConnectionClosed, clear=true)
-      })
-      let receipt : SendReceipt = batch_waiter.get()
-      for i, waiter in waiters {
+      let receipt : SendReceipt = batch_waiter.get() catch {
+        e => {
+          for entry in entries {
+            if !entry.done.val {
+              entry.done.val = true
+              entry.waiter.close(error=e, clear=true)
+            }
+          }
+          return
+        }
+      }
+      for i, entry in entries {
+        if entry.done.val {
+          continue
+        }
+        entry.done.val = true
         let message_id : MessageId = {
           ..receipt.message_id,
           batch_index: if n > 1 {
@@ -862,7 +945,7 @@ pub async fn SingleProducer::flush(self : SingleProducer) -> Unit {
             receipt.message_id.batch_index
           },
         }
-        ignore(waiter.try_put({ ..receipt, message_id, }))
+        ignore(entry.waiter.try_put({ ..receipt, message_id, }))
       }
     },
     no_wait=true,

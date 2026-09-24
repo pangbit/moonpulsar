@@ -11,7 +11,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 - Connection management over TCP with the Pulsar binary protocol (`pulsar://`), handshake, keepalive and request/response correlation
 - `ClientOptions` for connection/operation timeouts, keepalive interval, per-broker connection pool size and idle eviction, advertised listener and lookup properties; asynchronous authentication providers and token-file reload on connection or challenge
 - Topic lookup with redirect following and connection pooling
-- Producer: synchronous and asynchronous send, shared/exclusive/wait-for-exclusive/fencing access modes, producer metadata, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation, optional pending-message limit with blocking or fail-fast admission, and in-flight send timeout
+- Producer: synchronous and asynchronous send, shared/exclusive/wait-for-exclusive/fencing access modes, producer metadata, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation, optional pending-message limit with blocking or fail-fast admission, and send timeout including buffered batches
 - Consumer: Exclusive / Shared / Failover / KeyShared subscriptions (including auto-split and sticky hash-range policies), individual & cumulative ack with optional broker confirmation, negative ack with optional exponential redelivery backoff, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), single-topic zero-sized receive queue with on-demand FLOW, batched message unpacking and optional per-index batch ACK
 - Dead-letter policy: route messages after the configured number of unsuccessful deliveries, preserving payload, key, ordering key, properties, and event time; acknowledge the source only after the dead-letter producer receives a broker receipt
 - Retry-letter consumers: use `retry_topic` on ordinary subscriptions or the explicit constructor, then `reconsume_later` to publish with a delay and route exhausted retries to the dead-letter topic
@@ -44,7 +44,7 @@ Not yet / known gaps:
 - Automatic chunking requires the broker to advertise a maximum message size. `ChunkAssemblyPolicy::new(auto_ack_incomplete=true)` makes consumers and readers acknowledge received chunks when an incomplete assembly is evicted or expires; the default leaves them unacknowledged for broker redelivery.
 - Batch messages use whole-entry ACK after every index is acknowledged by default. Set `enable_batch_index_ack=true` on a consumer to acknowledge each index; the broker must enable `acknowledgmentAtBatchIndexLevelEnabled`. Partial batch ACK cannot request broker confirmation in the default mode. Transactional batch ACK remains open.
 - Set `ack_grouping=AckGroupingOptions::new(max_size=1000, max_time_ms=100)` on a consumer to buffer ACKs by count or time. Grouping is off unless configured; confirmed and transactional ACKs flush the buffer and send immediately. Closing or seeking flushes buffered ACKs, while reconnecting drops them so the broker can redeliver.
-- `send_timeout_ms` starts when a SEND frame is registered; a buffered batch can wait for its flush delay before that timer starts. A timeout does not prove the broker rejected the message, so applications should use stable producer names and sequence IDs when retrying.
+- `send_timeout_ms` starts when a buffered batch message enters the producer queue; if it expires before flush, the message is removed. Unbatched messages start their timer when the SEND frame is registered. A timeout after SEND does not prove the broker rejected the message, so applications should use stable producer names and sequence IDs when retrying.
 - `Connection::max_message_size` exposes the negotiated broker limit; producers cap encoded frames to that limit and can select a chunk size from it automatically.
 - `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; custom CA handshake and reconnection are covered by a local TLS mock, while the live broker run used plain TCP with token auth. The current TLS client API does not expose a client certificate for mutual TLS.
 
@@ -68,6 +68,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - dead-letter routing after explicit NACK, with source ACK after publish and preserved message metadata
 - whole-batch and per-index ACK, including persistence of an acknowledged index across consumer recreation, on 4.2.4 and 3.3.9 with broker batch-index ACK enabled
 - grouped ACKs with count-triggered flush and close flush on 4.2.4 and 3.3.9
+- a buffered batch message expires before flush while the next message is delivered on 4.2.4 and 3.3.9
 - retry-letter delivery through a Shared subscription after a 5-second delay, then transfer to DLQ when the retry limit is exceeded
 - STRING and JSON schema declaration with typed payload encode/decode roundtrips
 
