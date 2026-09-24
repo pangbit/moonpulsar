@@ -29,6 +29,15 @@ func main() {
 		url = "pulsar://127.0.0.1:6650"
 	}
 	options := pulsar.ClientOptions{URL: url}
+	if ca := os.Getenv("PULSAR_TLS_CA_FILE"); ca != "" {
+		options.TLSTrustCertsFilePath = ca
+		options.TLSValidateHostname = true
+	}
+	if cert := os.Getenv("PULSAR_TLS_CLIENT_CERT_FILE"); cert != "" {
+		options.TLSCertificateFile = cert
+		options.TLSKeyFilePath = os.Getenv("PULSAR_TLS_CLIENT_KEY_FILE")
+		options.Authentication = pulsar.NewAuthenticationTLS(cert, options.TLSKeyFilePath)
+	}
 	if token := os.Getenv("PULSAR_TOKEN"); token != "" {
 		options.Authentication = pulsar.NewAuthenticationToken(token)
 	}

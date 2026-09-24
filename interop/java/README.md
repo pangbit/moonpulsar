@@ -35,3 +35,10 @@ and writes to `PULSAR_TOPIC-moonbit`; the Java receiver decrypts it. This
 three-step exchange passed on isolated Pulsar 4.2.4 and 3.3.9 brokers. The
 pinned Go client's default crypto implementation accepts only RSA keys, so
 Go ECIES interop is not a valid acceptance test for this baseline.
+
+For a broker requiring client certificates, set `PULSAR_URL` to its
+`pulsar+ssl://` address and pass `PULSAR_TLS_CA_FILE`,
+`PULSAR_TLS_CLIENT_CERT_FILE`, and `PULSAR_TLS_CLIENT_KEY_FILE` to both the Java
+process and `examples/ec_encryption_interop`. The Java fixture enables CA and
+hostname verification. The same three-step exchange passed over mutually
+authenticated TLS on isolated 4.2.4 and 3.3.9 brokers.

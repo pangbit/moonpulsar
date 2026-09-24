@@ -1,6 +1,8 @@
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.AuthenticationFactory;
+import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -26,8 +28,23 @@ public final class EncryptionInterop {
         }
         DefaultCryptoKeyReader keys = DefaultCryptoKeyReader.builder()
                 .publicKey("ec", publicFile).privateKey("ec", privateFile).build();
-        try (PulsarClient client = PulsarClient.builder().serviceUrl(url)
-                .operationTimeout(30, TimeUnit.SECONDS).build()) {
+        ClientBuilder builder = PulsarClient.builder().serviceUrl(url)
+                .operationTimeout(30, TimeUnit.SECONDS);
+        String caFile = System.getenv("PULSAR_TLS_CA_FILE");
+        if (caFile != null && !caFile.isEmpty()) {
+            builder.tlsTrustCertsFilePath(caFile)
+                    .allowTlsInsecureConnection(false)
+                    .enableTlsHostnameVerification(true);
+        }
+        String clientCert = System.getenv("PULSAR_TLS_CLIENT_CERT_FILE");
+        String clientKey = System.getenv("PULSAR_TLS_CLIENT_KEY_FILE");
+        if (clientCert != null || clientKey != null) {
+            if (clientCert == null || clientKey == null) {
+                throw new IllegalArgumentException("both TLS client certificate and key are required");
+            }
+            builder.authentication(AuthenticationFactory.TLS(clientCert, clientKey));
+        }
+        try (PulsarClient client = builder.build()) {
             if (args[0].equals("send")) {
                 try (Producer<byte[]> producer = client.newProducer(Schema.BYTES)
                         .topic(topic + "-java").cryptoKeyReader(keys)

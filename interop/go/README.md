@@ -61,6 +61,13 @@ The PEM files under `testdata/encryption` are
 disposable test keys. The full exchange passed on Pulsar 4.2.4 and an isolated
 3.3.9 broker.
 
+For mutual TLS, set `PULSAR_URL=pulsar+ssl://HOST:PORT` and provide
+`PULSAR_TLS_CA_FILE`, `PULSAR_TLS_CLIENT_CERT_FILE`, and
+`PULSAR_TLS_CLIENT_KEY_FILE` to the Go and MoonBit commands. Both fixtures
+verify the broker certificate and hostname. The RSA exchange, including
+encrypted Zlib and batch messages, passed over mutual TLS on isolated 4.2.4
+and 3.3.9 brokers.
+
 The pinned Go client's consumer currently exposes the 16-byte GCM tag for an
 encrypted empty payload: its decode path only swaps in the decrypted buffer
 when `UncompressedSize > 0`. Run `go run ./encryption receive-empty` after the
