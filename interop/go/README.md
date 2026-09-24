@@ -27,6 +27,9 @@ values. MoonBit decodes these and writes matching values in the other direction,
 then writes a two-message STRING batch. Go decodes the MoonBit messages. The
 Go sender also writes an older Avro `EvolvingUser` record; MoonBit reads it
 through a newer schema with a renamed field, numeric promotion and default.
+The pinned Go reader cannot apply that default to the older writer bytes; run
+`go test ./...` in `interop/go` for the regression probe. This limit does not
+affect the Go-writer-to-MoonBit-reader check above.
 The legacy Protobuf schema uses an Avro-style JSON definition and ordinary
 protobuf message bytes;
 INT16/32/64 use the Go client's little-endian integer encoding. The test uses
