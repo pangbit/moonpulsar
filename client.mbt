@@ -321,6 +321,7 @@ pub async fn Client::create_consumer(
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
   auto_scaled_receiver_queue? : Bool = false,
+  interceptors? : Array[ConsumerInterceptor] = [],
 ) -> Consumer {
   if retry_topic is Some(retry) {
     guard dead_letter_policy is Some(policy) else {
@@ -349,6 +350,7 @@ pub async fn Client::create_consumer(
       enable_batch_index_ack~,
       ack_grouping?,
       auto_scaled_receiver_queue~,
+      interceptors~,
     )
   }
   guard partition_refresh_ms > 0 else {
@@ -393,7 +395,12 @@ pub async fn Client::create_consumer(
       ack_grouping?,
       auto_scaled_receiver_queue~,
     )
-    return self.with_dead_letter(Consumer::single(single), dead_letter_policy)
+    let consumer = self.with_dead_letter(
+      Consumer::single(single),
+      dead_letter_policy,
+    )
+    consumer.set_interceptors(interceptors)
+    return consumer
   }
   let create_partition = async fn(i : Int) -> Consumer {
     let partition_topic = "\{topic}-partition-\{i}"
@@ -466,7 +473,9 @@ pub async fn Client::create_consumer(
     no_wait=true,
     allow_failure=true,
   )
-  self.with_dead_letter(consumer, dead_letter_policy)
+  let consumer = self.with_dead_letter(consumer, dead_letter_policy)
+  consumer.set_interceptors(interceptors)
+  consumer
 }
 
 ///|
@@ -557,6 +566,7 @@ pub async fn Client::create_retry_consumer(
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
   auto_scaled_receiver_queue? : Bool = false,
+  interceptors? : Array[ConsumerInterceptor] = [],
 ) -> Consumer {
   guard retry_topic != "" &&
     retry_topic != topic &&
@@ -610,6 +620,7 @@ pub async fn Client::create_retry_consumer(
     }
   }
   combined.set_retry_letter(retry_topic, producer)
+  combined.set_interceptors(interceptors)
   combined
 }
 
@@ -640,6 +651,7 @@ pub async fn Client::create_multi_topic_consumer(
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
   auto_scaled_receiver_queue? : Bool = false,
+  interceptors? : Array[ConsumerInterceptor] = [],
 ) -> Consumer {
   guard !topics.is_empty() else {
     raise InvalidFrame("multi-topic consumer requires at least one topic")
@@ -699,6 +711,7 @@ pub async fn Client::create_multi_topic_consumer(
     }
   }
   let combined = Consumer::partitioned(self.manager.group, consumers)
+  combined.set_interceptors(interceptors)
   guard retry_topic is Some(retry) && dead_letter_policy is Some(policy) else {
     return combined
   }
@@ -973,6 +986,7 @@ pub async fn Client::create_pattern_consumer(
   enable_batch_index_ack? : Bool = false,
   ack_grouping? : AckGroupingOptions,
   auto_scaled_receiver_queue? : Bool = false,
+  interceptors? : Array[ConsumerInterceptor] = [],
 ) -> Consumer {
   guard refresh_interval_ms > 0 else {
     raise InvalidFrame("topic refresh interval must be positive")
@@ -989,6 +1003,7 @@ pub async fn Client::create_pattern_consumer(
   }
   let regex = @string.Regex::Regex(pattern)
   let consumer = Consumer::pattern(pattern, subscription)
+  consumer.set_interceptors(interceptors)
   let seen : Map[String, Bool] = {}
   let source_policy = if retry_topic is None {
     dead_letter_policy

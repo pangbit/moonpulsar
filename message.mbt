@@ -152,7 +152,22 @@ pub struct Message {
   priv on_delivery : ((Message) -> Unit)?
   priv mut on_ack : ((Message) -> Unit)?
   priv mut on_nack : ((Message) -> Unit)?
+  priv mut interceptors : Array[ConsumerInterceptor]
   priv nack_scheduler : ((Message) -> Unit)?
+}
+
+///|
+fn Message::observe_ack(self : Message, result : Result[Unit, Error]) -> Unit {
+  for interceptor in self.interceptors {
+    interceptor.acked(self.id, result)
+  }
+}
+
+///|
+fn Message::observe_nack(self : Message, result : Result[Unit, Error]) -> Unit {
+  for interceptor in self.interceptors {
+    interceptor.nacked(self.id, result)
+  }
 }
 
 ///|
@@ -230,6 +245,18 @@ pub async fn Message::ack(
   self : Message,
   await_response? : Bool = false,
 ) -> Unit {
+  let result : Result[Unit, Error] = Ok(self.ack_raw(await_response)) catch {
+    e => Err(e)
+  }
+  self.observe_ack(result)
+  match result {
+    Ok(_) => ()
+    Err(e) => raise e
+  }
+}
+
+///|
+async fn Message::ack_raw(self : Message, await_response : Bool) -> Unit {
   if self.id.batch_index >= 0 && self.batch_ack_tracker is Some(tracker) {
     tracker.ack(
       self.conn_ref.val,
@@ -272,6 +299,22 @@ pub async fn Message::ack_txn(
   txn : Transaction,
   await_response? : Bool = false,
 ) -> Unit {
+  let result : Result[Unit, Error] = Ok(self.ack_txn_raw(txn, await_response)) catch {
+    e => Err(e)
+  }
+  self.observe_ack(result)
+  match result {
+    Ok(_) => ()
+    Err(e) => raise e
+  }
+}
+
+///|
+async fn Message::ack_txn_raw(
+  self : Message,
+  txn : Transaction,
+  await_response : Bool,
+) -> Unit {
   if self.id.batch_index >= 0 && self.batch_ack_tracker is Some(tracker) {
     tracker.ack(
       self.conn_ref.val,
@@ -313,6 +356,16 @@ pub async fn Message::ack_txn(
 ///|
 /// Negatively acknowledge this message, triggering redelivery.
 pub async fn Message::nack(self : Message) -> Unit {
+  let result : Result[Unit, Error] = Ok(self.nack_raw()) catch { e => Err(e) }
+  self.observe_nack(result)
+  match result {
+    Ok(_) => ()
+    Err(e) => raise e
+  }
+}
+
+///|
+async fn Message::nack_raw(self : Message) -> Unit {
   if self.ack_tracker is Some(pending) {
     pending.remove(self.id)
   }

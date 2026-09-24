@@ -13,6 +13,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 - Topic lookup with redirect following and connection pooling
 - Producer: synchronous and asynchronous send, shared/exclusive/wait-for-exclusive/fencing access modes, producer metadata, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation, optional message-count and client-wide payload-byte limits with blocking or fail-fast admission, and send timeout including buffered batches
 - Producer interceptors can transform a message before partition routing and observe either its broker receipt or send failure, including asynchronous sends that the caller never waits for.
+- Consumer interceptors observe application delivery and the results of ACK and negative ACK operations, including `Message::ack`, `Message::nack`, and ACK by ID.
 - Consumer: Exclusive / Shared / Failover / KeyShared subscriptions (including auto-split and sticky hash-range policies), individual & cumulative ack with optional broker confirmation, negative ack with optional exponential redelivery backoff, ack timeout, seek by message ID or timestamp, unsubscribe, flow control (FLOW permits), single-topic zero-sized receive queue with on-demand FLOW, optional auto-scaled receive queue, batched message unpacking and optional per-index batch ACK
 - Dead-letter policy: route messages after the configured number of unsuccessful deliveries, preserving payload, key, ordering key, properties, and event time; acknowledge the source only after the dead-letter producer receives a broker receipt
 - Retry-letter consumers: use `retry_topic` on ordinary subscriptions or the explicit constructor, then `reconsume_later` to publish with a delay and route exhausted retries to the dead-letter topic
@@ -49,6 +50,7 @@ Not yet / known gaps:
 - `ClientOptions::new(max_memory_bytes=...)` limits the payload bytes held by all producers created from one client. Metadata, connections, and other allocations are outside this budget. A producer with `block_if_queue_full=false` reports `ClientMemoryFull` when the budget is full; blocking producers wait for a receipt, failure, timeout, or client close to release it.
 - Set `auto_scaled_receiver_queue=true` on a consumer to start with one FLOW permit and double the prefetch size after a full queue is followed by an empty read, up to `receiver_queue_size`. A zero maximum cannot be combined with auto scaling. Composite consumers pass this option to each source; their merge queue still has its own buffering.
 - Pass `interceptors=[ProducerInterceptor::new(before_send=..., on_send_result=...)]` to `Client::create_producer`. Hooks run in order on the logical producer; `on_send_result` also receives immediate admission errors such as `ProducerQueueFull`. Callbacks are synchronous and cannot raise errors.
+- Pass `interceptors=[ConsumerInterceptor::new(before_consume=..., on_ack=..., on_nack=...)]` to a consumer constructor. Hooks run on application delivery and when its message or ID ACK/nack call completes. `on_ack` reports a rejected confirmed ACK as an error; an unconfirmed ACK callback means the frame was submitted, not broker-confirmed.
 - `Connection::max_message_size` exposes the negotiated broker limit; producers cap encoded frames to that limit and can select a chunk size from it automatically.
 - `pulsar+ssl://` is implemented via `moonbitlang/async/tls`; custom CA handshake and reconnection are covered by a local TLS mock, while the live broker run used plain TCP with token auth. The current TLS client API does not expose a client certificate for mutual TLS.
 
@@ -76,6 +78,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - two producers sharing a client-wide pending payload-byte budget on 4.2.4 and 3.3.9
 - an auto-scaled receive queue sending and acknowledging messages on 4.2.4 and 3.3.9; exact FLOW growth is covered by the mock broker
 - producer interceptor payload transformation and receipt callback on 4.2.4 and 3.3.9
+- consumer interceptor delivery and ACK callback on 4.2.4 and 3.3.9
 - retry-letter delivery through a Shared subscription after a 5-second delay, then transfer to DLQ when the retry limit is exceeded
 - STRING and JSON schema declaration with typed payload encode/decode roundtrips
 

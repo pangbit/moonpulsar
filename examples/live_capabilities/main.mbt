@@ -250,10 +250,20 @@ async fn main {
         },
       ),
     ])
+    let consume_observed : Ref[Bool] = { val: false, }
+    let ack_observed : Ref[Bool] = { val: false, }
     let interceptor_consumer = client.create_consumer(
       interceptor_topic,
       "\{prefix}-interceptor-sub",
       initial_position=Earliest,
+      interceptors=[
+        @pulsar.ConsumerInterceptor::new(
+          before_consume=fn(message) {
+            consume_observed.val = message.payload() == b"intercepted"
+          },
+          on_ack=fn(_id, result) { ack_observed.val = result is Ok(_) },
+        ),
+      ],
     )
     ignore(interceptor_producer.send(@pulsar.ProducerMessage::new(b"original")))
     assert_true(send_observed.val)
@@ -262,6 +272,7 @@ async fn main {
     })
     assert_eq(intercepted.payload(), b"intercepted")
     intercepted.ack()
+    assert_true(consume_observed.val && ack_observed.val)
     interceptor_consumer.close()
     interceptor_producer.close()
     let timeout_consumer = client.create_consumer(

@@ -765,6 +765,7 @@ fn build_message(
     on_delivery,
     on_ack: None,
     on_nack: None,
+    interceptors: [],
     nack_scheduler,
   }
 }
@@ -1272,6 +1273,46 @@ pub struct Consumer {
   priv inner : ConsumerImpl
   priv mut dead_letter : DeadLetterState?
   priv mut retry_letter : RetryLetterState?
+  priv mut interceptors : Array[ConsumerInterceptor]
+}
+
+///|
+fn Consumer::set_interceptors(
+  self : Consumer,
+  interceptors : Array[ConsumerInterceptor],
+) -> Unit {
+  self.interceptors = interceptors
+}
+
+///|
+fn Consumer::delivered(self : Consumer, message : Message) -> Unit {
+  message.interceptors = self.interceptors
+  for interceptor in self.interceptors {
+    interceptor.delivered(message)
+  }
+  message.mark_delivered()
+}
+
+///|
+fn Consumer::observe_ack(
+  self : Consumer,
+  id : MessageId,
+  result : Result[Unit, Error],
+) -> Unit {
+  for interceptor in self.interceptors {
+    interceptor.acked(id, result)
+  }
+}
+
+///|
+fn Consumer::observe_nack(
+  self : Consumer,
+  id : MessageId,
+  result : Result[Unit, Error],
+) -> Unit {
+  for interceptor in self.interceptors {
+    interceptor.nacked(id, result)
+  }
 }
 
 ///|
@@ -1362,7 +1403,12 @@ async fn DeadLetterState::route(
 
 ///|
 fn Consumer::single(c : SingleConsumer) -> Consumer {
-  { inner: ConsumerImpl::Single(c), dead_letter: None, retry_letter: None, }
+  {
+    inner: ConsumerImpl::Single(c),
+    dead_letter: None,
+    retry_letter: None,
+    interceptors: [],
+  }
 }
 
 ///|
@@ -1400,6 +1446,7 @@ pub fn Consumer::partitioned(
     inner: ConsumerImpl::Partitioned(state),
     dead_letter: None,
     retry_letter: None,
+    interceptors: [],
   }
 }
 
@@ -1420,6 +1467,7 @@ fn Consumer::pattern(pattern : String, subscription : String) -> Consumer {
     }),
     dead_letter: None,
     retry_letter: None,
+    interceptors: [],
   }
 }
 
@@ -1532,7 +1580,7 @@ async fn Consumer::receive_untracked(self : Consumer) -> Message {
 /// Receive the next message, blocking until one is available.
 pub async fn Consumer::receive(self : Consumer) -> Message {
   let message = self.receive_untracked()
-  message.mark_delivered()
+  self.delivered(message)
   message
 }
 
@@ -1570,7 +1618,7 @@ pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
       }
       dlq.watch(msg)
     }
-    msg.mark_delivered()
+    self.delivered(msg)
   }
   message
 }
@@ -1581,6 +1629,22 @@ pub async fn Consumer::ack(
   self : Consumer,
   id : MessageId,
   await_response? : Bool = false,
+) -> Unit {
+  let result : Result[Unit, Error] = Ok(self.ack_raw(id, await_response)) catch {
+    e => Err(e)
+  }
+  self.observe_ack(id, result)
+  match result {
+    Ok(_) => ()
+    Err(e) => raise e
+  }
+}
+
+///|
+async fn Consumer::ack_raw(
+  self : Consumer,
+  id : MessageId,
+  await_response : Bool,
 ) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => {
@@ -1602,6 +1666,24 @@ pub async fn Consumer::ack_cumulative(
   self : Consumer,
   id : MessageId,
   await_response? : Bool = false,
+) -> Unit {
+  let result : Result[Unit, Error] = Ok(
+    self.ack_cumulative_raw(id, await_response),
+  ) catch {
+    e => Err(e)
+  }
+  self.observe_ack(id, result)
+  match result {
+    Ok(_) => ()
+    Err(e) => raise e
+  }
+}
+
+///|
+async fn Consumer::ack_cumulative_raw(
+  self : Consumer,
+  id : MessageId,
+  await_response : Bool,
 ) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => {
@@ -1634,6 +1716,25 @@ pub async fn Consumer::ack_txn(
   id : MessageId,
   await_response? : Bool = false,
 ) -> Unit {
+  let result : Result[Unit, Error] = Ok(
+    self.ack_txn_raw(txn, id, await_response),
+  ) catch {
+    e => Err(e)
+  }
+  self.observe_ack(id, result)
+  match result {
+    Ok(_) => ()
+    Err(e) => raise e
+  }
+}
+
+///|
+async fn Consumer::ack_txn_raw(
+  self : Consumer,
+  txn : Transaction,
+  id : MessageId,
+  await_response : Bool,
+) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => {
       c.ack_txn(txn, id, await_response~)
@@ -1651,6 +1752,16 @@ pub async fn Consumer::ack_txn(
 ///|
 /// Negatively acknowledge a message, triggering redelivery.
 pub async fn Consumer::nack(self : Consumer, id : MessageId) -> Unit {
+  let result : Result[Unit, Error] = Ok(self.nack_raw(id)) catch { e => Err(e) }
+  self.observe_nack(id, result)
+  match result {
+    Ok(_) => ()
+    Err(e) => raise e
+  }
+}
+
+///|
+async fn Consumer::nack_raw(self : Consumer, id : MessageId) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => {
       c.nack(id)
