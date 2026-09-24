@@ -118,6 +118,35 @@ async fn main {
     }
     assert_true(unexpected is Err(@pulsar.PulsarError::InvalidFrame(_)))
     without_key.close()
+    let consume_ciphertext = client.create_consumer(
+      topic + "-moonbit",
+      "moonpulsar-encryption-consume-\{@async.now()}",
+      initial_position=Earliest,
+      decryption_failure_action=Consume,
+    )
+    let ciphertext = @async.with_timeout(10000, async fn() {
+      consume_ciphertext.receive()
+    })
+    assert_true(ciphertext.decryption_failed())
+    assert_true(ciphertext.payload() != b"encrypted-from-moonbit")
+    ciphertext.ack(await_response=true)
+    consume_ciphertext.close()
+    let plain_producer = client.create_producer(topic + "-moonbit")
+    ignore(plain_producer.send(@pulsar.ProducerMessage::new(b"after-discard")))
+    plain_producer.close()
+    let discard_ciphertext = client.create_consumer(
+      topic + "-moonbit",
+      "moonpulsar-encryption-discard-\{@async.now()}",
+      initial_position=Earliest,
+      decryption_failure_action=Discard,
+    )
+    let after_discard = @async.with_timeout(10000, async fn() {
+      discard_ciphertext.receive()
+    })
+    assert_eq(after_discard.payload(), b"after-discard")
+    assert_true(!after_discard.decryption_failed())
+    after_discard.ack(await_response=true)
+    discard_ciphertext.close()
     let retry_source = topic + "-retry-source"
     let retry_topic = topic + "-retry"
     let dlq_topic = topic + "-dlq"

@@ -50,6 +50,8 @@ moon run examples/encryption_interop --target native
 
 Both senders write an encrypted empty payload. The MoonBit sender also writes
 encrypted Zlib and two-message batches; the Go receiver decodes every nonempty payload.
+The MoonBit example verifies `Consume` ciphertext delivery and ACK, then
+`Discard` automatic ACK and delivery of the following plaintext message.
 The PEM files under `testdata/encryption` are
 disposable test keys. The full exchange passed on Pulsar 4.2.4 and an isolated
 3.3.9 broker.

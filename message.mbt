@@ -144,6 +144,7 @@ pub struct Message {
   priv producer_name : String
   priv sequence_id : UInt64?
   priv schema_version : Bytes?
+  priv decryption_failed : Bool
   priv redelivery_count : UInt
   priv ack_tracker : Map[MessageId, Int]?
   priv batch_ack_tracker : BatchAckTracker?
@@ -233,6 +234,13 @@ pub fn Message::sequence_id(self : Message) -> UInt64? {
 /// Version of the schema used to publish this message, when supplied by the broker.
 pub fn Message::schema_version(self : Message) -> Bytes? {
   self.schema_version
+}
+
+///|
+/// Whether the payload is encrypted ciphertext delivered by the `Consume`
+/// decryption failure action.
+pub fn Message::decryption_failed(self : Message) -> Bool {
+  self.decryption_failed
 }
 
 ///|

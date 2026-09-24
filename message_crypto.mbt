@@ -404,3 +404,12 @@ pub fn MessageCrypto::decrypt(
   }
   raise InvalidFrame("could not decrypt message")
 }
+
+///|
+/// How a consumer or reader handles an encrypted message that cannot be
+/// decrypted. `Consume` delivers ciphertext only for non-batched messages.
+pub(all) enum DecryptionFailureAction {
+  Fail
+  Consume
+  Discard
+}

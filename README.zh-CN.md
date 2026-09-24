@@ -33,7 +33,7 @@
 - 事务：协调器归属查找、`new_transaction` / `commit` / `abort`、事务性发送与 ACK
 - Admin REST API：创建/删除 Topic、创建/扩容/删除分区 Topic、查询分区元数据、列出 Topic 与订阅、删除订阅、查询 Topic 及分区 Topic 统计信息
 - Schema 声明：生产者/消费者创建时声明 `SchemaInfo`；`SchemaCodec[T]` 支持 STRING、JSON、BYTES、数值原始类型、Avro、Protobuf Native 和传统 Protobuf 的类型化编解码，也可传入自定义回调
-- 消息加密：`MessageCrypto` 读取 RSA PEM 密钥，按接收方名称用 RSA-OAEP-SHA1 包裹每条消息的新 AES-256-GCM 密钥；消费者、Reader 和 TableView 解密。加密生产者需传入 `message_crypto` 与 `encryption_key_names`，加密重试/死信消费者也需这两个选项，以便转发时重新加密。
+- 消息加密：`MessageCrypto` 读取 RSA PEM 密钥，按接收方名称用 RSA-OAEP-SHA1 包裹每条消息的新 AES-256-GCM 密钥；消费者、Reader 和 TableView 解密。加密生产者需传入 `message_crypto` 与 `encryption_key_names`，加密重试/死信消费者也需这两个选项，以便转发时重新加密。消费者与 Reader 可设置 `decryption_failure_action=Fail | Consume | Discard`。
 - 延迟投递：`ProducerMessage` 的 `deliver_at` / `deliver_after`
 - Reader 按时间戳 seek
 
@@ -42,7 +42,7 @@
 - Snappy 使用 **google framing** 变体，与 Go/Python 客户端一致；Java 客户端使用 xerial framing，不能解码这种格式。官方 Java 与 Go 客户端之间也存在这一差异。
 - 测试所用的 Pulsar 4.2.4 broker 在已有非分区 Topic 上创建分区元数据时返回 HTTP 409。需要转换时，应把数据迁移到新的分区 Topic。
 - 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz ZTS 密钥/证书换取角色令牌和 TLS 客户端证书尚未实现。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。Athenz 角色令牌供应器目前只有 mock broker 验证。
-- 替换 PEM 文件后再次调用 `MessageCrypto::load_public_key_file` 或 `load_private_key_file` 即可轮换密钥；新发送与解密使用新密钥。认证失败返回 `InvalidFrame`，受影响的消费者或 Reader 停止交付。当前仅支持 RSA-OAEP-SHA1 与 AES-256-GCM，native 随机源是 `/dev/urandom`。[Go 加密互通步骤](interop/go/README.md) 已在 4.2.4 和 3.3.9 通过；Java 与 TLS 加密互通仍待验证。
+- 替换 PEM 文件后再次调用 `MessageCrypto::load_public_key_file` 或 `load_private_key_file` 即可轮换密钥；新发送与解密使用新密钥。解密失败默认采用 `Fail`，返回 `InvalidFrame` 并停止受影响的消费者或 Reader。`Consume` 交付原始密文，`Message::decryption_failed()` 为 `true`，应用自行决定是否 ACK；加密批次无法按此方式交付。`Discard` 跳过消息，消费者发送单条 ACK，Reader 则不发送 ACK。当前仅支持 RSA-OAEP-SHA1 与 AES-256-GCM，native 随机源是 `/dev/urandom`。[Go 加密互通步骤](interop/go/README.md) 已在 4.2.4 和 3.3.9 通过；Java 与 TLS 加密互通仍待验证。
 - `MessageCrypto::new(public_key_reader=..., private_key_reader=...)` 可接收按名称读取 PEM 字节的同步回调；每次发送或解密都会重新读取，并优先于手动加入的密钥。返回 `None` 表示密钥不可用。
 - `SchemaCodec::avro(definition, to_datum, from_datum)` 提供 Avro 二进制记录的类型化映射；不同版本 Schema 的自动演进仍待实现。`SchemaCodec::protobuf_native(descriptor_set, root_file, root_message)` 使用二进制 `FileDescriptorSet` 和生成的 MoonBit Protobuf 类型；根消息必须存在于描述符中。传统 Protobuf 使用 Avro 风格 JSON Schema。INT16/32/64 默认采用与 Java 客户端一致的大端序，和 Go 客户端互通时设置 `little_endian=true`。[Go 互通测试](interop/go/README.md) 已在 Pulsar 4.2.4 和 3.3.9 上双向验证这些类型与批次负载。
 - 支持显式 `chunk_size` 或按 broker 协商上限自动分块；自动模式要求 broker 公布最大消息尺寸。`ChunkAssemblyPolicy::new(auto_ack_incomplete=true)` 让消费者和 Reader 在未完成分块过期或被淘汰时确认已收到的分块；默认不确认，交由 broker 重投。

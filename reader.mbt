@@ -35,6 +35,7 @@ pub struct SingleReader {
   priv read_compacted : Bool
   priv schema : SchemaInfo?
   priv message_crypto : MessageCrypto?
+  priv decryption_failure_action : DecryptionFailureAction
   priv include_start_message_id : Bool
   priv start_bound : Ref[MessageId?]
   priv mut available_permits : Int
@@ -65,6 +66,7 @@ pub async fn SingleReader::create(
   chunk_policy? : ChunkAssemblyPolicy,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
+  decryption_failure_action? : DecryptionFailureAction = Fail,
 ) -> SingleReader {
   guard subscription_name != Some("") && subscription_role_prefix != "" else {
     raise InvalidFrame("reader subscription name or prefix must not be empty")
@@ -94,6 +96,7 @@ pub async fn SingleReader::create(
     read_compacted,
     schema,
     message_crypto,
+    decryption_failure_action,
     include_start_message_id,
     start_bound: { val: reader_start_bound(start_message_id), },
     available_permits: 0,
@@ -348,27 +351,60 @@ fn SingleReader::dispatch_message(
     }
     return
   }
+  let redelivery_count = message.redelivery_count.unwrap_or(0)
+  let batch_size = metadata.num_messages_in_batch.unwrap_or(0)
+  let mut decryption_failed = false
   let assembled = if metadata.encryption_keys.is_empty() {
     assembled
   } else {
-    match self.message_crypto {
-      Some(crypto) => crypto.decrypt(metadata, assembled)
-      None => raise InvalidFrame("encrypted message requires decryption keys")
+    let decrypted : Result[Bytes, Error] = Ok(
+      match self.message_crypto {
+        Some(crypto) => crypto.decrypt(metadata, assembled)
+        None => raise InvalidFrame("encrypted message requires decryption keys")
+      },
+    ) catch {
+      e => Err(e)
+    }
+    match decrypted {
+      Ok(plaintext) => plaintext
+      Err(e) =>
+        match self.decryption_failure_action {
+          Fail => raise e
+          Consume => {
+            guard batch_size == 0 else {
+              raise InvalidFrame(
+                "cannot consume encrypted batch without decryption",
+              )
+            }
+            decryption_failed = true
+            assembled
+          }
+          Discard => {
+            self.group.spawn_bg(
+              async fn() { self.send_flow(1) catch { _ => () } },
+              no_wait=true,
+              allow_failure=true,
+            )
+            return
+          }
+        }
     }
   }
-  let payload = match metadata.compression {
-    Some(t) =>
-      decompress(
-        CompressionCodec::from_proto(t),
-        assembled,
-        uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt) {
-          u.reinterpret_as_int()
-        }),
-      )
-    None => assembled
+  let payload = if decryption_failed {
+    assembled
+  } else {
+    match metadata.compression {
+      Some(t) =>
+        decompress(
+          CompressionCodec::from_proto(t),
+          assembled,
+          uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt) {
+            u.reinterpret_as_int()
+          }),
+        )
+      None => assembled
+    }
   }
-  let redelivery_count = message.redelivery_count.unwrap_or(0)
-  let batch_size = metadata.num_messages_in_batch.unwrap_or(0)
   if chunk.is_chunk && batch_size > 0 {
     raise InvalidFrame("chunked and batched message")
   }
@@ -404,6 +440,7 @@ fn SingleReader::dispatch_message(
       payload,
       redelivery_count,
       chunk_ids?,
+      decryption_failed~,
     )
     if !self.discard_before_start(msg.id()) {
       ignore(self.events.try_put(Msg(msg)))

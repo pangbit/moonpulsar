@@ -177,6 +177,7 @@ pub struct SingleConsumer {
   priv key_shared_policy : KeySharedPolicy?
   priv schema : SchemaInfo?
   priv message_crypto : MessageCrypto?
+  priv decryption_failure_action : DecryptionFailureAction
   priv consumer_name : String?
   priv initial_position : SubscriptionInitialPosition
   priv priority_level : Int
@@ -236,6 +237,7 @@ pub async fn SingleConsumer::create(
   reconnect_with? : async () -> Connection,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
+  decryption_failure_action? : DecryptionFailureAction = Fail,
   reconnect_policy? : RetryPolicy = RetryPolicy::default(),
   chunk_policy? : ChunkAssemblyPolicy,
   enable_batch_index_ack? : Bool = false,
@@ -267,6 +269,7 @@ pub async fn SingleConsumer::create(
     key_shared_policy,
     schema,
     message_crypto,
+    decryption_failure_action,
     consumer_name,
     initial_position,
     priority_level,
@@ -595,6 +598,38 @@ fn SingleConsumer::on_frame(
 }
 
 ///|
+fn SingleConsumer::discard_encrypted(
+  self : SingleConsumer,
+  ids : Array[MessageId],
+) -> Unit {
+  let conn = self.conn_ref.val
+  let consumer_id = self.consumer_id
+  self.group.spawn_bg(
+    async fn() {
+      send_ack(conn, consumer_id, @proto.CommandAck_AckType::Individual, ids) catch {
+        e => {
+          self.messages.close(error=e, clear=true)
+          return
+        }
+      }
+      if self.receiver_permits == 0 {
+        if self.waiting_receives > 0 {
+          self.request_one() catch {
+            _ => ()
+          }
+        }
+      } else {
+        self.send_flow(1) catch {
+          _ => ()
+        }
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
+}
+
+///|
 fn SingleConsumer::dispatch_message(
   self : SingleConsumer,
   frame : IncomingFrame,
@@ -622,27 +657,62 @@ fn SingleConsumer::dispatch_message(
     }
     return
   }
+  let redelivery_count = message.redelivery_count.unwrap_or(0)
+  let batch_size = metadata.num_messages_in_batch.unwrap_or(0)
+  let mut decryption_failed = false
   let assembled = if metadata.encryption_keys.is_empty() {
     assembled
   } else {
-    match self.message_crypto {
-      Some(crypto) => crypto.decrypt(metadata, assembled)
-      None => raise InvalidFrame("encrypted message requires decryption keys")
+    let decrypted : Result[Bytes, Error] = Ok(
+      match self.message_crypto {
+        Some(crypto) => crypto.decrypt(metadata, assembled)
+        None => raise InvalidFrame("encrypted message requires decryption keys")
+      },
+    ) catch {
+      e => Err(e)
+    }
+    match decrypted {
+      Ok(plaintext) => plaintext
+      Err(e) =>
+        match self.decryption_failure_action {
+          Fail => raise e
+          Consume => {
+            guard batch_size == 0 else {
+              raise InvalidFrame(
+                "cannot consume encrypted batch without decryption",
+              )
+            }
+            decryption_failed = true
+            assembled
+          }
+          Discard => {
+            self.discard_encrypted(
+              if chunk.is_chunk {
+                chunk.ids
+              } else {
+                [base_id]
+              },
+            )
+            return
+          }
+        }
     }
   }
-  let payload = match metadata.compression {
-    Some(t) =>
-      decompress(
-        CompressionCodec::from_proto(t),
-        assembled,
-        uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt) {
-          u.reinterpret_as_int()
-        }),
-      )
-    None => assembled
+  let payload = if decryption_failed {
+    assembled
+  } else {
+    match metadata.compression {
+      Some(t) =>
+        decompress(
+          CompressionCodec::from_proto(t),
+          assembled,
+          uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt) {
+            u.reinterpret_as_int()
+          }),
+        )
+      None => assembled
+    }
   }
-  let redelivery_count = message.redelivery_count.unwrap_or(0)
-  let batch_size = metadata.num_messages_in_batch.unwrap_or(0)
   if chunk.is_chunk && batch_size > 0 {
     raise InvalidFrame("chunked and batched message")
   }
@@ -681,6 +751,7 @@ fn SingleConsumer::dispatch_message(
       payload,
       redelivery_count,
       chunk_ids?,
+      decryption_failed~,
     )
   }
 }
@@ -695,6 +766,7 @@ fn SingleConsumer::push_message(
   payload : Bytes,
   redelivery_count : UInt,
   chunk_ids? : Array[MessageId],
+  decryption_failed? : Bool = false,
 ) -> Unit raise {
   let scheduler : ((Message) -> Unit)? = match self.nack_backoff {
     Some(_) => Some(fn(m) { self.schedule_nack(m) })
@@ -715,6 +787,7 @@ fn SingleConsumer::push_message(
     batch_ack_tracker=self.batch_acks,
     ack_dispatcher=self.ack_dispatcher,
     chunk_ids?,
+    decryption_failed~,
     chunk_tracker=self.chunk_acks,
     on_delivery=fn(m) { self.track_ack(m) },
     nack_scheduler?=scheduler,
@@ -744,6 +817,7 @@ fn build_message(
   batch_ack_tracker? : BatchAckTracker,
   ack_dispatcher? : AckDispatcher,
   chunk_ids? : Array[MessageId],
+  decryption_failed? : Bool = false,
   chunk_tracker? : Map[MessageId, Array[MessageId]],
   on_delivery? : (Message) -> Unit,
   nack_scheduler? : (Message) -> Unit,
@@ -798,6 +872,7 @@ fn build_message(
       None => Some(metadata.sequence_id)
     },
     schema_version: metadata.schema_version,
+    decryption_failed,
     redelivery_count,
     ack_tracker,
     batch_ack_tracker,
