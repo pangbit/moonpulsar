@@ -21,7 +21,8 @@ moon run examples/schema_interop --target native
 (cd interop/go && go run . receive)
 ```
 
-The Go client first writes a typed Protobuf Native message, MoonBit decodes it
-and writes another, and the Go client decodes the MoonBit message. The test
-uses a new subscription for each read. Delete the dedicated topic afterward
-with your broker's Admin API.
+The Go client first writes typed Protobuf Native and a two-message INT64 batch.
+MoonBit decodes both, writes its own Protobuf Native and INT64 messages, then
+writes a two-message STRING batch. Go decodes all three. The test uses a new
+subscription for each read. Delete the dedicated topic and its `-int64` and
+`-batch` companions afterward with your broker's Admin API.

@@ -402,9 +402,9 @@ pub fn SchemaCodec::double() -> Self[Double]
 pub fn[T] SchemaCodec::encode(Self[T], T) -> Bytes raise PulsarError
 pub fn SchemaCodec::float() -> Self[Float]
 pub fn[T] SchemaCodec::info(Self[T]) -> SchemaInfo
-pub fn SchemaCodec::int16() -> Self[Int]
-pub fn SchemaCodec::int32() -> Self[Int]
-pub fn SchemaCodec::int64() -> Self[Int64]
+pub fn SchemaCodec::int16(little_endian? : Bool) -> Self[Int]
+pub fn SchemaCodec::int32(little_endian? : Bool) -> Self[Int]
+pub fn SchemaCodec::int64(little_endian? : Bool) -> Self[Int64]
 pub fn SchemaCodec::int8() -> Self[Int]
 pub fn[T : ToJson + @json.FromJson] SchemaCodec::json(Bytes) -> Self[T]
 pub fn[T] SchemaCodec::new(SchemaInfo, (T) -> Bytes raise PulsarError, (Bytes) -> T raise PulsarError) -> Self[T]

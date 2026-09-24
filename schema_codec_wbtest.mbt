@@ -104,3 +104,19 @@ test "primitive codecs reject out-of-range values and malformed payloads" {
   }
   assert_true(wrong_double is Err(InvalidFrame(_)))
 }
+
+///|
+test "integer codecs support Go client little-endian wire format" {
+  let int16 = SchemaCodec::int16(little_endian=true)
+  assert_eq(int16.encode(0x0102), b"\x02\x01")
+  assert_eq(int16.decode(b"\xfe\xff"), -2)
+  let int32 = SchemaCodec::int32(little_endian=true)
+  assert_eq(int32.encode(0x01020304), b"\x04\x03\x02\x01")
+  assert_eq(int32.decode(b"\xff\xff\xff\xff"), -1)
+  let int64 = SchemaCodec::int64(little_endian=true)
+  assert_eq(
+    int64.encode(0x0102030405060708L),
+    b"\x08\x07\x06\x05\x04\x03\x02\x01",
+  )
+  assert_eq(int64.decode(b"\xfe\xff\xff\xff\xff\xff\xff\xff"), -2L)
+}

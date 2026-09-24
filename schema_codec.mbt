@@ -64,20 +64,30 @@ pub fn SchemaCodec::int8() -> SchemaCodec[Int] {
 }
 
 ///|
-pub fn SchemaCodec::int16() -> SchemaCodec[Int] {
+/// The official Go client uses little-endian integers; pass
+/// `little_endian=true` to exchange INT16 values with it.
+pub fn SchemaCodec::int16(little_endian? : Bool = false) -> SchemaCodec[Int] {
   SchemaCodec::new(
     SchemaInfo::int16(),
     fn(value) {
       guard value >= -32768 && value <= 32767 else {
         raise InvalidFrame("INT16 value out of range")
       }
-      Bytes::from_array([(value >> 8).to_byte(), value.to_byte()])
+      if little_endian {
+        Bytes::from_array([value.to_byte(), (value >> 8).to_byte()])
+      } else {
+        Bytes::from_array([(value >> 8).to_byte(), value.to_byte()])
+      }
     },
     fn(payload) {
       guard payload.length() == 2 else {
         raise InvalidFrame("INT16 payload must be two bytes")
       }
-      let value = (payload[0].to_int() << 8) | payload[1].to_int()
+      let value = if little_endian {
+        (payload[1].to_int() << 8) | payload[0].to_int()
+      } else {
+        (payload[0].to_int() << 8) | payload[1].to_int()
+      }
       if value < 32768 {
         value
       } else {
@@ -88,35 +98,70 @@ pub fn SchemaCodec::int16() -> SchemaCodec[Int] {
 }
 
 ///|
-pub fn SchemaCodec::int32() -> SchemaCodec[Int] {
+/// The official Go client uses little-endian integers; pass
+/// `little_endian=true` to exchange INT32 values with it.
+pub fn SchemaCodec::int32(little_endian? : Bool = false) -> SchemaCodec[Int] {
   SchemaCodec::new(
     SchemaInfo::int32(),
     fn(value) {
       let buf = @buffer.Buffer()
-      write_be32(buf, value.reinterpret_as_uint())
+      if little_endian {
+        let bits = value.reinterpret_as_uint()
+        for shift in 0..<4 {
+          buf.write_byte((bits >> (shift * 8)).to_byte())
+        }
+      } else {
+        write_be32(buf, value.reinterpret_as_uint())
+      }
       buf.to_bytes()
     },
     fn(payload) {
       guard payload.length() == 4 else {
         raise InvalidFrame("INT32 payload must be four bytes")
       }
-      read_be32(payload, 0).reinterpret_as_int()
+      if little_endian {
+        ((payload[3].to_uint() << 24) |
+        (payload[2].to_uint() << 16) |
+        (payload[1].to_uint() << 8) |
+        payload[0].to_uint()).reinterpret_as_int()
+      } else {
+        read_be32(payload, 0).reinterpret_as_int()
+      }
     },
   )
 }
 
 ///|
-pub fn SchemaCodec::int64() -> SchemaCodec[Int64] {
+/// The official Go client uses little-endian integers; pass
+/// `little_endian=true` to exchange INT64 values with it.
+pub fn SchemaCodec::int64(little_endian? : Bool = false) -> SchemaCodec[Int64] {
   SchemaCodec::new(
     SchemaInfo::int64(),
-    fn(value) { value.reinterpret_as_uint64().to_be_bytes() },
+    fn(value) {
+      if little_endian {
+        let bits = value.reinterpret_as_uint64()
+        let buf = @buffer.Buffer()
+        for shift in 0..<8 {
+          buf.write_byte((bits >> (shift * 8)).to_byte())
+        }
+        buf.to_bytes()
+      } else {
+        value.reinterpret_as_uint64().to_be_bytes()
+      }
+    },
     fn(payload) {
       guard payload.length() == 8 else {
         raise InvalidFrame("INT64 payload must be eight bytes")
       }
       let mut value = 0UL
-      for byte in payload {
-        value = (value << 8) | byte.to_uint64()
+      if little_endian {
+        for shift in 0..<8 {
+          value = value | (payload[shift].to_uint64() << (shift * 8))
+        }
+      } else {
+        for byte in payload {
+          value = (value << 8) | byte.to_uint64()
+        }
       }
       value.reinterpret_as_int64()
     },

@@ -62,10 +62,26 @@ func main() {
 	if os.Args[1] == "send" {
 		producer, err := client.CreateProducer(pulsar.ProducerOptions{Topic: topic, Schema: schema})
 		checked(err)
-		defer producer.Close()
 		_, err = producer.Send(ctx, &pulsar.ProducerMessage{Value: message(descriptor, "go")})
 		checked(err)
+		producer.Close()
+		int64Producer, err := client.CreateProducer(pulsar.ProducerOptions{
+			Topic: topic + "-int64", Schema: pulsar.NewInt64Schema(nil),
+			BatchingMaxMessages: 2, BatchingMaxPublishDelay: time.Second,
+		})
+		checked(err)
+		results := make(chan error, 2)
+		for _, value := range []int64{-123456789, 42} {
+			int64Producer.SendAsync(ctx, &pulsar.ProducerMessage{Value: value},
+				func(_ pulsar.MessageID, _ *pulsar.ProducerMessage, sendErr error) { results <- sendErr })
+		}
+		checked(int64Producer.FlushWithCtx(ctx))
+		for range 2 {
+			checked(<-results)
+		}
+		int64Producer.Close()
 		fmt.Println("Go Protobuf Native send OK")
+		fmt.Println("Go INT64 send OK")
 		return
 	}
 	consumer, err := client.Subscribe(pulsar.ConsumerOptions{
@@ -87,8 +103,46 @@ func main() {
 			}
 			checked(consumer.Ack(incoming))
 			fmt.Println("MoonBit-to-Go Protobuf Native decode OK")
-			return
+			break
 		}
 		checked(consumer.Ack(incoming))
 	}
+	int64Consumer, err := client.Subscribe(pulsar.ConsumerOptions{
+		Topic:                       topic + "-int64",
+		SubscriptionName:            fmt.Sprintf("moonpulsar-go-int64-interop-%d", time.Now().UnixNano()),
+		SubscriptionInitialPosition: pulsar.SubscriptionPositionEarliest,
+		Schema:                      pulsar.NewInt64Schema(nil),
+	})
+	checked(err)
+	defer int64Consumer.Close()
+	for {
+		incoming, err := int64Consumer.Receive(ctx)
+		checked(err)
+		var value int64
+		checked(incoming.GetSchemaValue(&value))
+		checked(int64Consumer.Ack(incoming))
+		if value == 987654321 {
+			fmt.Println("MoonBit-to-Go INT64 decode OK")
+			break
+		}
+	}
+	batchConsumer, err := client.Subscribe(pulsar.ConsumerOptions{
+		Topic:                       topic + "-batch",
+		SubscriptionName:            fmt.Sprintf("moonpulsar-go-batch-interop-%d", time.Now().UnixNano()),
+		SubscriptionInitialPosition: pulsar.SubscriptionPositionEarliest,
+		Schema:                      pulsar.NewStringSchema(nil),
+	})
+	checked(err)
+	defer batchConsumer.Close()
+	for _, expected := range []string{"first", "second"} {
+		incoming, err := batchConsumer.Receive(ctx)
+		checked(err)
+		var value *string
+		checked(incoming.GetSchemaValue(&value))
+		if value == nil || *value != expected {
+			panic(fmt.Sprintf("batch message: got %v, want %q", value, expected))
+		}
+		checked(batchConsumer.Ack(incoming))
+	}
+	fmt.Println("MoonBit-to-Go batch decode OK")
 }
