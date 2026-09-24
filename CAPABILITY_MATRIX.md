@@ -43,7 +43,7 @@ repository on 2026-09-25.
 set `PULSAR_ADMIN_URL` to include Admin REST checks. The live program is not
 part of `moon test` and requires a broker. `moon coverage` measures mock-suite
 line execution and therefore does not include the live program's execution.
-The mock suite does not yet reach full library line coverage; uncovered paths
-include additional connection failure paths and several existing
-reader/transaction branches. Malformed frame lengths and missing handshake
-metadata now have executable regression tests.
+The mock suite does not yet reach full library line coverage. The current
+`moon coverage analyze` output still flags connection and Reader branches;
+live examples are not included in that report. Malformed frame lengths and
+missing handshake metadata have executable regression tests.
