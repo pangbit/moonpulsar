@@ -23,7 +23,7 @@
 - 多 Topic 消费者，以及能够发现新增 Topic 并关闭已移除源的模式消费者
 - 复合消费者与 Reader 的有界合并队列；慢速应用会对源转发形成背压
 - 自动重连：连接断开后，生产者重放尚未确认的消息，消费者重新订阅；`ClientOptions` 可设置退避和有限重试次数
-- `max_memory_bytes` 对生产者消息的载荷、键、属性及编码重放帧、未完成分块、消费者和 Reader 队列中的消息载荷与动态元数据，以及 Broker 入站帧从读取前到分发完成期间的声明字节数记账。生产者预留在确认、错误、超时或关闭后释放；分块预留在完成、淘汰或清理后释放；接收预留在交付应用、seek 或关闭后释放。编码帧须与原消息同时容纳，无法容纳时返回 `ClientMemoryFull`；接收预算超额时，受影响的消费者或 Reader 队列以 `ClientMemoryFull` 关闭，入站帧超额时关闭该 Broker 连接。TLS/socket 内部缓冲与运行时堆开销不计入。
+- `max_memory_bytes` 对生产者消息的载荷、键、属性及编码重放帧、未完成分块、消费者和 Reader 队列中的消息载荷与动态元数据，以及 Broker 入站帧从读取前到分发完成期间的声明字节数记账。生产者预留在确认、错误、超时或关闭后释放；分块预留在完成、淘汰或清理后释放；接收预留在交付应用、seek 或关闭后释放。编码帧须与原消息同时容纳，无法容纳时返回 `ClientMemoryFull`；接收预算超额时，受影响的消费者或 Reader 队列以 `ClientMemoryFull` 关闭，入站帧超额时关闭该 Broker 连接，并向受影响的消费者和 Reader 返回 `ClientMemoryFull`，不重复尝试同一帧；使用足够预算的新客户端可重新读取。TLS/socket 内部缓冲与运行时堆开销不计入。
 - 二进制协议认证：可扩展的 `Authentication` trait，内置 token 与 basic auth；`ClientOptions::new(auth_provider=...)` 可使用轮换 Token 文件、OAuth2 客户端凭据、外部供应的 Athenz 角色令牌，或 `athenz_zts_provider(AthenzZtsOptions::new(...))` 用 RSA 服务 NToken 或客户端证书向 ZTS 换取角色令牌；broker 发出认证挑战时刷新认证数据
 - `pulsar+ssl://` TLS 连接：系统信任根或通过 `Client::connect_tls_with_ca` 提供自定义 PEM CA。`ClientOptions` 还可设置 `TlsIdentity::new(证书文件, 私钥文件)` 或异步 `tls_identity_provider`、TLS 1.2/1.3 版本范围、OpenSSL TLS 1.2 密码列表及 TLS 1.3 密码套件；native 适配层每次连接重新读取身份，并在 lookup 和重连时保持 CA 与主机名校验。
 - LZ4（帧格式）、Zlib、Zstd 压缩；Snappy 的兼容性限制见下文

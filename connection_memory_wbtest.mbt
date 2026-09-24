@@ -85,6 +85,104 @@ async test "broker frame admission shares held bytes and fails before reading bo
 }
 
 ///|
+async test "oversized inbound frame reports memory error to consumer without retry" {
+  @async.with_task_group(async fn(group) {
+    let send : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      send.get()
+      let (cmd, meta, body) = message_frame(
+        1UL,
+        2,
+        1UL,
+        Bytes::make(400, b'x'),
+        test_metadata(),
+      )
+      peer.send_message(cmd, meta, body)
+    })
+    let limiter = ClientMemoryLimiter::new(256)
+    let conn = Connection::connect_with_memory(
+      group,
+      addr,
+      memory_limiter=limiter,
+    )
+    let retries : Ref[Int] = { val: 0, }
+    let consumer = SingleConsumer::create_with_memory(
+      group,
+      conn,
+      "persistent://public/default/oversized-consumer-frame",
+      "oversized-consumer-sub",
+      reconnect_with=async fn() {
+        @async.sleep(1)
+        retries.val += 1
+        raise ConnectionClosed
+      },
+      reconnect_policy={
+        max_retries: 0,
+        initial_backoff_ms: 1,
+        max_backoff_ms: 1,
+      },
+      memory_limiter=limiter,
+    )
+    send.put(())
+    let result : Result[Message, Error] = Ok(
+      @async.with_timeout(1000, async fn() { consumer.receive() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ClientMemoryFull))
+    assert_eq(retries.val, 0)
+    assert_eq(limiter.used, 0)
+    consumer.close()
+  })
+}
+
+///|
+async test "oversized inbound frame reports memory error to reader" {
+  @async.with_task_group(async fn(group) {
+    let send : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      send.get()
+      let (cmd, meta, body) = message_frame(
+        1UL,
+        2,
+        1UL,
+        Bytes::make(400, b'x'),
+        test_metadata(),
+      )
+      peer.send_message(cmd, meta, body)
+    })
+    let limiter = ClientMemoryLimiter::new(256)
+    let conn = Connection::connect_with_memory(
+      group,
+      addr,
+      memory_limiter=limiter,
+    )
+    let reader = SingleReader::create_with_memory(
+      group,
+      conn,
+      "persistent://public/default/oversized-reader-frame",
+      start_message_id=MessageId::earliest(),
+      memory_limiter=limiter,
+    )
+    send.put(())
+    let result : Result[Message?, Error] = Ok(
+      @async.with_timeout(1000, async fn() { reader.next() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ClientMemoryFull))
+    assert_eq(limiter.used, 0)
+    reader.close()
+  })
+}
+
+///|
 async test "malformed broker frame releases its encoded reservation" {
   @async.with_task_group(async fn(group) {
     let send : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(

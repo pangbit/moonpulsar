@@ -162,9 +162,9 @@ async fn SingleReader::create_with_memory(
   }
   reader.send_flow(receiver_queue_size)
   reader.available_permits = receiver_queue_size
-  conn.on_close(fn(_error) { reader.on_connection_closed() })
+  conn.on_close(fn(error) { reader.on_connection_closed(error) })
   if conn.is_closed() {
-    reader.on_connection_closed()
+    reader.on_connection_closed(None)
     raise ConnectionClosed
   }
   if include_start_message_id && start_message_id == Some(MessageId::latest()) {
@@ -255,17 +255,25 @@ fn SingleReader::ack_evicted_chunks(self : SingleReader) -> Unit {
 }
 
 ///|
-fn SingleReader::on_connection_closed(self : SingleReader) -> Unit {
+fn SingleReader::on_connection_closed(
+  self : SingleReader,
+  error : Error?,
+) -> Unit {
   if self.closed.val {
     return
   }
   self.closed.val = true
   self.stop_chunk_sweeper()
-  self.close_error.val = Some(ConnectionClosed)
+  let close_error = if error is Some(ClientMemoryFull) {
+    ClientMemoryFull
+  } else {
+    ConnectionClosed
+  }
+  self.close_error.val = Some(close_error)
   self.conn.message_handlers.remove(self.consumer_id)
   self.chunks.clear()
   self.clear_buffered_events()
-  self.events.close(error=ConnectionClosed, clear=true)
+  self.events.close(error=close_error, clear=true)
 }
 
 ///|

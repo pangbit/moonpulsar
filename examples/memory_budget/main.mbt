@@ -60,6 +60,81 @@ async fn main {
     reader_producer.close()
     reader.close()
     client.close()
+    let source = @pulsar.Client::connect(group, url)
+    let oversized_topic = "persistent://\{ns}/\{prefix}-oversized"
+    let limited = @pulsar.Client::connect_with_options(
+      group,
+      @pulsar.ClientOptions::new(url, max_memory_bytes=65536),
+    )
+    let limited_consumer = limited.create_consumer(
+      oversized_topic,
+      "\{prefix}-oversized-sub",
+      initial_position=Earliest,
+      receiver_queue_size=1,
+    )
+    let oversized_producer = source.create_producer(oversized_topic)
+    ignore(
+      oversized_producer.send(
+        @pulsar.ProducerMessage::new(Bytes::make(131072, b'o')),
+      ),
+    )
+    let receive_failure : Result[@pulsar.Message, Error] = Ok(
+      @async.with_timeout(10000, async fn() { limited_consumer.receive() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(receive_failure is Err(@pulsar.ClientMemoryFull))
+    limited_consumer.close()
+    limited.close()
+    let recovered = source.create_consumer(
+      oversized_topic,
+      "\{prefix}-recovered-sub",
+      initial_position=Earliest,
+    )
+    let recovered_message = @async.with_timeout(10000, async fn() {
+      recovered.receive()
+    })
+    assert_eq(recovered_message.payload().length(), 131072)
+    recovered_message.ack()
+    recovered.close()
+    oversized_producer.close()
+    let oversized_reader_topic = "persistent://\{ns}/\{prefix}-reader-oversized"
+    let limited_reader_client = @pulsar.Client::connect_with_options(
+      group,
+      @pulsar.ClientOptions::new(url, max_memory_bytes=65536),
+    )
+    let limited_reader = limited_reader_client.create_reader(
+      oversized_reader_topic,
+      start_message_id=@pulsar.MessageId::earliest(),
+      receiver_queue_size=1,
+    )
+    let oversized_reader_producer = source.create_producer(
+      oversized_reader_topic,
+    )
+    ignore(
+      oversized_reader_producer.send(
+        @pulsar.ProducerMessage::new(Bytes::make(131072, b'r')),
+      ),
+    )
+    let reader_failure : Result[@pulsar.Message?, Error] = Ok(
+      @async.with_timeout(10000, async fn() { limited_reader.next() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(reader_failure is Err(@pulsar.ClientMemoryFull))
+    limited_reader.close()
+    limited_reader_client.close()
+    let recovered_reader = source.create_reader(
+      oversized_reader_topic,
+      start_message_id=@pulsar.MessageId::earliest(),
+    )
+    let replayed = @async.with_timeout(10000, async fn() {
+      recovered_reader.next()
+    })
+    assert_eq(replayed.unwrap().payload().length(), 131072)
+    recovered_reader.close()
+    oversized_reader_producer.close()
+    source.close()
     println("shared memory budget roundtrip passed")
   })
 }

@@ -563,8 +563,21 @@ fn SingleConsumer::on_connection_closed(
   self : SingleConsumer,
   error : Error?,
 ) -> Unit {
-  ignore(error)
   self.nack_epoch.val += 1
+  if error is Some(ClientMemoryFull) && !self.closed.val {
+    self.closed.val = true
+    self.stop_chunk_sweeper()
+    self.ack_dispatcher.stop()
+    self.ack_dispatcher.pending = []
+    self.ack_pending.clear()
+    self.batch_acks.clear()
+    self.chunk_acks.clear()
+    self.clear_buffered_messages()
+    self.chunks.clear()
+    self.conn_ref.val.message_handlers.remove(self.consumer_id)
+    self.messages.close(error=ClientMemoryFull, clear=true)
+    return
+  }
   if self.closed.val || self.reconnect_with is None {
     if !self.closed.val {
       self.closed.val = true
