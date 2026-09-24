@@ -23,7 +23,7 @@
 - 多 Topic 消费者，以及能够发现新增 Topic 并关闭已移除源的模式消费者
 - 复合消费者与 Reader 的有界合并队列；慢速应用会对源转发形成背压
 - 自动重连：连接断开后，生产者重放尚未确认的消息，消费者重新订阅；`ClientOptions` 可设置退避和有限重试次数
-- 二进制协议认证：可扩展的 `Authentication` trait，内置 token 与 basic auth；`ClientOptions::new(auth_provider=...)` 可使用轮换 Token 文件、OAuth2 客户端凭据和外部供应的 Athenz 角色令牌，broker 发出认证挑战时刷新认证数据
+- 二进制协议认证：可扩展的 `Authentication` trait，内置 token 与 basic auth；`ClientOptions::new(auth_provider=...)` 可使用轮换 Token 文件、OAuth2 客户端凭据、外部供应的 Athenz 角色令牌，或 `athenz_zts_provider(AthenzZtsOptions::new(...))` 用 RSA 服务 NToken 向 ZTS 换取角色令牌；broker 发出认证挑战时刷新认证数据
 - `pulsar+ssl://` TLS 连接：系统信任根或通过 `Client::connect_tls_with_ca` 提供自定义 PEM CA
 - LZ4（帧格式）、Zlib、Zstd 压缩；Snappy 的兼容性限制见下文
 - 分区 Topic：可选 key 哈希（默认）、轮询、固定单分区或自定义回调路由；生产者可读取最后确认的序列号；消费者聚合全部分区，生产者和消费者可发现新增分区（默认每 60 秒轮询）
@@ -41,7 +41,7 @@
 
 - Snappy 使用 **google framing** 变体，与 Go/Python 客户端一致；Java 客户端使用 xerial framing，不能解码这种格式。官方 Java 与 Go 客户端之间也存在这一差异。
 - 测试所用的 Pulsar 4.2.4 broker 在已有非分区 Topic 上创建分区元数据时返回 HTTP 409。需要转换时，应把数据迁移到新的分区 Topic。
-- 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz ZTS 密钥/证书换取角色令牌和 TLS 客户端证书尚未实现。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。Athenz 角色令牌供应器目前只有 mock broker 验证。
+- 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz ZTS 服务私钥路径现会签发新的 RSA NToken、请求角色令牌、重试暂时故障，并在过期前刷新；ZTS URL 填写 `/zts/v1` 之前的服务根地址。基于证书的 ZTS 身份和 TLS 客户端证书仍待实现。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。Athenz ZTS 交换和角色令牌供应器目前只有本地 HTTP 与 mock broker 验证，未连接真实 Athenz 服务。
 - 替换 PEM 文件后再次调用 `MessageCrypto::load_public_key_file` 或 `load_private_key_file` 即可轮换密钥；新发送与解密使用新密钥。解密失败默认采用 `Fail`，返回 `InvalidFrame` 并停止受影响的消费者或 Reader。`Consume` 交付原始密文，`Message::decryption_failed()` 为 `true`，应用自行决定是否 ACK；加密批次无法按此方式交付。`Discard` 跳过消息，消费者发送单条 ACK，Reader 则不发送 ACK。当前仅支持 RSA-OAEP-SHA1 与 AES-256-GCM，native 随机源是 `/dev/urandom`。[Go 加密互通步骤](interop/go/README.md) 已在 4.2.4 和 3.3.9 通过；Java 与 TLS 加密互通仍待验证。
 - `MessageCrypto::new(public_key_reader=..., private_key_reader=...)` 可接收按名称读取 PEM 字节的同步回调；每次发送或解密都会重新读取，并优先于手动加入的密钥。返回 `None` 表示密钥不可用。
 - `SchemaCodec::avro(definition, to_datum, from_datum)` 提供 Avro 二进制记录的类型化映射。`Client::decode_avro(message, reader_codec)` 按消息携带的版本查询并按 Topic/版本缓存 writer schema，解析字段别名与默认值、联合类型、集合、enum 默认符号及允许的数值提升；不兼容时返回 `SchemaIncompatible`。同步 codec 仍按自身声明的 schema 解码。`SchemaCodec::protobuf_native(descriptor_set, root_file, root_message)` 使用二进制 `FileDescriptorSet` 和生成的 MoonBit Protobuf 类型；根消息必须存在于描述符中。传统 Protobuf 使用 Avro 风格 JSON Schema。INT16/32/64 默认采用与 Java 客户端一致的大端序，和 Go 客户端互通时设置 `little_endian=true`。[Go 互通测试](interop/go/README.md) 已在 Pulsar 4.2.4 和 3.3.9 上双向验证这些类型与批次负载。
@@ -148,7 +148,7 @@ async fn main {
 | `examples/roundtrip` | 生产后消费的往返验证 |
 | `examples/auth_token` | token 认证（`PULSAR_TOKEN` 环境变量） |
 | `examples/oauth2` | 从令牌端点获取 OAuth2 客户端凭据 |
-| `examples/athenz` | 读取由 sidecar 维护的 Athenz 角色令牌文件 |
+| `examples/athenz` | Athenz ZTS 服务私钥交换或读取 sidecar 角色令牌文件 |
 | `examples/tls` | 验证 TLS 收发及可选的 broker 重启检查 |
 | `examples/token_rotation` | 同一客户端下验证无效 Token 拒绝和文件 Token 轮换 |
 | `examples/producer_compression` | Zstd 压缩负载 |

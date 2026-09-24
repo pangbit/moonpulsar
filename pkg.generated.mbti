@@ -17,6 +17,8 @@ pub fn athenz_role_token_file_provider(String) -> async () -> AuthData
 
 pub fn athenz_role_token_provider(async () -> String) -> async () -> AuthData
 
+pub fn athenz_zts_provider(AthenzZtsOptions) -> async () -> AuthData
+
 pub fn broker_addr_of(String) -> (String, Bool) raise PulsarError
 
 pub fn compress(CompressionCodec, Bytes) -> Bytes raise PulsarError
@@ -115,6 +117,23 @@ pub async fn Admin::topic_properties(Self, String) -> Map[String, String]
 pub async fn Admin::topic_stats(Self, String) -> Json
 pub async fn Admin::update_partitioned_topic(Self, String, Int) -> Unit
 pub async fn Admin::update_topic_properties(Self, String, Map[String, String]) -> Unit
+
+pub(all) struct AthenzZtsOptions {
+  zts_url : String
+  provider_domain : String
+  tenant_domain : String
+  tenant_service : String
+  private_key_file : String
+  key_id : String
+  role : String
+  principal_header : String
+  min_expiry_secs : Int
+  max_expiry_secs : Int
+  refresh_before_ms : Int
+  max_retries : Int
+  retry_delay_ms : Int
+}
+pub fn AthenzZtsOptions::new(String, String, String, String, String, key_id? : String, role? : String, principal_header? : String, min_expiry_secs? : Int, max_expiry_secs? : Int, refresh_before_ms? : Int, max_retries? : Int, retry_delay_ms? : Int) -> Self raise PulsarError
 
 pub(all) struct AuthData {
   method_name : String
