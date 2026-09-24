@@ -13,4 +13,5 @@ preferred_target = "native"
 import {
   "pangbit/moonpulsar@0.0.0",
   "moonbitlang/async@0.22.1",
+  "moonbitlang/protobuf@0.1.3",
 }

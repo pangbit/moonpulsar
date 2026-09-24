@@ -177,6 +177,36 @@ pub fn[T : ToJson + FromJson] SchemaCodec::json(
 }
 
 ///|
+/// Use a generated MoonBit protobuf message with a Protobuf Native schema.
+/// The descriptor set must describe `M`. Decoder errors are reported as
+/// `InvalidFrame`.
+pub fn[M : @lib.Read + @lib.Write] SchemaCodec::protobuf_native(
+  descriptor_set : Bytes,
+  root_file : String,
+  root_message : String,
+) -> SchemaCodec[M] raise PulsarError {
+  let info = SchemaInfo::protobuf_native(
+    descriptor_set, root_file, root_message,
+  )
+  SchemaCodec::new(
+    info,
+    fn(value) {
+      let buffer = @buffer.Buffer()
+      value.write(buffer) catch {
+        _ => raise InvalidFrame("could not encode Protobuf Native payload")
+      }
+      buffer.to_bytes()
+    },
+    fn(payload) {
+      let reader = @lib.BytesReader::from_bytes(payload)
+      M::read_with_limit(@lib.LimitedReader(reader)) catch {
+        _ => raise InvalidFrame("invalid Protobuf Native payload")
+      }
+    },
+  )
+}
+
+///|
 /// Schema declaration for `Client::create_producer` or
 /// `Client::create_consumer`.
 pub fn[T] SchemaCodec::info(self : SchemaCodec[T]) -> SchemaInfo {

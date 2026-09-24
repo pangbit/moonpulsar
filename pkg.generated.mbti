@@ -7,6 +7,7 @@ import {
   "moonbitlang/async/tls",
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
+  "moonbitlang/protobuf",
   "pangbit/moonpulsar/proto",
 }
 
@@ -407,6 +408,7 @@ pub fn SchemaCodec::int64() -> Self[Int64]
 pub fn SchemaCodec::int8() -> Self[Int]
 pub fn[T : ToJson + @json.FromJson] SchemaCodec::json(Bytes) -> Self[T]
 pub fn[T] SchemaCodec::new(SchemaInfo, (T) -> Bytes raise PulsarError, (Bytes) -> T raise PulsarError) -> Self[T]
+pub fn[M : @protobuf.Read + @protobuf.Write] SchemaCodec::protobuf_native(Bytes, String, String) -> Self[M] raise PulsarError
 pub fn SchemaCodec::string() -> Self[String]
 
 pub(all) struct SchemaInfo {
@@ -425,6 +427,7 @@ pub fn SchemaInfo::int64() -> Self
 pub fn SchemaInfo::int8() -> Self
 pub fn SchemaInfo::json(Bytes) -> Self
 pub fn SchemaInfo::protobuf(Bytes) -> Self
+pub fn SchemaInfo::protobuf_native(Bytes, String, String) -> Self raise PulsarError
 pub fn SchemaInfo::string() -> Self
 
 pub(all) enum SeekPosition {

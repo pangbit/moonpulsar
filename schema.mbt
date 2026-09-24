@@ -151,3 +151,69 @@ pub fn SchemaInfo::protobuf(definition : Bytes) -> SchemaInfo {
     properties: Map([]),
   }
 }
+
+///|
+/// Protobuf Native schema metadata accepted by the Java and Go clients.
+/// `descriptor_set` is the binary google.protobuf.FileDescriptorSet,
+/// including the root file and its dependencies.
+pub fn SchemaInfo::protobuf_native(
+  descriptor_set : Bytes,
+  root_file : String,
+  root_message : String,
+) -> SchemaInfo raise PulsarError {
+  guard root_file != "" && root_message != "" else {
+    raise InvalidFrame("Protobuf Native root file and message are required")
+  }
+  let files : @descriptor.FileDescriptorSet = read_proto(descriptor_set) catch {
+    _ => raise InvalidFrame("invalid Protobuf Native descriptor set")
+  }
+  let mut found_root = false
+  for file in files.file {
+    if file.name is Some(name) && name == root_file {
+      let prefix = match file.package_ {
+        Some(package) if package != "" => package + "."
+        _ => ""
+      }
+      for message in file.message_type {
+        if protobuf_descriptor_has_message(message, prefix, root_message) {
+          found_root = true
+        }
+      }
+    }
+  }
+  guard found_root else {
+    raise InvalidFrame(
+      "Protobuf Native root message is absent from descriptor set",
+    )
+  }
+  let json = Json::object({
+    "fileDescriptorSet": Json::string(@lib.base64_encode(descriptor_set)),
+    "rootMessageTypeName": Json::string(root_message),
+    "rootFileDescriptorName": Json::string(root_file),
+  })
+  {
+    name: "ProtoNative",
+    type_: @proto.Schema_Type::ProtobufNative,
+    schema_data: @utf8.encode(json.stringify()),
+    properties: Map([]),
+  }
+}
+
+///|
+fn protobuf_descriptor_has_message(
+  message : @descriptor.DescriptorProto,
+  prefix : String,
+  wanted : String,
+) -> Bool {
+  guard message.name is Some(name) else { return false }
+  let full_name = prefix + name
+  if full_name == wanted {
+    return true
+  }
+  for nested in message.nested_type {
+    if protobuf_descriptor_has_message(nested, full_name + ".", wanted) {
+      return true
+    }
+  }
+  false
+}

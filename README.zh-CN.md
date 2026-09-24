@@ -32,7 +32,7 @@
 - TableView：从压缩后的 Reader 获取原始字节或 Schema 解码的键值快照、实时更新、墓碑删除和变更监听器；类型化监听器以 `Err` 报告解码失败
 - 事务：协调器归属查找、`new_transaction` / `commit` / `abort`、事务性发送与 ACK
 - Admin REST API：创建/删除 Topic、创建/扩容/删除分区 Topic、查询分区元数据、列出 Topic 与订阅、删除订阅、查询 Topic 及分区 Topic 统计信息
-- Schema 声明：生产者/消费者创建时声明 `SchemaInfo`（String/JSON/Avro/Protobuf/raw）；`SchemaCodec[T]` 已支持 STRING、JSON、BYTES 和数值原始类型转换
+- Schema 声明：生产者/消费者创建时声明 `SchemaInfo`；`SchemaCodec[T]` 支持 STRING、JSON、BYTES、数值原始类型以及 Protobuf Native 生成类型的编解码，也可传入自定义回调
 - 延迟投递：`ProducerMessage` 的 `deliver_at` / `deliver_after`
 - Reader 按时间戳 seek
 
@@ -40,7 +40,8 @@
 
 - Snappy 使用 **google framing** 变体，与 Go/Python 客户端一致；Java 客户端使用 xerial framing，不能解码这种格式。官方 Java 与 Go 客户端之间也存在这一差异。
 - 测试所用的 Pulsar 4.2.4 broker 在已有非分区 Topic 上创建分区元数据时返回 HTTP 409。需要转换时，应把数据迁移到新的分区 Topic。
-- 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz ZTS 密钥/证书换取角色令牌、TLS 客户端证书、加密和 Avro/Protobuf 类型化序列化尚未实现。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。Athenz 角色令牌供应器目前只有 mock broker 验证。
+- 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz ZTS 密钥/证书换取角色令牌、TLS 客户端证书、加密和 Avro、传统 Protobuf 类型化序列化尚未实现。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。Athenz 角色令牌供应器目前只有 mock broker 验证。
+- `SchemaCodec::protobuf_native(descriptor_set, root_file, root_message)` 使用二进制 `FileDescriptorSet` 和生成的 MoonBit Protobuf 类型；根消息必须存在于描述符中。[Go 互通测试](interop/go/main.go) 与 `examples/schema_interop` 已在 Pulsar 4.2.4 上完成双向验证。
 - 支持显式 `chunk_size` 或按 broker 协商上限自动分块；自动模式要求 broker 公布最大消息尺寸。`ChunkAssemblyPolicy::new(auto_ack_incomplete=true)` 让消费者和 Reader 在未完成分块过期或被淘汰时确认已收到的分块；默认不确认，交由 broker 重投。
 - 批次消息默认在全部索引确认后发送整批 ACK；消费者设置 `enable_batch_index_ack=true` 后可逐索引确认，broker 需启用 `acknowledgmentAtBatchIndexLevelEnabled`。默认模式下，未完成整批的 ACK 不能请求 broker 确认。事务性批次 ACK 仍未实现。
 - 消费者可设置 `ack_grouping=AckGroupingOptions::new(max_size=1000, max_time_ms=100)`，按数量或时间合并 ACK；默认不启用。要求 broker 确认的 ACK 和事务 ACK 会先冲刷缓存再立即发送；关闭或 seek 前冲刷，重连时丢弃未发出的 ACK 以便 broker 重投。

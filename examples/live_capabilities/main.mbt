@@ -526,6 +526,7 @@ async fn main {
       let string_schema_topic = "persistent://public/default/\{prefix}-schema-string"
       let json_schema_topic = "persistent://public/default/\{prefix}-schema-json"
       let int64_schema_topic = "persistent://public/default/\{prefix}-schema-int64"
+      let protobuf_native_topic = "persistent://public/default/\{prefix}-schema-protobuf-native"
       let admin_backlog_topic = "persistent://public/default/\{prefix}-admin-backlog"
       admin.create_topic(admin_topic)
       admin.update_topic_properties(admin_topic, {
@@ -539,6 +540,7 @@ async fn main {
       admin.create_topic(string_schema_topic)
       admin.create_topic(json_schema_topic)
       admin.create_topic(int64_schema_topic)
+      admin.create_topic(protobuf_native_topic)
       admin.create_topic(table_topic)
       admin.create_topic(dead_letter_source)
       admin.create_topic(dead_letter_topic)
@@ -817,6 +819,44 @@ async fn main {
       int64_message.ack()
       int64_consumer.close()
       int64_producer.close()
+      let descriptor_set = @protobuf.base64_decode(
+        "CmwKKHRlc3RkYXRhL3Byb3RvYnVmX25hdGl2ZV9rZXlfdmFsdWUucHJvdG8SDHB1bHNhci5wcm90byIyCghLZXlWYWx1ZRIQCgNrZXkYASACKAlSA2tleRIUCgV2YWx1ZRgCIAIoCVIFdmFsdWU=",
+      )
+      let protobuf_codec : @pulsar.SchemaCodec[@proto.KeyValue] = @pulsar.SchemaCodec::protobuf_native(
+        descriptor_set, "testdata/protobuf_native_key_value.proto", "pulsar.proto.KeyValue",
+      )
+      let protobuf_producer = client.create_producer(
+        protobuf_native_topic,
+        schema=protobuf_codec.info(),
+      )
+      let protobuf_consumer = client.create_consumer(
+        protobuf_native_topic,
+        "\{prefix}-schema-protobuf-native-sub",
+        initial_position=Earliest,
+        schema=protobuf_codec.info(),
+      )
+      let protobuf_value = @proto.KeyValue::KeyValue("language", "moonbit")
+      ignore(
+        protobuf_producer.send(
+          @pulsar.ProducerMessage::new(protobuf_codec.encode(protobuf_value)),
+        ),
+      )
+      let protobuf_message = @async.with_timeout(10000, async fn() {
+        protobuf_consumer.receive()
+      })
+      assert_eq(protobuf_message.decode(protobuf_codec), protobuf_value)
+      let registered_protobuf_schema = client.get_schema(protobuf_native_topic)
+      assert_eq(
+        registered_protobuf_schema.info.type_,
+        protobuf_codec.info().type_,
+      )
+      assert_eq(
+        registered_protobuf_schema.info.schema_data,
+        protobuf_codec.info().schema_data,
+      )
+      protobuf_message.ack(await_response=true)
+      protobuf_consumer.close()
+      protobuf_producer.close()
       let backlog_producer = client.create_producer(admin_backlog_topic)
       ignore(backlog_producer.send(@pulsar.ProducerMessage::new(b"skip-this")))
       ignore(backlog_producer.send(@pulsar.ProducerMessage::new(b"keep-this")))
@@ -855,7 +895,8 @@ async fn main {
         expire_sub,
         initial_position=Earliest,
       )
-      @async.sleep(1200)
+      // The broker expires by whole-second age; leave room for rounding.
+      @async.sleep(2200)
       admin.expire_messages(admin_backlog_topic, expire_sub, 1)
       ignore(
         backlog_producer.send(@pulsar.ProducerMessage::new(b"after-expire")),
@@ -1013,6 +1054,7 @@ async fn main {
       admin.delete_topic(string_schema_topic, force=true)
       admin.delete_topic(json_schema_topic, force=true)
       admin.delete_topic(int64_schema_topic, force=true)
+      admin.delete_topic(protobuf_native_topic, force=true)
       admin.delete_topic(table_topic, force=true)
       admin.delete_topic(dead_letter_source, force=true)
       admin.delete_topic(dead_letter_topic, force=true)
