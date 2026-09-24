@@ -152,6 +152,7 @@ async fn main {
 | `examples/oauth2` | 从令牌端点获取 OAuth2 客户端凭据 |
 | `examples/athenz` | Athenz ZTS 服务私钥交换或读取 sidecar 角色令牌文件 |
 | `examples/athenz_cert` | 使用客户端证书向 ZTS 换取角色令牌 |
+| `examples/auth_challenge` | 应答 Broker 发出的认证挑战 |
 | `examples/memory_budget` | 真实 Broker 上的生产、接收、分块和 Reader 共享预算往返测试 |
 | `examples/tls` | 验证 TLS 收发、可选客户端证书/私钥及 broker 重启检查 |
 | `examples/token_rotation` | 同一客户端下验证无效 Token 拒绝和文件 Token 轮换 |
@@ -225,6 +226,7 @@ moon fmt         # 格式化
 Mock 测试覆盖握手超时、Broker 拒绝 CONNECT、认证挑战次数上限，以及非空 Topic
 上 Reader 包含起始 ID 的回放，以及事务协调器未启用或 ID 越界。隔离 Linux 测试机可运行
 `scripts/test-athenz-broker-live.sh 4.2.4`（或 `3.3.9`），验证签名角色令牌及服务 NToken 换取令牌后对 Athenz 认证 broker 的收发。
+`scripts/test-auth-challenge-live.sh 4.2.4`（或 `3.3.9`）在隔离 Broker 上发出真实 `AUTH_CHALLENGE`，验证刷新应答成功及错误应答被拒绝。
 
 GitHub Actions 会在 push 和 pull request 时运行 native 类型检查、debug/release 测试、格式检查、生成接口检查、文档生成和打包。仓库中的 localhost TLS 私钥与证书是公开的一次性测试材料，绝不能用于真实 broker；Mooncakes 包不包含这些材料，也不包含测试和示例。
 

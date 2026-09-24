@@ -159,6 +159,7 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/oauth2` | OAuth2 client credentials from a token endpoint |
 | `examples/athenz` | Athenz ZTS service-key exchange or a sidecar role-token file |
 | `examples/athenz_cert` | certificate-authenticated ZTS role-token exchange |
+| `examples/auth_challenge` | respond to a Broker-issued authentication challenge |
 | `examples/memory_budget` | bounded producer, consumer, chunk and Reader roundtrip on a real broker |
 | `examples/tls` | verified TLS send/receive, optional client certificate/key and broker-restart check |
 | `examples/token_rotation` | invalid-token rejection and valid file-token rotation on one client |
@@ -247,6 +248,9 @@ and disabled or out-of-range transaction coordinator IDs.
 On the disposable Linux test host, `scripts/test-athenz-broker-live.sh 4.2.4`
 (and `3.3.9`) exercises signed role tokens and service-NToken ZTS exchange
 against an isolated Athenz-authenticated broker.
+`scripts/test-auth-challenge-live.sh 4.2.4` (and `3.3.9`) compiles a
+disposable Broker provider and verifies a real binary `AUTH_CHALLENGE`,
+successful refresh and wrong-response rejection.
 
 GitHub Actions runs native checks, debug and release tests, formatting, generated-interface verification, documentation generation, and package creation on pushes and pull requests. The checked-in localhost TLS key and certificate are public, disposable test fixtures; never use them for a real broker. They are excluded from the Mooncakes package, along with tests and examples.
 
