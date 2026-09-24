@@ -1,7 +1,7 @@
 # Java ECIES interoperability check
 
 `EncryptionInterop.java` uses the official Java client shipped with Pulsar to
-exercise P-521 ECIES message encryption in both directions. Use a disposable
+exercise P-256, P-384 or P-521 ECIES message encryption in both directions. Use a disposable
 broker and a fresh `PULSAR_TOPIC` in a test namespace. The fixture PEM files
 are in `testdata/encryption`.
 
@@ -24,6 +24,9 @@ the MoonBit workspace root, run:
 moon run examples/ec_encryption_interop --target native
 ```
 
+Set `EC_PUBLIC_KEY` and `EC_PRIVATE_KEY` in the MoonBit environment to the
+same curve's PEM files if testing a curve other than the default P-521.
+
 Then run the Java receiver in its container:
 
 ```sh
@@ -32,7 +35,8 @@ java -cp '/pulsar/lib/*:/tmp' EncryptionInterop receive
 
 The Java sender writes to `PULSAR_TOPIC-java`; MoonBit decrypts that message
 and writes to `PULSAR_TOPIC-moonbit`; the Java receiver decrypts it. This
-three-step exchange passed on isolated Pulsar 4.2.4 and 3.3.9 brokers. The
+three-step exchange passed for P-256, P-384 and P-521 on isolated Pulsar 4.2.4
+and 3.3.9 brokers. The
 pinned Go client's default crypto implementation accepts only RSA keys, so
 Go ECIES interop is not a valid acceptance test for this baseline.
 

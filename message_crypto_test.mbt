@@ -188,6 +188,31 @@ async test "Pulsar ECIES keys wrap, rotate, and reject tampering" {
 }
 
 ///|
+async test "Pulsar ECIES supports P-256 and P-384 keys" {
+  for curve in ["p256", "p384"] {
+    let sender = @moonpulsar.MessageCrypto::new()
+    sender.load_public_key_file(
+      "ec",
+      "testdata/encryption/ec_\{curve}_public.pem",
+    )
+    let receiver = @moonpulsar.MessageCrypto::new()
+    receiver.load_private_key_file(
+      "ec",
+      "testdata/encryption/ec_\{curve}_private.pem",
+    )
+    let metadata = @proto.MessageMetadata::default()
+    let encrypted = sender.encrypt(metadata, b"ec curve payload", ["ec"])
+    assert_eq(receiver.decrypt(metadata, encrypted), b"ec curve payload")
+    let wrong = @moonpulsar.MessageCrypto::new()
+    wrong.load_private_key_file("ec", "testdata/encryption/ec_private.pem")
+    let rejected : Result[Bytes, Error] = Ok(wrong.decrypt(metadata, encrypted)) catch {
+      e => Err(e)
+    }
+    assert_true(rejected is Err(@moonpulsar.PulsarError::InvalidFrame(_)))
+  }
+}
+
+///|
 async test "Pulsar encryption can mix RSA and EC recipients" {
   let sender = @moonpulsar.MessageCrypto::new()
   sender.load_public_key_file("rsa", "testdata/encryption/rsa_public.pem")

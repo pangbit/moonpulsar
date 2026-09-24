@@ -43,7 +43,7 @@
 - Snappy 使用 **google framing** 变体，与 Go/Python 客户端一致；Java 客户端使用 xerial framing，不能解码这种格式。官方 Java 与 Go 客户端之间也存在这一差异。
 - 测试所用的 Pulsar 4.2.4 broker 在已有非分区 Topic 上创建分区元数据时返回 HTTP 409。需要转换时，应把数据迁移到新的分区 Topic。
 - 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz ZTS 服务私钥模式签发 RSA NToken；证书模式使用 `AthenzZtsOptions::new(..., certificate_file=..., ca_pem_file=...)`、HTTPS ZTS URL 及证书私钥。两种模式都会请求角色令牌、重试暂时故障，并在过期前刷新；ZTS URL 填写 `/zts/v1` 之前的服务根地址。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。证书模式已在 macOS 与 Linux 通过要求客户端证书的本地 ZTS 模拟服务；尚未连接真实 Athenz 服务或经 Athenz 认证的 broker。
-- 替换 PEM 文件后再次调用 `MessageCrypto::load_public_key_file` 或 `load_private_key_file` 即可轮换密钥；新发送与解密使用新密钥。解密失败默认采用 `Fail`，返回 `InvalidFrame` 并停止受影响的消费者或 Reader。`Consume` 交付原始密文，`Message::decryption_failed()` 为 `true`，应用自行决定是否 ACK；加密批次无法按此方式交付。RSA-OAEP-SHA1 与 ECIES 包裹 AES-256-GCM 密钥；ECIES 使用 native OpenSSL 3 适配层，已用 P-521 密钥验证。native 随机源是 `/dev/urandom`。[Go RSA 加密互通](interop/go/README.md)与 [Java EC 加密互通](interop/java/README.md)均在 4.2.4 和 3.3.9 通过；固定版本 Go 客户端默认加密只接受 RSA。RSA 与 P-521 ECIES 加密消息已在隔离的 4.2.4 和 3.3.9 broker 上，经双向 TLS 与官方 Go/Java 客户端双向互通。
+- 替换 PEM 文件后再次调用 `MessageCrypto::load_public_key_file` 或 `load_private_key_file` 即可轮换密钥；新发送与解密使用新密钥。解密失败默认采用 `Fail`，返回 `InvalidFrame` 并停止受影响的消费者或 Reader。`Consume` 交付原始密文，`Message::decryption_failed()` 为 `true`，应用自行决定是否 ACK；加密批次无法按此方式交付。RSA-OAEP-SHA1 与 ECIES 包裹 AES-256-GCM 密钥；ECIES 使用 native OpenSSL 3 适配层，已用 P-256、P-384 和 P-521 密钥验证。native 随机源是 `/dev/urandom`。[Go RSA 加密互通](interop/go/README.md)与 [Java EC 加密互通](interop/java/README.md)均在 4.2.4 和 3.3.9 通过；固定版本 Go 客户端默认加密只接受 RSA。RSA 与 P-521 ECIES 加密消息已在隔离的 4.2.4 和 3.3.9 broker 上，经双向 TLS 与官方 Go/Java 客户端双向互通。
 - `MessageCrypto::new(public_key_reader=..., private_key_reader=...)` 可接收按名称读取 PEM 字节的同步回调；每次发送或解密都会重新读取，并优先于手动加入的密钥。返回 `None` 表示密钥不可用。
 - `SchemaCodec::avro(definition, to_datum, from_datum)` 提供 Avro 二进制记录的类型化映射。`Client::decode_avro(message, reader_codec)` 按消息携带的版本查询并按 Topic/版本缓存 writer schema，解析字段别名与默认值、联合类型、集合、enum 默认符号及允许的数值提升；不兼容时返回 `SchemaIncompatible`。同步 codec 仍按自身声明的 schema 解码。[Java Avro 演进互通](interop/java/README.md) 已在隔离的 4.2.4 和 3.3.9 broker 上双向通过，覆盖 `id` 到 `identifier` 的别名、`active=true` 默认值及 int 到 long 提升。`SchemaCodec::protobuf_native(descriptor_set, root_file, root_message)` 使用二进制 `FileDescriptorSet` 和生成的 MoonBit Protobuf 类型；根消息必须存在于描述符中。传统 Protobuf 使用 Avro 风格 JSON Schema。INT16/32/64 默认采用与 Java 客户端一致的大端序，和 Go 客户端互通时设置 `little_endian=true`。[Go 互通测试](interop/go/README.md) 已在 Pulsar 4.2.4 和 3.3.9 上双向验证这些类型与批次负载。
 - 支持显式 `chunk_size` 或按 broker 协商上限自动分块；自动模式要求 broker 公布最大消息尺寸。`ChunkAssemblyPolicy::new(auto_ack_incomplete=true)` 让消费者和 Reader 在未完成分块过期或被淘汰时确认已收到的分块；默认不确认，交由 broker 重投。
@@ -158,7 +158,7 @@ async fn main {
 | `examples/producer_compression` | Zstd 压缩负载 |
 | `examples/reader` | 从头回放 Topic |
 | `examples/encryption_interop` | Go/MoonBit 加密互通、Reader 回放及重试/死信转发 |
-| `examples/ec_encryption_interop` | Java/MoonBit P-521 ECIES 双向加密互通 |
+| `examples/ec_encryption_interop` | Java/MoonBit P-256、P-384 或 P-521 ECIES 双向加密互通 |
 | `examples/avro_evolution_interop` | Java v1/MoonBit v2 和 MoonBit v1/Java v2 的 Avro 演进互通 |
 | `examples/transaction_participants` | 在事务中注册生产者及订阅参与者 |
 | `examples/transactional_batch_ack` | 验证整批或逐索引事务 ACK 的回滚重投和提交（`PULSAR_BATCH_INDEX_ACK=true`） |

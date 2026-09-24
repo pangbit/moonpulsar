@@ -18,8 +18,18 @@ async fn main {
       @pulsar.ClientOptions::new(url, ca_pem_file?=ca, tls_identity?=identity),
     )
     let crypto = @pulsar.MessageCrypto::new()
-    crypto.load_public_key_file("ec", "testdata/encryption/ec_public.pem")
-    crypto.load_private_key_file("ec", "testdata/encryption/ec_private.pem")
+    crypto.load_public_key_file(
+      "ec",
+      @env.get_env_var("EC_PUBLIC_KEY").unwrap_or(
+        "testdata/encryption/ec_public.pem",
+      ),
+    )
+    crypto.load_private_key_file(
+      "ec",
+      @env.get_env_var("EC_PRIVATE_KEY").unwrap_or(
+        "testdata/encryption/ec_private.pem",
+      ),
+    )
     let consumer = client.create_consumer(
       topic + "-java",
       "moonpulsar-ec-interop-\{@async.now()}",
