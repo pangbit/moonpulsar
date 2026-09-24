@@ -68,6 +68,44 @@ pub async fn SingleReader::create(
   message_crypto? : MessageCrypto,
   decryption_failure_action? : DecryptionFailureAction = Fail,
 ) -> SingleReader {
+  SingleReader::create_with_memory(
+    group,
+    conn,
+    topic,
+    start_message_id?,
+    receiver_queue_size~,
+    read_compacted~,
+    include_start_message_id~,
+    name?,
+    properties~,
+    subscription_name?,
+    subscription_role_prefix~,
+    chunk_policy?,
+    schema?,
+    message_crypto?,
+    decryption_failure_action~,
+  )
+}
+
+///|
+async fn SingleReader::create_with_memory(
+  group : @async.TaskGroup[Unit],
+  conn : Connection,
+  topic : String,
+  start_message_id? : MessageId,
+  receiver_queue_size? : Int = 1000,
+  read_compacted? : Bool = false,
+  include_start_message_id? : Bool = false,
+  name? : String,
+  properties? : Map[String, String] = {},
+  subscription_name? : String,
+  subscription_role_prefix? : String = "reader",
+  chunk_policy? : ChunkAssemblyPolicy,
+  schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
+  decryption_failure_action? : DecryptionFailureAction = Fail,
+  memory_limiter? : ClientMemoryLimiter,
+) -> SingleReader {
   guard subscription_name != Some("") && subscription_role_prefix != "" else {
     raise InvalidFrame("reader subscription name or prefix must not be empty")
   }
@@ -103,7 +141,7 @@ pub async fn SingleReader::create(
     last_seen: { val: start_message_id, },
     closed: { val: false, },
     close_error: { val: None, },
-    chunks: ChunkAssembler::new(policy?=chunk_policy),
+    chunks: ChunkAssembler::new(policy?=chunk_policy, memory_limiter?),
     chunk_sweeper_stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
   }
   conn.message_handlers[consumer_id] = fn(frame) { reader.on_frame(frame) }
@@ -312,6 +350,27 @@ fn SingleReader::on_frame(self : SingleReader, frame : IncomingFrame) -> Unit {
   match frame.cmd.type_ {
     @proto.BaseCommand_Type::MESSAGE =>
       self.dispatch_message(frame) catch {
+        ClientMemoryFull => {
+          self.chunks.clear()
+          self.events.close(error=ClientMemoryFull, clear=true)
+          self.conn.message_handlers.remove(self.consumer_id)
+          self.stop_chunk_sweeper()
+          self.group.spawn_bg(
+            async fn() {
+              let cmd = @proto.BaseCommand::default()
+              cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
+              let close = @proto.CommandCloseConsumer::default()
+              close.consumer_id = self.consumer_id
+              close.request_id = self.conn.next_request_id()
+              cmd.close_consumer = Some(close)
+              self.conn.send_command(cmd) catch {
+                _ => ()
+              }
+            },
+            no_wait=true,
+            allow_failure=true,
+          )
+        }
         error =>
           if frame.metadata is Some(meta) && !meta.encryption_keys.is_empty() {
             self.events.close(error~, clear=true)

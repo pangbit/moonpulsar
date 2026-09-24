@@ -469,7 +469,7 @@ pub async fn Client::create_consumer(
   }
   if partitions == 0 {
     let conn = lookup_topic(manager, addr, topic)
-    let single = SingleConsumer::create(
+    let single = SingleConsumer::create_with_memory(
       self.manager.group,
       conn,
       topic,
@@ -496,6 +496,7 @@ pub async fn Client::create_consumer(
       ack_grouping?,
       auto_scaled_receiver_queue~,
       on_event?=self.on_event,
+      memory_limiter?=self.memory_limiter,
     )
     let consumer = self.with_dead_letter(
       Consumer::single(single),
@@ -509,7 +510,7 @@ pub async fn Client::create_consumer(
     let partition_topic = "\{topic}-partition-\{i}"
     let conn = lookup_topic(manager, addr, partition_topic)
     Consumer::single(
-      SingleConsumer::create(
+      SingleConsumer::create_with_memory(
         self.manager.group,
         conn,
         partition_topic,
@@ -538,6 +539,7 @@ pub async fn Client::create_consumer(
         ack_grouping?,
         auto_scaled_receiver_queue~,
         on_event?=self.on_event,
+        memory_limiter?=self.memory_limiter,
       ),
     )
   }
@@ -894,7 +896,7 @@ pub async fn Client::create_reader(
   if partitions == 0 {
     let conn = lookup_topic(manager, addr, topic)
     return Reader::one(
-      SingleReader::create(
+      SingleReader::create_with_memory(
         self.manager.group,
         conn,
         topic,
@@ -910,13 +912,14 @@ pub async fn Client::create_reader(
         schema?,
         message_crypto?,
         decryption_failure_action~,
+        memory_limiter?=self.memory_limiter,
       ),
     )
   }
   let create_partition = async fn(i : Int) -> SingleReader {
     let partition_topic = "\{topic}-partition-\{i}"
     let conn = lookup_topic(manager, addr, partition_topic)
-    SingleReader::create(
+    SingleReader::create_with_memory(
       self.manager.group,
       conn,
       partition_topic,
@@ -932,6 +935,7 @@ pub async fn Client::create_reader(
       schema?,
       message_crypto?,
       decryption_failure_action~,
+      memory_limiter?=self.memory_limiter,
     )
   }
   let subs : Array[SingleReader] = []

@@ -245,6 +245,66 @@ pub async fn SingleConsumer::create(
   auto_scaled_receiver_queue? : Bool = false,
   on_event? : (ClientEvent) -> Unit,
 ) -> SingleConsumer {
+  SingleConsumer::create_with_memory(
+    group,
+    conn,
+    topic,
+    subscription,
+    sub_type~,
+    key_shared_policy?,
+    consumer_name?,
+    initial_position~,
+    priority_level~,
+    durable~,
+    read_compacted~,
+    properties~,
+    subscription_properties~,
+    receiver_queue_size~,
+    ack_timeout_ms~,
+    nack_backoff?,
+    reconnect_with?,
+    schema?,
+    message_crypto?,
+    decryption_failure_action~,
+    reconnect_policy~,
+    chunk_policy?,
+    enable_batch_index_ack~,
+    ack_grouping?,
+    auto_scaled_receiver_queue~,
+    on_event?,
+  )
+}
+
+///|
+async fn SingleConsumer::create_with_memory(
+  group : @async.TaskGroup[Unit],
+  conn : Connection,
+  topic : String,
+  subscription : String,
+  sub_type? : SubscriptionType = Exclusive,
+  key_shared_policy? : KeySharedPolicy,
+  consumer_name? : String,
+  initial_position? : SubscriptionInitialPosition = Latest,
+  priority_level? : Int = 0,
+  durable? : Bool = true,
+  read_compacted? : Bool = false,
+  properties? : Map[String, String] = {},
+  subscription_properties? : Map[String, String] = {},
+  receiver_queue_size? : Int = 1000,
+  ack_timeout_ms? : Int = 0,
+  nack_backoff? : NackBackoff,
+  reconnect_with? : async () -> Connection,
+  schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
+  decryption_failure_action? : DecryptionFailureAction = Fail,
+  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
+  chunk_policy? : ChunkAssemblyPolicy,
+  enable_batch_index_ack? : Bool = false,
+  ack_grouping? : AckGroupingOptions,
+  auto_scaled_receiver_queue? : Bool = false,
+  on_event? : (ClientEvent) -> Unit,
+  memory_limiter? : ClientMemoryLimiter,
+) -> SingleConsumer {
   guard ack_timeout_ms >= 0 else {
     raise InvalidFrame("ack timeout must not be negative")
   }
@@ -301,7 +361,7 @@ pub async fn SingleConsumer::create(
       options?=ack_grouping,
     ),
     next_ack_token: 0,
-    chunks: ChunkAssembler::new(policy?=chunk_policy),
+    chunks: ChunkAssembler::new(policy?=chunk_policy, memory_limiter?),
     chunk_sweeper_stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
     chunk_acks: {},
     reconnect_with,
@@ -575,6 +635,27 @@ fn SingleConsumer::on_frame(
     @proto.BaseCommand_Type::MESSAGE =>
       if !self.seeking.val {
         self.dispatch_message(frame) catch {
+          ClientMemoryFull => {
+            self.chunks.clear()
+            self.messages.close(error=ClientMemoryFull, clear=true)
+            self.conn_ref.val.message_handlers.remove(self.consumer_id)
+            self.stop_chunk_sweeper()
+            self.group.spawn_bg(
+              async fn() {
+                let cmd = @proto.BaseCommand::default()
+                cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
+                let close = @proto.CommandCloseConsumer::default()
+                close.consumer_id = self.consumer_id
+                close.request_id = self.conn_ref.val.next_request_id()
+                cmd.close_consumer = Some(close)
+                self.conn_ref.val.send_command(cmd) catch {
+                  _ => ()
+                }
+              },
+              no_wait=true,
+              allow_failure=true,
+            )
+          }
           error =>
             if frame.metadata is Some(meta) && !meta.encryption_keys.is_empty() {
               self.messages.close(error~, clear=true)

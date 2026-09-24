@@ -56,10 +56,14 @@ struct ChunkAssembler {
   mut buffered_bytes : Int
   mut evicted_ids : Array[MessageId]
   policy : ChunkAssemblyPolicy
+  memory_limiter : ClientMemoryLimiter?
 }
 
 ///|
-fn ChunkAssembler::new(policy? : ChunkAssemblyPolicy) -> ChunkAssembler {
+fn ChunkAssembler::new(
+  policy? : ChunkAssemblyPolicy,
+  memory_limiter? : ClientMemoryLimiter,
+) -> ChunkAssembler {
   {
     pending: {},
     buffered_bytes: 0,
@@ -69,12 +73,16 @@ fn ChunkAssembler::new(policy? : ChunkAssemblyPolicy) -> ChunkAssembler {
       max_pending_messages: MAX_PENDING_CHUNKED_MESSAGES,
       auto_ack_incomplete: false,
     }),
+    memory_limiter,
   }
 }
 
 ///|
 fn ChunkAssembler::clear(self : ChunkAssembler) -> Unit {
   self.pending.clear()
+  if self.memory_limiter is Some(limiter) && self.buffered_bytes > 0 {
+    limiter.release_now(self.buffered_bytes)
+  }
   self.buffered_bytes = 0
   self.evicted_ids = []
 }
@@ -87,6 +95,9 @@ fn ChunkAssembler::discard(
 ) -> Unit {
   if self.pending.get(uuid) is Some(part) {
     self.buffered_bytes -= part.size
+    if self.memory_limiter is Some(limiter) && part.size > 0 {
+      limiter.release_now(part.size)
+    }
     self.pending.remove(uuid)
     if acknowledge && self.policy.auto_ack_incomplete {
       for id in part.ids {
@@ -138,7 +149,7 @@ fn ChunkAssembler::accept(
   metadata : @proto.MessageMetadata,
   id : MessageId,
   bytes : Bytes,
-) -> ChunkResult {
+) -> ChunkResult raise {
   let count = metadata.num_chunks_from_msg.unwrap_or(0)
   if count <= 1 {
     return { payload: Some(bytes), ids: [id], is_chunk: false, }
@@ -189,6 +200,9 @@ fn ChunkAssembler::accept(
   }
   if !self.pending.contains(uuid) {
     return empty
+  }
+  if self.memory_limiter is Some(limiter) {
+    limiter.reserve_now(bytes.length())
   }
   part.payload.write_bytes(bytes)
   self.buffered_bytes += bytes.length()

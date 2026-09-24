@@ -23,7 +23,7 @@
 - 多 Topic 消费者，以及能够发现新增 Topic 并关闭已移除源的模式消费者
 - 复合消费者与 Reader 的有界合并队列；慢速应用会对源转发形成背压
 - 自动重连：连接断开后，生产者重放尚未确认的消息，消费者重新订阅；`ClientOptions` 可设置退避和有限重试次数
-- `max_memory_bytes` 对生产者消息的载荷、键、属性及用于重放的编码帧记账，收到确认、错误、超时或关闭时释放。编码帧须与原消息同时容纳；帧无法容纳时返回 `ClientMemoryFull`。接收、分块与连接缓冲尚未计入。
+- `max_memory_bytes` 对生产者消息的载荷、键、属性及用于重放的编码帧，以及消费者和 Reader 未完成的分块记账。生产者预留在确认、错误、超时或关闭后释放；分块预留在完成、淘汰或清理后释放。编码帧须与原消息同时容纳，无法容纳时返回 `ClientMemoryFull`；分块超出共享预算时，受影响的消费者或 Reader 队列以 `ClientMemoryFull` 关闭。普通接收队列与连接缓冲尚未计入。
 - 二进制协议认证：可扩展的 `Authentication` trait，内置 token 与 basic auth；`ClientOptions::new(auth_provider=...)` 可使用轮换 Token 文件、OAuth2 客户端凭据、外部供应的 Athenz 角色令牌，或 `athenz_zts_provider(AthenzZtsOptions::new(...))` 用 RSA 服务 NToken 或客户端证书向 ZTS 换取角色令牌；broker 发出认证挑战时刷新认证数据
 - `pulsar+ssl://` TLS 连接：系统信任根或通过 `Client::connect_tls_with_ca` 提供自定义 PEM CA。`ClientOptions` 还可设置 `TlsIdentity::new(证书文件, 私钥文件)` 或异步 `tls_identity_provider`、TLS 1.2/1.3 版本范围、OpenSSL TLS 1.2 密码列表及 TLS 1.3 密码套件；native 适配层每次连接重新读取身份，并在 lookup 和重连时保持 CA 与主机名校验。
 - LZ4（帧格式）、Zlib、Zstd 压缩；Snappy 的兼容性限制见下文
@@ -52,7 +52,7 @@
 - 消费者可设置 `ack_grouping=AckGroupingOptions::new(max_size=1000, max_time_ms=100)`，按数量或时间合并 ACK；默认不启用。要求 broker 确认的 ACK 和事务 ACK 会先冲刷缓存再立即发送；关闭或 seek 前冲刷，重连时丢弃未发出的 ACK 以便 broker 重投。
 - `Consumer::ack_ids([id1, id2])` 将普通 ID 合入一个 ACK 帧，批次索引 ID 保持位图处理。`Consumer::last_message_ids()` 与 `Reader::last_message_ids()` 返回按来源 Topic（含分区 Topic）索引的最后 ID。零接收队列只适用于非分区单主题消费者；分区、多 Topic、重试和模式订阅会明确报错。
 - `send_timeout_ms` 从批次消息进入生产者缓冲队列时开始计时；在 flush 前过期的消息会从批次中移除。非批次消息仍从 SEND 帧登记时计时。SEND 后超时不代表 broker 一定拒绝消息，重试时应使用稳定的生产者名称和序列号。
-- `ClientOptions::new(max_memory_bytes=...)` 限制同一客户端创建的所有生产者占用的待发送负载字节数；消息元数据、连接及其他分配不计入。`block_if_queue_full=false` 时超额返回 `ClientMemoryFull`，否则等待回执、失败、超时或客户端关闭释放额度。
+- `ClientOptions::new(max_memory_bytes=...)` 在生产者和未完成的消费端分块之间共享保留字节预算。`block_if_queue_full=false` 时生产者超额返回 `ClientMemoryFull`，否则等待回执、失败、超时或客户端关闭释放额度。普通接收队列、连接缓冲和运行时堆开销尚未计入。
 - 消费者设置 `auto_scaled_receiver_queue=true` 后，从 1 个 FLOW 许可开始；队列曾满且下一次读取时已空，预取上限倍增，直至 `receiver_queue_size`。此选项不能与零接收队列同时使用。组合消费者会向每个来源传递此选项，其合并队列仍单独缓冲。
 - 创建生产者时传入 `interceptors=[ProducerInterceptor::new(before_send=..., on_send_result=...)]`。钩子按顺序作用于逻辑生产者；`on_send_result` 也会收到 `ProducerQueueFull` 等入队前错误。回调同步执行且不能抛错。
 - 创建消费者时传入 `interceptors=[ConsumerInterceptor::new(before_consume=..., on_receive_error=..., on_ack=..., on_nack=...)]`。钩子在应用收取消息、`receive()` / `try_receive()` 失败，以及消息或 ID 的 ACK/nack 调用结束时触发；要求 broker 确认的 ACK 被拒绝时，`on_ack` 收到错误。未要求确认的 ACK 回调只代表帧已提交，不代表 broker 已确认。

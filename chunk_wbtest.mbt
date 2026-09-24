@@ -302,6 +302,122 @@ test "chunk assembler releases completed payloads and caps pending messages" {
 }
 
 ///|
+test "chunk buffers share the client byte budget and release on every exit" {
+  let limiter = ClientMemoryLimiter::new(4)
+  let chunks = ChunkAssembler::new(memory_limiter=limiter)
+  let id : MessageId = {
+    ledger_id: 1UL,
+    entry_id: 1UL,
+    batch_index: -1,
+    partition: -1,
+  }
+  let meta = test_metadata()
+  meta.uuid = Some("budget")
+  meta.num_chunks_from_msg = Some(2)
+  meta.total_chunk_msg_size = Some(6)
+  meta.chunk_id = Some(0)
+  limiter.reserve_now(2)
+  let shared_full : Result[ChunkResult, Error] = Ok(
+    chunks.accept(meta, id, b"abc"),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(shared_full is Err(ClientMemoryFull))
+  assert_eq(limiter.used, 2)
+  limiter.release_now(2)
+  assert_true(chunks.accept(meta, id, b"abc").payload is None)
+  assert_eq(limiter.used, 3)
+  meta.chunk_id = Some(1)
+  let full : Result[ChunkResult, Error] = Ok(chunks.accept(meta, id, b"def")) catch {
+    e => Err(e)
+  }
+  assert_true(full is Err(ClientMemoryFull))
+  assert_eq(limiter.used, 3)
+  chunks.clear()
+  assert_eq(limiter.used, 0)
+  meta.total_chunk_msg_size = Some(4)
+  meta.chunk_id = Some(0)
+  assert_true(chunks.accept(meta, id, b"ab").payload is None)
+  meta.chunk_id = Some(1)
+  assert_eq(chunks.accept(meta, id, b"cd").payload, Some(b"abcd"))
+  assert_eq(limiter.used, 0)
+  meta.uuid = Some("expired")
+  meta.chunk_id = Some(0)
+  assert_true(chunks.accept(meta, id, b"a").payload is None)
+  assert_eq(limiter.used, 1)
+  chunks.discard("expired")
+  assert_eq(limiter.used, 0)
+}
+
+///|
+async test "consumer reports a chunk byte budget failure without retaining bytes" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let metadata = test_metadata()
+      metadata.uuid = Some("consumer-budget")
+      metadata.num_chunks_from_msg = Some(2)
+      metadata.total_chunk_msg_size = Some(6)
+      metadata.chunk_id = Some(0)
+      let (cmd, meta, body) = message_frame(1UL, 2, 1UL, b"abc", metadata)
+      peer.send_message(cmd, meta, body)
+    })
+    let manager = ConnectionManager::new(group)
+    let limiter = ClientMemoryLimiter::new(2)
+    let consumer = SingleConsumer::create_with_memory(
+      group,
+      manager.get(addr),
+      "persistent://public/default/chunk-budget-consumer",
+      "budget-sub",
+      memory_limiter=limiter,
+    )
+    let result : Result[Message, Error] = Ok(
+      @async.with_timeout(1000, async fn() { consumer.receive() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ClientMemoryFull))
+    assert_eq(limiter.used, 0)
+    consumer.close()
+    manager.close()
+  })
+}
+
+///|
+async test "reader reports a chunk byte budget failure without retaining bytes" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let metadata = test_metadata()
+      metadata.uuid = Some("reader-budget")
+      metadata.num_chunks_from_msg = Some(2)
+      metadata.total_chunk_msg_size = Some(6)
+      metadata.chunk_id = Some(0)
+      let (cmd, meta, body) = message_frame(1UL, 2, 1UL, b"abc", metadata)
+      peer.send_message(cmd, meta, body)
+    })
+    let manager = ConnectionManager::new(group)
+    let limiter = ClientMemoryLimiter::new(2)
+    let reader = SingleReader::create_with_memory(
+      group,
+      manager.get(addr),
+      "persistent://public/default/chunk-budget-reader",
+      start_message_id=MessageId::earliest(),
+      memory_limiter=limiter,
+    )
+    let result : Result[Message?, Error] = Ok(
+      @async.with_timeout(1000, async fn() { reader.next() }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ClientMemoryFull))
+    assert_eq(limiter.used, 0)
+    reader.close()
+    manager.close()
+  })
+}
+
+///|
 async test "chunk policy limits pending messages and expires incomplete buffers" {
   let invalid : Result[ChunkAssemblyPolicy, Error] = Ok(
     ChunkAssemblyPolicy::new(expiry_ms=0),
@@ -310,7 +426,8 @@ async test "chunk policy limits pending messages and expires incomplete buffers"
   }
   assert_true(invalid is Err(InvalidFrame(_)))
   let policy = ChunkAssemblyPolicy::new(expiry_ms=20, max_pending_messages=1)
-  let chunks = ChunkAssembler::new(policy~)
+  let limiter = ClientMemoryLimiter::new(2)
+  let chunks = ChunkAssembler::new(policy~, memory_limiter=limiter)
   let id : MessageId = {
     ledger_id: 1UL,
     entry_id: 1UL,
@@ -327,10 +444,12 @@ async test "chunk policy limits pending messages and expires incomplete buffers"
   }
   assert_eq(chunks.pending.length(), 1)
   assert_eq(chunks.buffered_bytes, 1)
+  assert_eq(limiter.used, 1)
   @async.sleep(30)
   chunks.evict_expired()
   assert_eq(chunks.pending.length(), 0)
   assert_eq(chunks.buffered_bytes, 0)
+  assert_eq(limiter.used, 0)
 }
 
 ///|
