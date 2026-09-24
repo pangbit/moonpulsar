@@ -23,6 +23,7 @@
 - 多 Topic 消费者，以及能够发现新增 Topic 并关闭已移除源的模式消费者
 - 复合消费者与 Reader 的有界合并队列；慢速应用会对源转发形成背压
 - 自动重连：连接断开后，生产者重放尚未确认的消息，消费者重新订阅；`ClientOptions` 可设置退避和有限重试次数
+- `max_memory_bytes` 对生产者消息的载荷、键、属性及用于重放的编码帧记账，收到确认、错误、超时或关闭时释放。编码帧须与原消息同时容纳；帧无法容纳时返回 `ClientMemoryFull`。接收、分块与连接缓冲尚未计入。
 - 二进制协议认证：可扩展的 `Authentication` trait，内置 token 与 basic auth；`ClientOptions::new(auth_provider=...)` 可使用轮换 Token 文件、OAuth2 客户端凭据、外部供应的 Athenz 角色令牌，或 `athenz_zts_provider(AthenzZtsOptions::new(...))` 用 RSA 服务 NToken 向 ZTS 换取角色令牌；broker 发出认证挑战时刷新认证数据
 - `pulsar+ssl://` TLS 连接：系统信任根或通过 `Client::connect_tls_with_ca` 提供自定义 PEM CA
 - LZ4（帧格式）、Zlib、Zstd 压缩；Snappy 的兼容性限制见下文

@@ -1,4 +1,5 @@
-// Shared payload-byte budget for all producers created by one client.
+// Shared retained-byte budget. Async tasks run cooperatively: synchronous
+// reserve/release calls below cannot interleave with the mutex-protected path.
 
 ///|
 priv struct MemoryWaiter {
@@ -71,6 +72,33 @@ fn ClientMemoryLimiter::close(self : ClientMemoryLimiter) -> Unit {
     waiter.ready.close(error=ProducerClosed, clear=true)
   }
   self.waiters = []
+}
+
+///|
+fn ClientMemoryLimiter::reserve_now(
+  self : ClientMemoryLimiter,
+  size : Int,
+) -> Unit raise PulsarError {
+  if self.closed {
+    raise ProducerClosed
+  }
+  if size > self.limit - self.used {
+    raise ClientMemoryFull
+  }
+  self.used += size
+}
+
+///|
+fn ClientMemoryLimiter::release_now(
+  self : ClientMemoryLimiter,
+  size : Int,
+) -> Unit {
+  self.used -= size
+  let waiters = self.waiters
+  self.waiters = []
+  for waiter in waiters {
+    ignore(waiter.ready.try_put(()) catch { _ => false })
+  }
 }
 
 ///|

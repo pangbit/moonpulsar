@@ -118,6 +118,21 @@ pub fn ProducerMessage::new(
 }
 
 ///|
+fn ProducerMessage::retained_bytes(self : ProducerMessage) -> Int {
+  let mut size = self.payload.length()
+  if self.key is Some(key) {
+    size += @utf8.encode(key).length()
+  }
+  if self.ordering_key is Some(key) {
+    size += key.length()
+  }
+  for key, value in self.properties {
+    size += @utf8.encode(key).length() + @utf8.encode(value).length()
+  }
+  size
+}
+
+///|
 /// Confirmation that the broker persisted a message.
 pub(all) struct SendReceipt {
   message_id : MessageId

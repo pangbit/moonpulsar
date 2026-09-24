@@ -92,6 +92,7 @@ pub struct SingleProducer {
   priv mut next_timeout_generation : UInt64
   /// encoded SEND frames awaiting a receipt, for replay after reconnect
   priv payloads : Map[UInt64, Bytes]
+  priv frame_charges : Map[UInt64, Int]
   priv reconnect_with : (async () -> Connection)?
   priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
@@ -242,6 +243,7 @@ async fn SingleProducer::create_with_memory(
     timeout_generation: {},
     next_timeout_generation: 0UL,
     payloads: {},
+    frame_charges: {},
     reconnect_with,
     reconnect_policy,
     reconnecting: { val: false, },
@@ -337,6 +339,7 @@ fn SingleProducer::on_command(
       self.pending.remove(receipt.sequence_id)
       self.timeout_generation.remove(receipt.sequence_id)
       self.payloads.remove(receipt.sequence_id)
+      self.release_frame_charge(receipt.sequence_id)
       let message_id = match receipt.message_id {
         Some(data) => MessageId::from_proto(data)
         None => MessageId::latest()
@@ -354,6 +357,7 @@ fn SingleProducer::on_command(
       self.pending.remove(err.sequence_id)
       self.timeout_generation.remove(err.sequence_id)
       self.payloads.remove(err.sequence_id)
+      self.release_frame_charge(err.sequence_id)
       waiter.close(
         error=ServerError(
           code=err.error.to_enum().0.reinterpret_as_int(),
@@ -487,6 +491,9 @@ fn SingleProducer::fail_all(self : SingleProducer, error : PulsarError) -> Unit 
   self.pending.clear()
   self.timeout_generation.clear()
   self.payloads.clear()
+  for seq in self.frame_charges.keys().collect() {
+    self.release_frame_charge(seq)
+  }
   for entry in self.batch_entries {
     entry.done.val = true
     entry.waiter.close(error~, clear=true)
@@ -576,7 +583,7 @@ pub async fn SingleProducer::send_async(
       raise ProducerQueueFull
     }
   }
-  let size = msg.payload.length()
+  let size = msg.retained_bytes()
   if self.memory_limiter is Some(limiter) {
     errdefer (if slots is Some(queue) {
       ignore(queue.try_put(()) catch { _ => false })
@@ -780,6 +787,19 @@ async fn SingleProducer::send_encoded(
   sequence_id : UInt64,
   frame : Bytes,
 ) -> @aqueue.Queue[SendReceipt] {
+  if self.memory_limiter is Some(limiter) {
+    // The original message is still charged while this encoded replay frame
+    // is retained. Fail immediately if both copies cannot fit; waiting while
+    // holding the original reservation could deadlock two producers.
+    limiter.reserve_now(frame.length())
+    self.frame_charges[sequence_id] = frame.length()
+  }
+  errdefer {
+    self.pending.remove(sequence_id)
+    self.payloads.remove(sequence_id)
+    self.timeout_generation.remove(sequence_id)
+    self.release_frame_charge(sequence_id)
+  }
   let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
     kind=@aqueue.Kind::Blocking(1),
   )
@@ -795,6 +815,7 @@ async fn SingleProducer::send_encoded(
         if self.timeout_generation.get(sequence_id) == Some(generation) {
           self.pending.remove(sequence_id)
           self.payloads.remove(sequence_id)
+          self.release_frame_charge(sequence_id)
           self.timeout_generation.remove(sequence_id)
           waiter.close(error=RequestTimeout, clear=true)
         }
@@ -807,6 +828,19 @@ async fn SingleProducer::send_encoded(
     self.conn.send_bytes(frame)
   }
   waiter
+}
+
+///|
+fn SingleProducer::release_frame_charge(
+  self : SingleProducer,
+  sequence_id : UInt64,
+) -> Unit {
+  if self.frame_charges.get(sequence_id) is Some(size) {
+    self.frame_charges.remove(sequence_id)
+    if self.memory_limiter is Some(limiter) {
+      limiter.release_now(size)
+    }
+  }
 }
 
 ///|
@@ -886,7 +920,7 @@ pub async fn SingleProducer::send_txn(
       raise ProducerQueueFull
     }
   }
-  let size = msg.payload.length()
+  let size = msg.retained_bytes()
   if self.memory_limiter is Some(limiter) {
     errdefer (if slots is Some(queue) {
       ignore(queue.try_put(()) catch { _ => false })

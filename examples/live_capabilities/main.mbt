@@ -227,15 +227,15 @@ async fn main {
         @pulsar.ClientOptions::new(
           url,
           auth_provider=@pulsar.token_file_provider(path),
-          max_memory_bytes=5,
+          max_memory_bytes=4096,
         )
       (None, Some(token)) =>
         @pulsar.ClientOptions::new(
           url,
           auth=@pulsar.TokenAuth::new(token),
-          max_memory_bytes=5,
+          max_memory_bytes=4096,
         )
-      (None, None) => @pulsar.ClientOptions::new(url, max_memory_bytes=5)
+      (None, None) => @pulsar.ClientOptions::new(url, max_memory_bytes=4096)
     }
     let memory_client = @pulsar.Client::connect_with_options(
       group, memory_options,
@@ -252,10 +252,12 @@ async fn main {
       "persistent://public/default/\{prefix}-memory-other",
     )
     let held = memory_buffered.send_async(
-      @pulsar.ProducerMessage::new(b"12345"),
+      @pulsar.ProducerMessage::new(Bytes::make(1600, b'x')),
     )
     let full : Result[@pulsar.ReceiptFuture, Error] = Ok(
-      memory_other.send_async(@pulsar.ProducerMessage::new(b"x")),
+      memory_other.send_async(
+        @pulsar.ProducerMessage::new(Bytes::make(3000, b'y')),
+      ),
     ) catch {
       e => Err(e)
     }
