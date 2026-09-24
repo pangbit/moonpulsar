@@ -39,6 +39,83 @@ async test "reader name and properties are sent in SUBSCRIBE" {
 }
 
 ///|
+async test "reader rejects invalid name and malformed subscribe reply" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.subscribe is Some(req) else { fail("expected SUBSCRIBE") }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::PARTITIONED_METADATA_RESPONSE
+      let result = @proto.CommandPartitionedTopicMetadataResponse::default()
+      result.request_id = req.request_id
+      reply.partition_metadata_response = Some(result)
+      peer.send_command(reply)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let invalid : Result[SingleReader, Error] = Ok(
+      SingleReader::create(
+        group,
+        conn,
+        "persistent://public/default/t",
+        subscription_name="",
+      ),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(invalid is Err(InvalidFrame(_)))
+    assert_true(conn.message_handlers.is_empty())
+    let malformed : Result[SingleReader, Error] = Ok(
+      @async.with_timeout(1000, async fn() {
+        SingleReader::create(group, conn, "persistent://public/default/t")
+      }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(malformed is Err(UnexpectedResponse(_)))
+    assert_true(conn.message_handlers.is_empty())
+    manager.close()
+  })
+}
+
+///|
+async test "inclusive latest reader closes after malformed last-id reply" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let frame = peer.next()
+      guard frame.cmd.get_last_message_id is Some(req) else {
+        fail("expected GET_LAST_MESSAGE_ID")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = req.request_id
+      reply.success = Some(success)
+      peer.send_command(reply)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let malformed : Result[SingleReader, Error] = Ok(
+      @async.with_timeout(1000, async fn() {
+        SingleReader::create(
+          group,
+          conn,
+          "persistent://public/default/latest-error",
+          start_message_id=MessageId::latest(),
+          include_start_message_id=true,
+        )
+      }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(malformed is Err(UnexpectedResponse(_)))
+    assert_true(conn.message_handlers.is_empty())
+    manager.close()
+  })
+}
+
+///|
 async fn check_reader_start_inclusion(
   inclusive : Bool,
   expected_entry : UInt64,

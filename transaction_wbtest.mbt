@@ -76,6 +76,53 @@ async test "transaction lifecycle over one connection" {
 }
 
 ///|
+async test "coordinator attach rejects error and malformed broker replies" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      for index in 0..<2 {
+        let frame = peer.next()
+        guard frame.cmd.tc_client_connect_request is Some(req) else {
+          fail("expected TC_CLIENT_CONNECT_REQUEST")
+        }
+        let reply = @proto.BaseCommand::default()
+        if index == 0 {
+          reply.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_RESPONSE
+          let response = @proto.CommandTcClientConnectResponse::default()
+          response.request_id = req.request_id
+          response.error = Some(@proto.ServerError::InvalidTxnStatus)
+          response.message = Some("coordinator rejected")
+          reply.tc_client_connect_response = Some(response)
+        } else {
+          reply.type_ = @proto.BaseCommand_Type::SUCCESS
+          let success = @proto.CommandSuccess::default()
+          success.request_id = req.request_id
+          reply.success = Some(success)
+        }
+        peer.send_command(reply)
+      }
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let rejected : Result[TransactionCoordinator, Error] = Ok(
+      TransactionCoordinator::attach(conn, 0UL, owns_connection=false),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      rejected is Err(ServerError(message="coordinator rejected", ..)),
+    )
+    let malformed : Result[TransactionCoordinator, Error] = Ok(
+      TransactionCoordinator::attach(conn, 0UL, owns_connection=false),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(malformed is Err(UnexpectedResponse(_)))
+    assert_true(conn.pending.is_empty())
+    manager.close()
+  })
+}
+
+///|
 async test "client resolves transaction coordinator ownership" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(addr, peer) {
