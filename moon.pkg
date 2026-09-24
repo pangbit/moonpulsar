@@ -15,4 +15,6 @@ import {
   "moonbitlang/core/json",
   "moonbit-community/flate/zlib",
   "Milky2018/zstd",
+  "yugonlian/moon-avro/codec" @avro_codec,
+  "yugonlian/moon-avro/schema" @avro_schema,
 }

@@ -1,4 +1,34 @@
 ///|
+struct AvroInteropRecord {
+  id : Int
+  name : String
+} derive(Eq, Debug)
+
+///|
+fn avro_interop_codec() -> @pulsar.SchemaCodec[AvroInteropRecord] raise @pulsar.PulsarError {
+  @pulsar.SchemaCodec::avro(
+    b"{\"type\":\"record\",\"name\":\"AvroInteropRecord\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"},{\"name\":\"name\",\"type\":\"string\"}]}",
+    fn(value) {
+      @avro_codec.Datum::Record([
+        ("id", @avro_codec.Datum::Int(value.id)),
+        ("name", @avro_codec.Datum::String(value.name)),
+      ])
+    },
+    fn(datum) {
+      match datum {
+        @avro_codec.Datum::Record(
+          [
+            ("id", @avro_codec.Datum::Int(id)),
+            ("name", @avro_codec.Datum::String(name)),
+          ]
+        ) => { id, name, }
+        _ => raise @pulsar.PulsarError::InvalidFrame("unexpected Avro record")
+      }
+    },
+  )
+}
+
+///|
 async fn[T : Eq] roundtrip_primitive(
   client : @pulsar.Client,
   topic : String,
@@ -102,6 +132,13 @@ async fn main {
     )
     roundtrip_primitive(
       client,
+      topic + "-avro",
+      avro_interop_codec(),
+      { id: 27, name: "from-go", },
+      { id: 42, name: "from-moonbit", },
+    )
+    roundtrip_primitive(
+      client,
       topic + "-int8",
       @pulsar.SchemaCodec::int8(),
       -42,
@@ -163,7 +200,7 @@ async fn main {
     batch_producer.close()
     client.close()
     println(
-      "Protobuf Native, legacy Protobuf, numeric schemas, and batch Go/MoonBit handoff OK",
+      "Protobuf Native, legacy Protobuf, Avro, numeric schemas, and batch Go/MoonBit handoff OK",
     )
   })
 }

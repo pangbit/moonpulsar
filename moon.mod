@@ -30,4 +30,5 @@ import {
   "moonbitlang/protobuf@0.1.3",
   "moonbit-community/flate@0.8.3",
   "Milky2018/zstd@0.1.3",
+  "yugonlian/moon-avro@0.3.0",
 }

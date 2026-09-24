@@ -9,6 +9,7 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/protobuf",
   "pangbit/moonpulsar/proto",
+  "yugonlian/moon-avro/codec",
 }
 
 // Values
@@ -396,6 +397,8 @@ pub fn RetryPolicy::default() -> Self
 pub struct SchemaCodec[T] {
   // private fields
 }
+pub fn[T] SchemaCodec::avro(Bytes, (T) -> @codec.Datum raise PulsarError, (@codec.Datum) -> T raise PulsarError) -> Self[T] raise PulsarError
+pub fn SchemaCodec::avro_datum(Bytes) -> Self[@codec.Datum] raise PulsarError
 pub fn SchemaCodec::bytes() -> Self[Bytes]
 pub fn[T] SchemaCodec::decode(Self[T], Bytes) -> T raise PulsarError
 pub fn SchemaCodec::double() -> Self[Double]

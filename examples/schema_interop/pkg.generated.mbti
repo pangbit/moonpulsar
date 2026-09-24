@@ -1,11 +1,16 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "pangbit/moonpulsar_examples/schema_interop"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 
 // Errors
 
 // Types and methods
+type AvroInteropRecord derive(Eq, @debug.Debug)
 
 // Type aliases
 

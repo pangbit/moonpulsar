@@ -14,4 +14,5 @@ import {
   "pangbit/moonpulsar@0.0.0",
   "moonbitlang/async@0.22.1",
   "moonbitlang/protobuf@0.1.3",
+  "yugonlian/moon-avro@0.3.0",
 }

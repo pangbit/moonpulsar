@@ -18,6 +18,12 @@ import (
 
 const descriptorBase64 = "CmwKKHRlc3RkYXRhL3Byb3RvYnVmX25hdGl2ZV9rZXlfdmFsdWUucHJvdG8SDHB1bHNhci5wcm90byIyCghLZXlWYWx1ZRIQCgNrZXkYASACKAlSA2tleRIUCgV2YWx1ZRgCIAIoCVIFdmFsdWU="
 const legacyProtoDefinition = "{\"type\":\"record\",\"name\":\"KeyValue\",\"namespace\":\"pulsar.proto\",\"fields\":[{\"name\":\"key\",\"type\":\"string\"},{\"name\":\"value\",\"type\":\"string\"}]}"
+const avroDefinition = "{\"type\":\"record\",\"name\":\"AvroInteropRecord\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"},{\"name\":\"name\",\"type\":\"string\"}]}"
+
+type avroInteropRecord struct {
+	ID   int32  `avro:"id"`
+	Name string `avro:"name"`
+}
 
 type primitiveCase struct {
 	suffix      string
@@ -109,6 +115,17 @@ func main() {
 		_, err = legacyProducer.Send(ctx, &pulsar.ProducerMessage{Value: message(descriptor, "go-legacy")})
 		checked(err)
 		legacyProducer.Close()
+		avroSchema, err := pulsar.NewAvroSchemaWithValidation(avroDefinition, nil)
+		checked(err)
+		avroProducer, err := client.CreateProducer(pulsar.ProducerOptions{
+			Topic: topic + "-avro", Schema: avroSchema,
+		})
+		checked(err)
+		_, err = avroProducer.Send(ctx, &pulsar.ProducerMessage{
+			Value: avroInteropRecord{ID: 27, Name: "from-go"},
+		})
+		checked(err)
+		avroProducer.Close()
 		for _, primitive := range primitives() {
 			producer, err := client.CreateProducer(pulsar.ProducerOptions{
 				Topic: topic + "-" + primitive.suffix, Schema: primitive.schema,
@@ -120,6 +137,7 @@ func main() {
 		}
 		fmt.Println("Go Protobuf Native send OK")
 		fmt.Println("Go legacy Protobuf send OK")
+		fmt.Println("Go Avro send OK")
 		fmt.Println("Go numeric schema send OK")
 		return
 	}
@@ -194,6 +212,30 @@ func main() {
 	}
 	legacyConsumer.Close()
 	fmt.Println("MoonBit-to-Go legacy Protobuf decode OK")
+	avroSchema, err := pulsar.NewAvroSchemaWithValidation(avroDefinition, nil)
+	checked(err)
+	avroConsumer, err := client.Subscribe(pulsar.ConsumerOptions{
+		Topic:                       topic + "-avro",
+		SubscriptionName:            fmt.Sprintf("moonpulsar-go-avro-interop-%d", time.Now().UnixNano()),
+		SubscriptionInitialPosition: pulsar.SubscriptionPositionEarliest,
+		Schema:                      avroSchema,
+	})
+	checked(err)
+	for {
+		incoming, err := avroConsumer.Receive(ctx)
+		checked(err)
+		var decoded avroInteropRecord
+		checked(incoming.GetSchemaValue(&decoded))
+		checked(avroConsumer.Ack(incoming))
+		if decoded.ID == 42 && decoded.Name == "from-moonbit" {
+			break
+		}
+		if decoded.ID != 27 || decoded.Name != "from-go" {
+			panic(fmt.Sprintf("unexpected Avro record: %#v", decoded))
+		}
+	}
+	avroConsumer.Close()
+	fmt.Println("MoonBit-to-Go Avro decode OK")
 	fmt.Println("MoonBit-to-Go numeric schema decode OK")
 	int64Consumer, err := client.Subscribe(pulsar.ConsumerOptions{
 		Topic:                       topic + "-int64",

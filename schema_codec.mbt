@@ -222,6 +222,46 @@ pub fn[T : ToJson + FromJson] SchemaCodec::json(
 }
 
 ///|
+/// Avro binary payloads with typed mappings to and from Avro datums.
+/// The definition must be a valid Avro schema. Record fields follow schema
+/// order, and malformed payloads are reported as `InvalidFrame`.
+pub fn[T] SchemaCodec::avro(
+  definition : Bytes,
+  to_datum : (T) -> @avro_codec.Datum raise PulsarError,
+  from_datum : (@avro_codec.Datum) -> T raise PulsarError,
+) -> SchemaCodec[T] raise PulsarError {
+  let text = @utf8.decode(definition) catch {
+    _ => raise InvalidFrame("invalid UTF-8 Avro schema")
+  }
+  let schema = @avro_schema.parse(text) catch {
+    _ => raise InvalidFrame("invalid Avro schema")
+  }
+  SchemaCodec::new(
+    SchemaInfo::avro(definition),
+    fn(value) {
+      let datum = to_datum(value)
+      @avro_codec.encode(schema, datum) catch {
+        _ => raise InvalidFrame("could not encode Avro payload")
+      }
+    },
+    fn(payload) {
+      let datum = @avro_codec.decode(schema, payload) catch {
+        _ => raise InvalidFrame("invalid Avro payload")
+      }
+      from_datum(datum)
+    },
+  )
+}
+
+///|
+/// Avro binary payloads represented directly as schema-checked datums.
+pub fn SchemaCodec::avro_datum(
+  definition : Bytes,
+) -> SchemaCodec[@avro_codec.Datum] raise PulsarError {
+  SchemaCodec::avro(definition, fn(value) { value }, fn(value) { value })
+}
+
+///|
 /// Use a generated MoonBit protobuf message with the legacy PROTOBUF schema.
 /// `definition` is the Avro-style JSON schema definition used by the Go and
 /// Java clients for this schema type. Payloads are ordinary protobuf bytes.
