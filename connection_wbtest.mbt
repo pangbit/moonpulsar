@@ -312,6 +312,110 @@ async test "handshake rejects CONNECTED without broker information" {
 }
 
 ///|
+async test "handshake timeout closes a silent broker connection" {
+  @async.with_task_group(async fn(group) {
+    let server = @socket.TcpServer::TcpServer(
+      @socket.Addr::parse("127.0.0.1:0"),
+    )
+    let addr = server.addr.to_string()
+    group.spawn_bg(
+      async fn() {
+        defer server.close()
+        let (tcp, _) = server.accept()
+        defer tcp.close()
+        let _ = read_frame(tcp)
+        @async.sleep(100)
+      },
+      no_wait=true,
+      allow_failure=true,
+    )
+    let result : Result[Connection, Error] = Ok(
+      Connection::connect_with_memory(group, addr, timeout_ms=20),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConnectFailed(_)))
+  })
+}
+
+///|
+async test "handshake rejects too many authentication challenges" {
+  @async.with_task_group(async fn(group) {
+    let server = @socket.TcpServer::TcpServer(
+      @socket.Addr::parse("127.0.0.1:0"),
+    )
+    let addr = server.addr.to_string()
+    group.spawn_bg(
+      async fn() {
+        defer server.close()
+        let (tcp, _) = server.accept()
+        defer tcp.close()
+        let _ = read_frame(tcp)
+        for _ in 0..<8 {
+          let challenge = @proto.BaseCommand::default()
+          challenge.type_ = @proto.BaseCommand_Type::AUTH_CHALLENGE
+          challenge.auth_challenge = Some(
+            @proto.CommandAuthChallenge::default(),
+          )
+          tcp.write(encode_command_frame(challenge))
+          let answer = read_frame(tcp)
+          assert_true(answer.cmd.auth_response is Some(_))
+        }
+      },
+      no_wait=true,
+      allow_failure=true,
+    )
+    let calls : Ref[Int] = { val: 0, }
+    let result : Result[Connection, Error] = Ok(
+      Connection::connect(group, addr, auth_provider=fn() {
+        calls.val += 1
+        { method_name: "token", data: b"test-token", }
+      }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConnectFailed(_)))
+    assert_eq(calls.val, 9)
+  })
+}
+
+///|
+async test "handshake surfaces a broker CONNECT rejection" {
+  @async.with_task_group(async fn(group) {
+    let server = @socket.TcpServer::TcpServer(
+      @socket.Addr::parse("127.0.0.1:0"),
+    )
+    let addr = server.addr.to_string()
+    group.spawn_bg(
+      async fn() {
+        defer server.close()
+        let (tcp, _) = server.accept()
+        defer tcp.close()
+        let _ = read_frame(tcp)
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::ERROR
+        let error = @proto.CommandError::default()
+        error.error = @proto.ServerError::AuthenticationError
+        error.message = "bad credential"
+        reply.error = Some(error)
+        tcp.write(encode_command_frame(reply))
+      },
+      no_wait=true,
+      allow_failure=true,
+    )
+    let result : Result[Connection, Error] = Ok(
+      Connection::connect(group, addr),
+    ) catch {
+      e => Err(e)
+    }
+    guard result is Err(ConnectFailed(message)) else {
+      fail("expected broker CONNECT rejection")
+    }
+    assert_true(message.contains("bad credential"))
+  })
+}
+
+///|
 async test "handshake rejects frame shorter than command header" {
   @async.with_task_group(async fn(group) {
     let server = @socket.TcpServer::TcpServer(

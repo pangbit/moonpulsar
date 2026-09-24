@@ -212,6 +212,76 @@ async test "inclusive latest reader leaves an empty topic at its end" {
 }
 
 ///|
+async test "inclusive latest reader replays the current last message" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+      let frame = peer.next()
+      guard frame.cmd.get_last_message_id is Some(req) else {
+        fail("expected GET_LAST_MESSAGE_ID")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::GET_LAST_MESSAGE_ID_RESPONSE
+      let last = @proto.CommandGetLastMessageIdResponse::default()
+      last.request_id = req.request_id
+      let id = @proto.MessageIdData::default()
+      id.ledger_id = 9UL
+      id.entry_id = 2UL
+      last.last_message_id = id
+      reply.get_last_message_id_response = Some(last)
+      peer.send_command(reply)
+      let close = peer.next()
+      guard close.cmd.close_consumer is Some(closing) else {
+        fail("expected reader cursor reset")
+      }
+      let closed = @proto.BaseCommand::default()
+      closed.type_ = @proto.BaseCommand_Type::SUCCESS
+      let success = @proto.CommandSuccess::default()
+      success.request_id = closing.request_id
+      closed.success = Some(success)
+      peer.send_command(closed)
+      let subscribe = peer.next()
+      guard subscribe.cmd.subscribe is Some(sub) &&
+        sub.start_message_id is Some(start) else {
+        fail("expected reader re-SUBSCRIBE from last message")
+      }
+      assert_eq(start.ledger_id, 9UL)
+      assert_eq(start.entry_id, 2UL)
+      let subscribed = @proto.BaseCommand::default()
+      subscribed.type_ = @proto.BaseCommand_Type::SUCCESS
+      let ok = @proto.CommandSuccess::default()
+      ok.request_id = sub.request_id
+      subscribed.success = Some(ok)
+      peer.send_command(subscribed)
+      let flow = peer.next()
+      assert_true(flow.cmd.flow is Some(_))
+      let (message, metadata, payload) = message_frame(
+        sub.consumer_id,
+        9UL,
+        2UL,
+        b"last message",
+        test_metadata(),
+      )
+      peer.send_message(message, metadata, payload)
+    })
+    let manager = ConnectionManager::new(group)
+    let conn = manager.get(addr)
+    let reader = SingleReader::create(
+      group,
+      conn,
+      "persistent://public/default/latest-nonempty",
+      start_message_id=MessageId::latest(),
+      include_start_message_id=true,
+    )
+    let message = @async.with_timeout(1000, async fn() { reader.next() })
+    guard message is Some(found) else { fail("expected last message") }
+    assert_eq(found.payload(), b"last message")
+    reader.close()
+    manager.close()
+  })
+}
+
+///|
 async test "single reader wakes next on broker disconnect" {
   @async.with_task_group(async fn(group) {
     let disconnect : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
