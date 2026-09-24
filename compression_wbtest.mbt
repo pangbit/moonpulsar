@@ -55,6 +55,26 @@ test "zlib roundtrip" {
 }
 
 ///|
+test "zlib accepts official Java sync flush with declared size" {
+  // Java's compressor finishes a Pulsar message with Z_SYNC_FLUSH and no
+  // Adler-32 trailer. This vector is zlib's sync-flushed "hello".
+  let sync_flushed = b"\x78\x9c\xca\x48\xcd\xc9\xc9\x07\x00\x00\x00\xff\xff"
+  assert_eq(decompress(Zlib, sync_flushed, uncompressed_size=5), b"hello")
+  let wrong_size : Result[Bytes, Error] = Ok(
+    decompress(Zlib, sync_flushed, uncompressed_size=4),
+  ) catch {
+    error => Err(error)
+  }
+  assert_true(wrong_size is Err(InvalidFrame(_)))
+  let truncated : Result[Bytes, Error] = Ok(
+    decompress(Zlib, sync_flushed[:12].to_owned(), uncompressed_size=5),
+  ) catch {
+    error => Err(error)
+  }
+  assert_true(truncated is Err(InvalidFrame(_)))
+}
+
+///|
 test "zstd roundtrip" {
   let data = sample_data()
   assert_eq(decompress(Zstd, compress(Zstd, data)), data)

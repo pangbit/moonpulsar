@@ -51,7 +51,8 @@ bash scripts/test-chunk-interop-live.sh 3.3.9
 
 The script creates an isolated Broker and one 256 KiB random payload, then
 checks Go-to-MoonBit and MoonBit-to-Go chunk assembly for LZ4, Zlib, Zstd and
-Snappy. Both producers force 32 KiB chunks. Pulsar's Go client uses raw Snappy
+Snappy. It also checks Java-to-MoonBit and MoonBit-to-Java for LZ4, Zlib and
+Zstd. All producers force 32 KiB chunks. Pulsar's Go client uses raw Snappy
 blocks for message compression; MoonBit's public framed-stream helper is a
 separate format. The script removes its Broker and payload on exit.
 

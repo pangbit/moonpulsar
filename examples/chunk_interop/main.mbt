@@ -1,4 +1,4 @@
-// Receive the official Go client's compressed chunks and send MoonBit chunks.
+// Receive official-client compressed chunks and send MoonBit chunks.
 
 ///|
 async fn main {
@@ -9,13 +9,22 @@ async fn main {
   }
   let payload = @fs.read_file(path).binary()
   let url = @env.get_env_var("PULSAR_URL").unwrap_or("pulsar://127.0.0.1:6650")
-  let names = ["lz4", "zlib", "zstd", "snappy"]
-  let codecs = [@pulsar.CompressionCodec::Lz4, Zlib, Zstd, Snappy]
+  let peer = @env.get_env_var("PULSAR_PEER").unwrap_or("go")
+  let names = if peer == "java" {
+    ["lz4", "zlib", "zstd"]
+  } else {
+    ["lz4", "zlib", "zstd", "snappy"]
+  }
+  let codecs = if peer == "java" {
+    [@pulsar.CompressionCodec::Lz4, Zlib, Zstd]
+  } else {
+    [@pulsar.CompressionCodec::Lz4, Zlib, Zstd, Snappy]
+  }
   @async.with_task_group(async fn(group) {
     let client = @pulsar.Client::connect(group, url)
     for index in 0..<names.length() {
       let consumer = client.create_consumer(
-        base + "-go-" + names[index],
+        base + "-" + peer + "-" + names[index],
         "moonpulsar-chunk-moonbit-\{names[index]}",
         initial_position=Earliest,
       )
@@ -33,6 +42,6 @@ async fn main {
       producer.close()
     }
     client.close()
-    println("MoonBit received and sent LZ4, Zlib, Zstd and Snappy chunks")
+    println("MoonBit exchanged compressed chunks with \{peer}")
   })
 }

@@ -68,7 +68,15 @@ pub fn decompress(
       }
     Zlib =>
       @zlib.zlib_decompress(payload) catch {
-        _ => raise InvalidFrame("zlib decompress failed")
+        _ =>
+          match uncompressed_size {
+            Some(size) if size > 0 && size <= MAX_CHUNKED_MESSAGE_BYTES =>
+              match @native_zlib.decompress_exact(payload, size) {
+                Some(decoded) => decoded
+                None => raise InvalidFrame("zlib decompress failed")
+              }
+            _ => raise InvalidFrame("zlib decompress failed")
+          }
       }
     Zstd =>
       @zstd.decompress(payload) catch {

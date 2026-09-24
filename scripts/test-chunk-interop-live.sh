@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Go/MoonBit bidirectional compressed-chunk exchange on an isolated Broker.
+# Official Go/Java and MoonBit bidirectional compressed-chunk exchange.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -59,3 +59,27 @@ if ! (cd interop/go && go run ./chunk receive) >"$dir/go-receive.log" 2>&1; then
   exit 1
 fi
 tail -n 1 "$dir/go-receive.log"
+
+docker cp interop/java/ChunkInterop.java "$name:/tmp/ChunkInterop.java"
+docker cp "$dir/payload" "$name:/tmp/chunk-payload"
+docker exec "$name" javac -proc:none -cp '/pulsar/lib/*' \
+  /tmp/ChunkInterop.java
+java_probe() {
+  docker exec \
+    -e PULSAR_URL="$PULSAR_URL" \
+    -e PULSAR_TOPIC="$PULSAR_TOPIC-java-test" \
+    -e PULSAR_PAYLOAD_FILE=/tmp/chunk-payload \
+    "$name" java -cp '/pulsar/lib/*:/tmp' ChunkInterop "$1"
+}
+java_probe send >"$dir/java-send.log" 2>&1 || {
+  cat "$dir/java-send.log" >&2
+  exit 1
+}
+tail -n 1 "$dir/java-send.log"
+PULSAR_PEER=java PULSAR_TOPIC="$PULSAR_TOPIC-java-test" \
+  moon run examples/chunk_interop --target native
+java_probe receive >"$dir/java-receive.log" 2>&1 || {
+  cat "$dir/java-receive.log" >&2
+  exit 1
+}
+tail -n 1 "$dir/java-receive.log"

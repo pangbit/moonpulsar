@@ -87,7 +87,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - a buffered batch message expires before flush while the next message is delivered on 4.2.4 and 3.3.9
 - two producers sharing a client-wide pending payload-byte budget on 4.2.4 and 3.3.9
 - `examples/memory_budget` passed a 1 MiB shared budget across sequential send/receive, chunked delivery and Reader replay in isolated 4.2.4 and 3.3.9 containers with a dedicated namespace. `scripts/test-chunk-live.sh` also verifies consumer and Reader incomplete-chunk expiry ACK, shared-budget failure and release, retained receive-queue overflow, and recovery by replay on both versions.
-- `scripts/test-chunk-interop-live.sh` exchanges forced 32 KiB compressed chunks with the pinned official Go client in both directions. LZ4, Zlib, Zstd and raw Snappy passed with a 256 KiB random payload on isolated 4.2.4 and 3.3.9 Brokers.
+- `scripts/test-chunk-interop-live.sh` exchanges forced 32 KiB compressed chunks with the pinned official Go client (LZ4, Zlib, Zstd, raw Snappy) and official Java client (LZ4, Zlib, Zstd). Both directions passed with a 256 KiB random payload on isolated 4.2.4 and 3.3.9 Brokers. Java's Zlib sync-flushed stream is decoded through the native system zlib fallback.
 - an auto-scaled receive queue sending and acknowledging messages on 4.2.4 and 3.3.9; exact FLOW growth is covered by the mock broker
 - producer interceptor payload transformation and receipt callback on 4.2.4 and 3.3.9
 - consumer interceptor delivery and ACK callback on 4.2.4 and 3.3.9
@@ -162,7 +162,7 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/athenz_cert` | certificate-authenticated ZTS role-token exchange |
 | `examples/auth_challenge` | respond to a Broker-issued authentication challenge |
 | `examples/memory_budget` | bounded producer, consumer, chunk and Reader roundtrip on a real broker |
-| `examples/chunk_interop` | compressed chunk exchange with the official Go client |
+| `examples/chunk_interop` | compressed chunk exchange with the official Go and Java clients |
 | `examples/tls` | verified TLS send/receive, optional client certificate/key and broker-restart check |
 | `examples/token_rotation` | invalid-token rejection and valid file-token rotation on one client |
 | `examples/token_reconnect` | active producer/consumer recovery after file-token and broker signing-key rotation |

@@ -2,6 +2,7 @@ import {
   "pangbit/moonpulsar/proto",
   "pangbit/moonpulsar/native_tls",
   "pangbit/moonpulsar/native_ecies",
+  "pangbit/moonpulsar/native_zlib",
   "moonbitlang/protobuf" @lib,
   "moonbitlang/protobuf/google/protobuf" @descriptor,
   "moonbitlang/async",

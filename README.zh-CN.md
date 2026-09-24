@@ -82,7 +82,7 @@
 - 4.2.4 与 3.3.9 上的批次消息 flush 前超时与后续消息成功投递
 - 4.2.4 与 3.3.9 上两个生产者共享客户端待发送负载字节预算
 - 独立 4.2.4 和 3.3.9 容器及专用命名空间中，`examples/memory_budget` 在 1 MiB 共享预算下通过顺序收发、分块接收和 Reader 回放。`scripts/test-chunk-live.sh` 还在两个版本上验证了消费者与 Reader 未完成分块过期 ACK、共享预算耗尽与释放、普通接收队列超额，以及新客户端回放恢复。
-- `scripts/test-chunk-interop-live.sh` 在隔离的 4.2.4 和 3.3.9 Broker 上，以 256 KiB 随机负载与固定版本官方 Go 客户端双向交换强制 32 KiB 分块的 LZ4、Zlib、Zstd 和原始 Snappy 压缩消息。
+- `scripts/test-chunk-interop-live.sh` 在隔离的 4.2.4 和 3.3.9 Broker 上，以 256 KiB 随机负载与固定版本官方 Go 客户端双向交换 LZ4、Zlib、Zstd、原始 Snappy 压缩分块，也与官方 Java 客户端双向交换 LZ4、Zlib、Zstd 压缩分块。Java 的 Zlib 同步刷新流由 native 系统 zlib 适配层解码。
 - 4.2.4 与 3.3.9 上自动扩容接收队列的收发与确认；精确 FLOW 扩容由 mock broker 验证
 - 4.2.4 与 3.3.9 上生产者拦截器修改负载和观察回执
 - 4.2.4 与 3.3.9 上消费者拦截器观察交付与 ACK
@@ -155,7 +155,7 @@ async fn main {
 | `examples/athenz_cert` | 使用客户端证书向 ZTS 换取角色令牌 |
 | `examples/auth_challenge` | 应答 Broker 发出的认证挑战 |
 | `examples/memory_budget` | 真实 Broker 上的生产、接收、分块和 Reader 共享预算往返测试 |
-| `examples/chunk_interop` | 与官方 Go 客户端双向交换压缩分块消息 |
+| `examples/chunk_interop` | 与官方 Go、Java 客户端双向交换压缩分块消息 |
 | `examples/tls` | 验证 TLS 收发、可选客户端证书/私钥及 broker 重启检查 |
 | `examples/token_rotation` | 同一客户端下验证无效 Token 拒绝和文件 Token 轮换 |
 | `examples/token_reconnect` | 文件 Token 与 Broker 签名密钥轮换后，原有生产者和消费者恢复 |

@@ -1,4 +1,18 @@
-# Java ECIES interoperability check
+# Java client interoperability checks
+
+## Compressed chunk interoperability
+
+From the repository root on a disposable Linux host with Docker, Go and
+MoonBit, run `bash scripts/test-chunk-interop-live.sh 4.2.4` and
+`bash scripts/test-chunk-interop-live.sh 3.3.9`. `ChunkInterop.java` sends
+and receives 256 KiB random payloads in forced 32 KiB LZ4, Zlib and Zstd
+chunks. The script exchanges each payload with `examples/chunk_interop`.
+Java emits a Zlib sync-flushed stream without a complete-stream trailer;
+the native system zlib adapter accepts that form when its declared
+uncompressed size and final flush marker match. Java Snappy uses a different
+framing and remains outside this shared-codec check.
+
+## ECIES encryption
 
 `EncryptionInterop.java` uses the official Java client shipped with Pulsar to
 exercise P-256, P-384 or P-521 ECIES message encryption in both directions. Use a disposable

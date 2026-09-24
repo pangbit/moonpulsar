@@ -654,33 +654,7 @@ fn SingleConsumer::on_frame(
     @proto.BaseCommand_Type::MESSAGE =>
       if !self.closed.val && !self.seeking.val {
         self.dispatch_message(frame) catch {
-          ClientMemoryFull => {
-            self.chunks.clear()
-            self.clear_buffered_messages()
-            self.messages.close(error=ClientMemoryFull, clear=true)
-            self.conn_ref.val.message_handlers.remove(self.consumer_id)
-            self.stop_chunk_sweeper()
-            self.group.spawn_bg(
-              async fn() {
-                let cmd = @proto.BaseCommand::default()
-                cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
-                let close = @proto.CommandCloseConsumer::default()
-                close.consumer_id = self.consumer_id
-                close.request_id = self.conn_ref.val.next_request_id()
-                cmd.close_consumer = Some(close)
-                self.conn_ref.val.send_command(cmd) catch {
-                  _ => ()
-                }
-              },
-              no_wait=true,
-              allow_failure=true,
-            )
-          }
-          error =>
-            if frame.metadata is Some(meta) && !meta.encryption_keys.is_empty() {
-              self.clear_buffered_messages()
-              self.messages.close(error~, clear=true)
-            }
+          error => self.fail_delivery(error)
         }
       }
     @proto.BaseCommand_Type::CLOSE_CONSUMER =>
@@ -704,6 +678,30 @@ fn SingleConsumer::on_frame(
       }
     _ => ()
   }
+}
+
+///|
+fn SingleConsumer::fail_delivery(self : SingleConsumer, error : Error) -> Unit {
+  self.chunks.clear()
+  self.clear_buffered_messages()
+  self.messages.close(error~, clear=true)
+  self.conn_ref.val.message_handlers.remove(self.consumer_id)
+  self.stop_chunk_sweeper()
+  self.group.spawn_bg(
+    async fn() {
+      let cmd = @proto.BaseCommand::default()
+      cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
+      let close = @proto.CommandCloseConsumer::default()
+      close.consumer_id = self.consumer_id
+      close.request_id = self.conn_ref.val.next_request_id()
+      cmd.close_consumer = Some(close)
+      self.conn_ref.val.send_command(cmd) catch {
+        _ => ()
+      }
+    },
+    no_wait=true,
+    allow_failure=true,
+  )
 }
 
 ///|
