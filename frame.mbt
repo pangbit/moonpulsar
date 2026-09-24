@@ -109,6 +109,30 @@ pub async fn[R : @io.Reader] read_frame(reader : R) -> IncomingFrame {
 }
 
 ///|
+/// Reserve the encoded frame before allocating its body. The caller holds the
+/// returned lease through dispatch, then releases it even if dispatch fails.
+async fn[R : @io.Reader] read_frame_with_budget(
+  reader : R,
+  limiter : ClientMemoryLimiter?,
+) -> (IncomingFrame, ClientMemoryLease?) {
+  let header = reader.read_exactly(4) catch { _ => raise ConnectionClosed }
+  let total = ((header[0].to_uint() << 24) |
+  (header[1].to_uint() << 16) |
+  (header[2].to_uint() << 8) |
+  header[3].to_uint()).reinterpret_as_int()
+  if total < 4 || total > 2147483643 {
+    raise InvalidFrame("invalid frame size")
+  }
+  let lease = match limiter {
+    Some(budget) => Some(ClientMemoryLease::new(budget, total + 4))
+    None => None
+  }
+  errdefer (if lease is Some(reservation) { reservation.release() })
+  let body = reader.read_exactly(total) catch { _ => raise ConnectionClosed }
+  (decode_frame_body(body), lease)
+}
+
+///|
 /// A frame received from the broker: the command plus, for MESSAGE frames,
 /// the message metadata and payload.
 pub(all) struct IncomingFrame {

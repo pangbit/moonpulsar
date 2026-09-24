@@ -43,6 +43,7 @@ pub struct Connection {
   priv mut remote_protocol_version : Int
   priv mut max_message_size : Int?
   priv request_timeout_ms : Int
+  priv memory_limiter : ClientMemoryLimiter?
 }
 
 ///|
@@ -61,6 +62,47 @@ pub async fn Connection::connect(
   auth? : AuthData,
   auth_provider? : () -> AuthData,
   tls? : Bool = false,
+  tls_insecure? : Bool = false,
+  tls_trust? : @tls.TrustedRoot,
+  tls_identity? : TlsIdentity,
+  tls_identity_provider? : async () -> TlsIdentity,
+  tls_min_version? : TlsVersion,
+  tls_max_version? : TlsVersion,
+  tls_cipher_list? : String,
+  tls13_ciphersuites? : String,
+  keepalive_interval_ms? : Int = KEEPALIVE_INTERVAL_MS,
+  timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
+  connection_timeout_ms? : Int = 10000,
+  async_auth_provider? : async () -> AuthData,
+) -> Connection {
+  Connection::connect_with_memory(
+    group,
+    addr,
+    auth?,
+    auth_provider?,
+    tls~,
+    tls_insecure~,
+    tls_trust?,
+    tls_identity?,
+    tls_identity_provider?,
+    tls_min_version?,
+    tls_max_version?,
+    tls_cipher_list?,
+    tls13_ciphersuites?,
+    keepalive_interval_ms~,
+    timeout_ms~,
+    connection_timeout_ms~,
+    async_auth_provider?,
+  )
+}
+
+///|
+async fn Connection::connect_with_memory(
+  group : @async.TaskGroup[Unit],
+  addr : String,
+  auth? : AuthData,
+  auth_provider? : () -> AuthData,
+  tls? : Bool = false,
   /// skip certificate verification (self-signed / testing only)
   tls_insecure? : Bool = false,
   tls_trust? : @tls.TrustedRoot,
@@ -74,6 +116,7 @@ pub async fn Connection::connect(
   timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
   connection_timeout_ms? : Int = 10000,
   async_auth_provider? : async () -> AuthData,
+  memory_limiter? : ClientMemoryLimiter,
 ) -> Connection {
   guard timeout_ms > 0 && connection_timeout_ms > 0 && keepalive_interval_ms > 0 else {
     raise InvalidFrame("connection timeouts must be positive")
@@ -186,6 +229,7 @@ pub async fn Connection::connect(
     remote_protocol_version: 0,
     max_message_size: None,
     request_timeout_ms: timeout_ms,
+    memory_limiter,
   }
   errdefer conn.close()
   // handshake before any background traffic
@@ -202,9 +246,14 @@ pub async fn Connection::connect(
   conn.send_bytes(encode_command_frame(cmd))
   let mut connected = false
   for _ in 0..<8 {
-    let reply = @async.with_timeout(timeout_ms, async fn() { conn.read_frame() }) catch {
+    let (reply, lease) = @async.with_timeout(timeout_ms, async fn() {
+      read_frame_with_budget(conn.reader, conn.memory_limiter)
+    }) catch {
       @async.TimeoutError => raise ConnectFailed("handshake timeout: \{addr}")
       e => raise e
+    }
+    if lease is Some(reservation) {
+      reservation.release()
     }
     match reply.cmd.type_ {
       @proto.BaseCommand_Type::CONNECTED => {
@@ -267,11 +316,6 @@ async fn Connection::respond_to_challenge(self : Connection) -> Unit {
   cmd.type_ = @proto.BaseCommand_Type::AUTH_RESPONSE
   cmd.auth_response = Some(response)
   self.send_command(cmd)
-}
-
-///|
-async fn Connection::read_frame(self : Connection) -> IncomingFrame {
-  read_frame(self.reader)
 }
 
 ///|
@@ -524,13 +568,28 @@ async fn Connection::reader_loop(self : Connection) -> Unit {
     if self.closed {
       return
     }
-    let frame = self.read_frame() catch {
+    let (frame, lease) = read_frame_with_budget(
+      self.reader,
+      self.memory_limiter,
+    ) catch {
       e => {
         self.notify_closed(Some(e))
+        (self.close_transport)()
         return
       }
     }
-    self.dispatch(frame)
+    errdefer (if lease is Some(reservation) { reservation.release() })
+    let dispatched : Result[Unit, Error] = Ok(self.dispatch(frame)) catch {
+      e => Err(e)
+    }
+    if lease is Some(reservation) {
+      reservation.release()
+    }
+    if dispatched is Err(error) {
+      self.notify_closed(Some(error))
+      (self.close_transport)()
+      return
+    }
   }
 }
 

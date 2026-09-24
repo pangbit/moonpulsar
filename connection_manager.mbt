@@ -26,6 +26,7 @@ pub struct ConnectionManager {
   priv keepalive_interval_ms : Int
   priv listener_name : String?
   priv lookup_properties : Map[String, String]
+  priv mut memory_limiter : ClientMemoryLimiter?
   priv mut closed : Bool
 }
 
@@ -88,6 +89,7 @@ pub fn ConnectionManager::new(
     keepalive_interval_ms,
     listener_name,
     lookup_properties,
+    memory_limiter: None,
     closed: false,
   }
   if connection_idle_timeout_ms is Some(timeout) {
@@ -172,7 +174,7 @@ pub async fn ConnectionManager::get(
     entry.last_used_ms = now
     return entry.conn
   }
-  let conn = Connection::connect(
+  let conn = Connection::connect_with_memory(
     self.group,
     addr,
     auth?=self.auth,
@@ -190,6 +192,7 @@ pub async fn ConnectionManager::get(
     connection_timeout_ms=self.connection_timeout_ms,
     timeout_ms=self.operation_timeout_ms,
     keepalive_interval_ms=self.keepalive_interval_ms,
+    memory_limiter?=self.memory_limiter,
   )
   if self.closed {
     conn.close()

@@ -112,6 +112,9 @@ pub async fn Client::connect_with_options(
   let tls_trust = options.ca_pem_file.map(fn(path) {
     @tls.TrustedRoot::CustomPemFile(path)
   })
+  let memory_limiter = options.max_memory_bytes.map(fn(limit) {
+    ClientMemoryLimiter::new(limit)
+  })
   let manager = ConnectionManager::new(
     group,
     auth_provider?,
@@ -133,14 +136,13 @@ pub async fn Client::connect_with_options(
     max_connections_per_broker=options.max_connections_per_broker,
     connection_idle_timeout_ms?=options.connection_idle_timeout_ms,
   )
+  manager.memory_limiter = memory_limiter
   ignore(manager.get(addr))
   {
     manager,
     service_addr: addr,
     reconnect_policy: options.reconnect_policy,
-    memory_limiter: options.max_memory_bytes.map(fn(limit) {
-      ClientMemoryLimiter::new(limit)
-    }),
+    memory_limiter,
     on_event: options.on_event,
     span_recorder: options.on_span.map(fn(sink) {
       ClientSpanRecorder::new(sink)

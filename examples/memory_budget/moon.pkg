@@ -1,0 +1,9 @@
+import {
+  "pangbit/moonpulsar" @pulsar,
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+}
+
+supported_targets = "+native"
+
+pkgtype(kind: "executable")

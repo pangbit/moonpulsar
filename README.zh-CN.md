@@ -7,7 +7,7 @@
 ## 功能
 
 - 通过 TCP 使用 Pulsar 二进制协议（`pulsar://`）：握手、保活、请求与响应关联
-- `ClientOptions` 可设置连接/操作超时、保活间隔、每 broker 连接池大小及空闲回收、跨生产者待发送负载字节预算、监听器和查找属性；异步认证提供器可在连接及认证挑战时重读 Token 文件
+- `ClientOptions` 可设置连接/操作超时、保活间隔、每 broker 连接池大小及空闲回收、生产/接收/分块/入站帧共享字节预算、监听器和查找属性；异步认证提供器可在连接及认证挑战时重读 Token 文件
 - Topic 查找、重定向跟随和连接池
 - 生产者：同步与异步发送、共享/独占/等待独占/抢占式访问模式、生产者元数据、按条数/字节数/延迟触发的批量发送、手动 flush、broker 回执与发送错误传递；可限制待发送消息数和客户端共享的负载字节数、选择满队列等待或立即报错，并设置覆盖批次缓冲时间的发送超时
 - 生产者拦截器可在分区路由前修改消息，并观察 broker 回执或发送失败；调用方不等待异步回执时也会触发结果回调。
@@ -23,7 +23,7 @@
 - 多 Topic 消费者，以及能够发现新增 Topic 并关闭已移除源的模式消费者
 - 复合消费者与 Reader 的有界合并队列；慢速应用会对源转发形成背压
 - 自动重连：连接断开后，生产者重放尚未确认的消息，消费者重新订阅；`ClientOptions` 可设置退避和有限重试次数
-- `max_memory_bytes` 对生产者消息的载荷、键、属性及编码重放帧、未完成分块，以及消费者和 Reader 队列中的消息载荷与动态元数据记账。生产者预留在确认、错误、超时或关闭后释放；分块预留在完成、淘汰或清理后释放；接收预留在交付应用、seek 或关闭后释放。编码帧须与原消息同时容纳，无法容纳时返回 `ClientMemoryFull`；接收预算超额时，受影响的消费者或 Reader 队列以 `ClientMemoryFull` 关闭。连接帧缓冲尚未计入。
+- `max_memory_bytes` 对生产者消息的载荷、键、属性及编码重放帧、未完成分块、消费者和 Reader 队列中的消息载荷与动态元数据，以及 Broker 入站帧从读取前到分发完成期间的声明字节数记账。生产者预留在确认、错误、超时或关闭后释放；分块预留在完成、淘汰或清理后释放；接收预留在交付应用、seek 或关闭后释放。编码帧须与原消息同时容纳，无法容纳时返回 `ClientMemoryFull`；接收预算超额时，受影响的消费者或 Reader 队列以 `ClientMemoryFull` 关闭，入站帧超额时关闭该 Broker 连接。TLS/socket 内部缓冲与运行时堆开销不计入。
 - 二进制协议认证：可扩展的 `Authentication` trait，内置 token 与 basic auth；`ClientOptions::new(auth_provider=...)` 可使用轮换 Token 文件、OAuth2 客户端凭据、外部供应的 Athenz 角色令牌，或 `athenz_zts_provider(AthenzZtsOptions::new(...))` 用 RSA 服务 NToken 或客户端证书向 ZTS 换取角色令牌；broker 发出认证挑战时刷新认证数据
 - `pulsar+ssl://` TLS 连接：系统信任根或通过 `Client::connect_tls_with_ca` 提供自定义 PEM CA。`ClientOptions` 还可设置 `TlsIdentity::new(证书文件, 私钥文件)` 或异步 `tls_identity_provider`、TLS 1.2/1.3 版本范围、OpenSSL TLS 1.2 密码列表及 TLS 1.3 密码套件；native 适配层每次连接重新读取身份，并在 lookup 和重连时保持 CA 与主机名校验。
 - LZ4（帧格式）、Zlib、Zstd 压缩；Snappy 的兼容性限制见下文
@@ -52,7 +52,7 @@
 - 消费者可设置 `ack_grouping=AckGroupingOptions::new(max_size=1000, max_time_ms=100)`，按数量或时间合并 ACK；默认不启用。要求 broker 确认的 ACK 和事务 ACK 会先冲刷缓存再立即发送；关闭或 seek 前冲刷，重连时丢弃未发出的 ACK 以便 broker 重投。
 - `Consumer::ack_ids([id1, id2])` 将普通 ID 合入一个 ACK 帧，批次索引 ID 保持位图处理。`Consumer::last_message_ids()` 与 `Reader::last_message_ids()` 返回按来源 Topic（含分区 Topic）索引的最后 ID。零接收队列只适用于非分区单主题消费者；分区、多 Topic、重试和模式订阅会明确报错。
 - `send_timeout_ms` 从批次消息进入生产者缓冲队列时开始计时；在 flush 前过期的消息会从批次中移除。非批次消息仍从 SEND 帧登记时计时。SEND 后超时不代表 broker 一定拒绝消息，重试时应使用稳定的生产者名称和序列号。
-- `ClientOptions::new(max_memory_bytes=...)` 在生产者、未完成分块和接收队列之间共享保留字节预算。`block_if_queue_full=false` 时生产者超额返回 `ClientMemoryFull`，否则等待回执、失败、超时、消息交付或客户端关闭释放额度。连接帧缓冲和运行时堆开销尚未计入。
+- `ClientOptions::new(max_memory_bytes=...)` 在生产者、未完成分块、接收队列和 Broker 入站帧之间共享保留字节预算。`block_if_queue_full=false` 时生产者超额返回 `ClientMemoryFull`，否则等待回执、失败、超时、消息交付或客户端关闭释放额度。这是协议与消息数据的字节记账，并非进程堆内存的精确上限。
 - 消费者设置 `auto_scaled_receiver_queue=true` 后，从 1 个 FLOW 许可开始；队列曾满且下一次读取时已空，预取上限倍增，直至 `receiver_queue_size`。此选项不能与零接收队列同时使用。组合消费者会向每个来源传递此选项，其合并队列仍单独缓冲。
 - 创建生产者时传入 `interceptors=[ProducerInterceptor::new(before_send=..., on_send_result=...)]`。钩子按顺序作用于逻辑生产者；`on_send_result` 也会收到 `ProducerQueueFull` 等入队前错误。回调同步执行且不能抛错。
 - 创建消费者时传入 `interceptors=[ConsumerInterceptor::new(before_consume=..., on_receive_error=..., on_ack=..., on_nack=...)]`。钩子在应用收取消息、`receive()` / `try_receive()` 失败，以及消息或 ID 的 ACK/nack 调用结束时触发；要求 broker 确认的 ACK 被拒绝时，`on_ack` 收到错误。未要求确认的 ACK 回调只代表帧已提交，不代表 broker 已确认。
@@ -81,6 +81,7 @@
 - 4.2.4 与 3.3.9 上的按数量冲刷与关闭前冲刷的 ACK 分组
 - 4.2.4 与 3.3.9 上的批次消息 flush 前超时与后续消息成功投递
 - 4.2.4 与 3.3.9 上两个生产者共享客户端待发送负载字节预算
+- 独立 4.2.4 和 3.3.9 容器及专用命名空间中，`examples/memory_budget` 在 1 MiB 共享预算下通过顺序收发、分块接收和 Reader 回放；超额失败路径由 Mock Broker 验证
 - 4.2.4 与 3.3.9 上自动扩容接收队列的收发与确认；精确 FLOW 扩容由 mock broker 验证
 - 4.2.4 与 3.3.9 上生产者拦截器修改负载和观察回执
 - 4.2.4 与 3.3.9 上消费者拦截器观察交付与 ACK
@@ -151,6 +152,7 @@ async fn main {
 | `examples/oauth2` | 从令牌端点获取 OAuth2 客户端凭据 |
 | `examples/athenz` | Athenz ZTS 服务私钥交换或读取 sidecar 角色令牌文件 |
 | `examples/athenz_cert` | 使用客户端证书向 ZTS 换取角色令牌 |
+| `examples/memory_budget` | 真实 Broker 上的生产、接收、分块和 Reader 共享预算往返测试 |
 | `examples/tls` | 验证 TLS 收发、可选客户端证书/私钥及 broker 重启检查 |
 | `examples/token_rotation` | 同一客户端下验证无效 Token 拒绝和文件 Token 轮换 |
 | `examples/producer_compression` | Zstd 压缩负载 |
