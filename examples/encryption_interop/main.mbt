@@ -45,6 +45,11 @@ async fn main {
     let incoming = @async.with_timeout(10000, async fn() { consumer.receive() })
     assert_eq(incoming.payload(), b"encrypted-from-go")
     incoming.ack(await_response=true)
+    let incoming_empty = @async.with_timeout(10000, async fn() {
+      consumer.receive()
+    })
+    assert_eq(incoming_empty.payload(), b"")
+    incoming_empty.ack(await_response=true)
     consumer.close()
     let reader = client.create_reader(
       topic + "-go",
@@ -53,6 +58,8 @@ async fn main {
     )
     let read_back = @async.with_timeout(10000, async fn() { reader.next() })
     assert_eq(read_back.unwrap().payload(), b"encrypted-from-go")
+    let empty_replay = @async.with_timeout(10000, async fn() { reader.next() })
+    assert_eq(empty_replay.unwrap().payload(), b"")
     reader.close()
     let producer = client.create_producer(
       topic + "-moonbit",
@@ -63,6 +70,13 @@ async fn main {
       producer.send(@pulsar.ProducerMessage::new(b"encrypted-from-moonbit")),
     )
     producer.close()
+    let empty_producer = client.create_producer(
+      topic + "-empty",
+      message_crypto=crypto,
+      encryption_key_names=["test-key"],
+    )
+    ignore(empty_producer.send(@pulsar.ProducerMessage::new(b"")))
+    empty_producer.close()
     let compressed_producer = client.create_producer(
       topic + "-compressed",
       compression=Zlib,

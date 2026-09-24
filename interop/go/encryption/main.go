@@ -17,8 +17,8 @@ func checked(err error) {
 }
 
 func main() {
-	if len(os.Args) != 2 || (os.Args[1] != "send" && os.Args[1] != "receive") {
-		panic("usage: go run ./encryption send|receive")
+	if len(os.Args) != 2 || (os.Args[1] != "send" && os.Args[1] != "receive" && os.Args[1] != "receive-empty") {
+		panic("usage: go run ./encryption send|receive|receive-empty")
 	}
 	topic := os.Getenv("PULSAR_TOPIC")
 	if topic == "" {
@@ -48,8 +48,28 @@ func main() {
 		checked(err)
 		_, err = producer.Send(ctx, &pulsar.ProducerMessage{Payload: []byte("encrypted-from-go")})
 		checked(err)
+		_, err = producer.Send(ctx, &pulsar.ProducerMessage{Payload: []byte{}})
+		checked(err)
 		producer.Close()
-		fmt.Println("Go encrypted send OK")
+		fmt.Println("Go encrypted send and empty payload OK")
+		return
+	}
+	if os.Args[1] == "receive-empty" {
+		consumer, err := client.Subscribe(pulsar.ConsumerOptions{
+			Topic:                       topic + "-empty",
+			SubscriptionName:            fmt.Sprintf("moonpulsar-crypto-empty-go-%d", time.Now().UnixNano()),
+			SubscriptionInitialPosition: pulsar.SubscriptionPositionEarliest,
+			Decryption:                  &pulsar.MessageDecryptionInfo{KeyReader: keys},
+		})
+		checked(err)
+		message, err := consumer.Receive(ctx)
+		checked(err)
+		if len(message.Payload()) != 16 {
+			panic(fmt.Sprintf("expected pinned Go client to expose 16-byte encrypted empty payload, got %d bytes", len(message.Payload())))
+		}
+		checked(consumer.Ack(message))
+		consumer.Close()
+		fmt.Println("Pinned Go client empty-payload decryption limitation reproduced")
 		return
 	}
 	for suffix, expected := range map[string][]string{

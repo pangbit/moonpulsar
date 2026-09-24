@@ -48,7 +48,14 @@ moon run examples/encryption_interop --target native
 (cd interop/go && go run ./encryption receive)
 ```
 
-The MoonBit sender also writes encrypted Zlib and two-message batches; the Go
-receiver decodes every payload. The PEM files under `testdata/encryption` are
+Both senders write an encrypted empty payload. The MoonBit sender also writes
+encrypted Zlib and two-message batches; the Go receiver decodes every nonempty payload.
+The PEM files under `testdata/encryption` are
 disposable test keys. The full exchange passed on Pulsar 4.2.4 and an isolated
 3.3.9 broker.
+
+The pinned Go client's consumer currently exposes the 16-byte GCM tag for an
+encrypted empty payload: its decode path only swaps in the decrypted buffer
+when `UncompressedSize > 0`. Run `go run ./encryption receive-empty` after the
+MoonBit step to reproduce this limitation. MoonBit decodes Go's encrypted empty
+payload correctly.

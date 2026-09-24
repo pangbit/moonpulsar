@@ -29,6 +29,19 @@ async test "Pulsar crypto wraps a fresh key and authenticates message payload" {
 }
 
 ///|
+async test "encrypted empty payload contains an authentication tag" {
+  let crypto = @moonpulsar.MessageCrypto::new()
+  crypto.load_public_key_file("test-key", "testdata/encryption/rsa_public.pem")
+  crypto.load_private_key_file(
+    "test-key", "testdata/encryption/rsa_private.pem",
+  )
+  let metadata = @proto.MessageMetadata::default()
+  let encrypted = crypto.encrypt(metadata, b"", ["test-key"])
+  assert_eq(encrypted.length(), 16)
+  assert_eq(crypto.decrypt(metadata, encrypted), b"")
+}
+
+///|
 test "RSA PEM parser rejects invalid and truncated keys" {
   let public : Result[@moonpulsar.EncryptionPublicKey, Error] = Ok(
     @moonpulsar.EncryptionPublicKey::from_pem(
