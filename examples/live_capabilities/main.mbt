@@ -177,6 +177,44 @@ async fn main {
     surviving_message.ack()
     batch_timeout_consumer.close()
     batch_timeout_producer.close()
+    let memory_options = match @env.get_env_var("PULSAR_TOKEN") {
+      Some(token) =>
+        @pulsar.ClientOptions::new(
+          url,
+          auth=@pulsar.TokenAuth::new(token),
+          max_memory_bytes=5,
+        )
+      None => @pulsar.ClientOptions::new(url, max_memory_bytes=5)
+    }
+    let memory_client = @pulsar.Client::connect_with_options(
+      group, memory_options,
+    )
+    let memory_buffered = memory_client.create_producer(
+      "persistent://public/default/\{prefix}-memory-buffered",
+      batching=@pulsar.BatchingConfig::{
+        max_messages: 10,
+        max_bytes: 4096,
+        max_delay_ms: 60000,
+      },
+    )
+    let memory_other = memory_client.create_producer(
+      "persistent://public/default/\{prefix}-memory-other",
+    )
+    let held = memory_buffered.send_async(
+      @pulsar.ProducerMessage::new(b"12345"),
+    )
+    let full : Result[@pulsar.ReceiptFuture, Error] = Ok(
+      memory_other.send_async(@pulsar.ProducerMessage::new(b"x")),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(full is Err(@pulsar.PulsarError::ClientMemoryFull))
+    memory_buffered.flush()
+    ignore(held.wait())
+    ignore(memory_other.send(@pulsar.ProducerMessage::new(b"x")))
+    memory_buffered.close()
+    memory_other.close()
+    memory_client.close()
     let timeout_consumer = client.create_consumer(
       topic_a,
       "\{prefix}-timeout-sub",

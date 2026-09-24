@@ -19,6 +19,8 @@ pub(all) suberror PulsarError {
   ProducerClosed
   /// The configured producer pending-message limit has been reached.
   ProducerQueueFull
+  /// The client's pending payload-byte limit has been reached.
+  ClientMemoryFull
   /// Operation attempted on a closed consumer.
   ConsumerClosed
   /// CRC32-C checksum of an incoming message frame did not match.
@@ -42,6 +44,7 @@ pub impl Show for PulsarError with fn output(self, logger) {
     TooManyRedirects => "too many lookup redirects"
     ProducerClosed => "producer closed"
     ProducerQueueFull => "producer pending-message queue is full"
+    ClientMemoryFull => "client pending payload-byte limit is full"
     ConsumerClosed => "consumer closed"
     ChecksumMismatch => "message checksum mismatch"
     InvalidFrame(msg) => "invalid frame: \{msg}"

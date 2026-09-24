@@ -69,6 +69,7 @@ pub(all) suberror PulsarError {
   TooManyRedirects
   ProducerClosed
   ProducerQueueFull
+  ClientMemoryFull
   ConsumerClosed
   ChecksumMismatch
   InvalidFrame(String)
@@ -162,10 +163,12 @@ pub async fn Client::partitions_of(Self, String) -> Int
 pub async fn Client::topics_of_namespace(Self, String, pattern? : String, mode? : NamespaceTopicMode) -> Array[String]
 pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordinator
 
+type ClientMemoryLimiter
+
 pub struct ClientOptions {
   // private fields
 }
-pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, listener_name? : String, lookup_properties? : Map[String, String], reconnect_policy? : RetryPolicy, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int) -> Self raise PulsarError
+pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, listener_name? : String, lookup_properties? : Map[String, String], reconnect_policy? : RetryPolicy, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int, max_memory_bytes? : Int) -> Self raise PulsarError
 
 pub(all) enum CompressionCodec {
   None

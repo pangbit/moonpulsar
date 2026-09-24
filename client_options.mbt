@@ -16,6 +16,7 @@ pub struct ClientOptions {
   priv reconnect_policy : RetryPolicy
   priv max_connections_per_broker : Int
   priv connection_idle_timeout_ms : Int?
+  priv max_memory_bytes : Int?
 }
 
 ///|
@@ -33,6 +34,7 @@ pub fn ClientOptions::new(
   reconnect_policy? : RetryPolicy = RetryPolicy::default(),
   max_connections_per_broker? : Int = 1,
   connection_idle_timeout_ms? : Int,
+  max_memory_bytes? : Int,
 ) -> ClientOptions raise PulsarError {
   guard connection_timeout_ms > 0 &&
     operation_timeout_ms > 0 &&
@@ -59,6 +61,9 @@ pub fn ClientOptions::new(
   if connection_idle_timeout_ms is Some(timeout) && timeout <= 0 {
     raise InvalidFrame("connection idle timeout must be positive")
   }
+  if max_memory_bytes is Some(limit) && limit <= 0 {
+    raise InvalidFrame("client memory limit must be positive")
+  }
   {
     service_url,
     auth,
@@ -73,6 +78,7 @@ pub fn ClientOptions::new(
     reconnect_policy,
     max_connections_per_broker,
     connection_idle_timeout_ms,
+    max_memory_bytes,
   }
 }
 

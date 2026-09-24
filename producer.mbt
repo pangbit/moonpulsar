@@ -96,6 +96,7 @@ pub struct SingleProducer {
   priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
   priv pending_slots : @aqueue.Queue[Unit]?
+  priv memory_limiter : ClientMemoryLimiter?
   priv block_if_queue_full : Bool
   priv send_timeout_ms : Int?
   priv compression : CompressionCodec
@@ -142,6 +143,46 @@ pub async fn SingleProducer::create(
   max_pending_messages? : Int,
   block_if_queue_full? : Bool = false,
   send_timeout_ms? : Int,
+) -> SingleProducer {
+  SingleProducer::create_with_memory(
+    group,
+    conn,
+    topic,
+    name?,
+    properties~,
+    access_mode~,
+    batching?,
+    reconnect_with?,
+    compression~,
+    chunk_size?,
+    automatic_chunking~,
+    schema?,
+    reconnect_policy~,
+    max_pending_messages?,
+    block_if_queue_full~,
+    send_timeout_ms?,
+  )
+}
+
+///|
+async fn SingleProducer::create_with_memory(
+  group : @async.TaskGroup[Unit],
+  conn : Connection,
+  topic : String,
+  name? : String,
+  properties? : Map[String, String] = {},
+  access_mode? : ProducerAccessMode = Shared,
+  batching? : BatchingConfig,
+  reconnect_with? : async () -> Connection,
+  compression? : CompressionCodec = None,
+  chunk_size? : Int,
+  automatic_chunking? : Bool = false,
+  schema? : SchemaInfo,
+  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
+  max_pending_messages? : Int,
+  block_if_queue_full? : Bool = false,
+  send_timeout_ms? : Int,
+  memory_limiter? : ClientMemoryLimiter,
 ) -> SingleProducer {
   if max_pending_messages is Some(limit) && limit <= 0 {
     raise InvalidFrame("max pending messages must be positive")
@@ -190,6 +231,7 @@ pub async fn SingleProducer::create(
     reconnect_policy,
     reconnecting: { val: false, },
     pending_slots,
+    memory_limiter,
     block_if_queue_full,
     send_timeout_ms,
     compression,
@@ -464,39 +506,68 @@ pub async fn SingleProducer::send_async(
   if self.closed {
     raise ProducerClosed
   }
-  guard self.pending_slots is Some(slots) else {
-    return self.send_async_unbounded(msg)
-  }
-  if self.block_if_queue_full {
-    slots.get() catch {
-      _ => raise ProducerClosed
+  let slots = self.pending_slots
+  if slots is Some(queue) {
+    if self.block_if_queue_full {
+      queue.get() catch {
+        _ => raise ProducerClosed
+      }
+    } else if queue.try_get() is None {
+      raise ProducerQueueFull
     }
-  } else if slots.try_get() is None {
-    raise ProducerQueueFull
+  }
+  let size = msg.payload.length()
+  if self.memory_limiter is Some(limiter) {
+    limiter.acquire(size, self.block_if_queue_full) catch {
+      e => {
+        if slots is Some(queue) {
+          ignore(queue.try_put(()) catch { _ => false })
+        }
+        raise e
+      }
+    }
   }
   if self.closed {
-    ignore(slots.try_put(()))
+    if self.memory_limiter is Some(limiter) {
+      limiter.release(size)
+    }
+    if slots is Some(queue) {
+      ignore(queue.try_put(()) catch { _ => false })
+    }
     raise ProducerClosed
   }
   let inner = self.send_async_unbounded(msg) catch {
     e => {
-      ignore(slots.try_put(()))
+      if self.memory_limiter is Some(limiter) {
+        limiter.release(size)
+      }
+      if slots is Some(queue) {
+        ignore(queue.try_put(()) catch { _ => false })
+      }
       raise e
     }
+  }
+  if slots is None && self.memory_limiter is None {
+    return inner
   }
   let reply : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
     kind=@aqueue.Kind::Blocking(1),
   )
   self.group.spawn_bg(
     async fn() {
-      defer ignore(slots.try_put(()))
-      let receipt = inner.wait() catch {
-        e => {
-          reply.close(error=e, clear=true)
-          return
-        }
+      let result : Result[SendReceipt, Error] = Ok(inner.wait()) catch {
+        e => Err(e)
       }
-      ignore(reply.try_put(receipt))
+      if self.memory_limiter is Some(limiter) {
+        limiter.release(size)
+      }
+      if slots is Some(queue) {
+        ignore(queue.try_put(()) catch { _ => false })
+      }
+      match result {
+        Ok(receipt) => ignore(reply.try_put(receipt))
+        Err(e) => reply.close(error=e, clear=true)
+      }
     },
     no_wait=true,
     allow_failure=true,
@@ -744,6 +815,9 @@ pub async fn SingleProducer::send_txn(
   txn : Transaction,
   msg : ProducerMessage,
 ) -> SendReceipt {
+  if self.closed {
+    raise ProducerClosed
+  }
   let slots = self.pending_slots
   if slots is Some(slots) {
     if self.block_if_queue_full {
@@ -754,11 +828,45 @@ pub async fn SingleProducer::send_txn(
       raise ProducerQueueFull
     }
   }
-  defer (if slots is Some(slots) { ignore(slots.try_put(())) })
-  if self.chunk_size is Some(_) || self.automatic_chunking {
-    return self.send_chunked(msg, txn~)
+  let size = msg.payload.length()
+  if self.memory_limiter is Some(limiter) {
+    limiter.acquire(size, self.block_if_queue_full) catch {
+      e => {
+        if slots is Some(queue) {
+          ignore(queue.try_put(()) catch { _ => false })
+        }
+        raise e
+      }
+    }
   }
-  self.send_messages([msg], txn~).get()
+  if self.closed {
+    if self.memory_limiter is Some(limiter) {
+      limiter.release(size)
+    }
+    if slots is Some(queue) {
+      ignore(queue.try_put(()) catch { _ => false })
+    }
+    raise ProducerClosed
+  }
+  let result : Result[SendReceipt, Error] = Ok(
+    if self.chunk_size is Some(_) || self.automatic_chunking {
+      self.send_chunked(msg, txn~)
+    } else {
+      self.send_messages([msg], txn~).get()
+    },
+  ) catch {
+    e => Err(e)
+  }
+  if self.memory_limiter is Some(limiter) {
+    limiter.release(size)
+  }
+  if slots is Some(queue) {
+    ignore(queue.try_put(()) catch { _ => false })
+  }
+  match result {
+    Ok(receipt) => receipt
+    Err(e) => raise e
+  }
 }
 
 ///|

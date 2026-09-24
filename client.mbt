@@ -66,6 +66,7 @@ pub struct Client {
   priv manager : ConnectionManager
   priv service_addr : String
   priv reconnect_policy : RetryPolicy
+  priv memory_limiter : ClientMemoryLimiter?
 }
 
 ///|
@@ -113,7 +114,14 @@ pub async fn Client::connect_with_options(
     connection_idle_timeout_ms?=options.connection_idle_timeout_ms,
   )
   ignore(manager.get(addr))
-  { manager, service_addr: addr, reconnect_policy: options.reconnect_policy, }
+  {
+    manager,
+    service_addr: addr,
+    reconnect_policy: options.reconnect_policy,
+    memory_limiter: options.max_memory_bytes.map(fn(limit) {
+      ClientMemoryLimiter::new(limit)
+    }),
+  }
 }
 
 ///|
@@ -154,6 +162,9 @@ pub async fn Client::connect_tls_with_ca(
 ///|
 /// Close all connections opened by this client.
 pub fn Client::close(self : Client) -> Unit {
+  if self.memory_limiter is Some(limiter) {
+    limiter.close()
+  }
   self.manager.close()
 }
 
@@ -191,7 +202,7 @@ pub async fn Client::create_producer(
   let partitions = get_partition_count(manager, addr, topic)
   if partitions == 0 {
     let conn = lookup_topic(manager, addr, topic)
-    let single = SingleProducer::create(
+    let single = SingleProducer::create_with_memory(
       self.manager.group,
       conn,
       topic,
@@ -208,6 +219,7 @@ pub async fn Client::create_producer(
       max_pending_messages?,
       block_if_queue_full~,
       send_timeout_ms?,
+      memory_limiter?=self.memory_limiter,
     )
     return Producer::single(single)
   }
@@ -215,7 +227,7 @@ pub async fn Client::create_producer(
     let partition_topic = "\{topic}-partition-\{i}"
     let conn = lookup_topic(manager, addr, partition_topic)
     Producer::single(
-      SingleProducer::create(
+      SingleProducer::create_with_memory(
         self.manager.group,
         conn,
         partition_topic,
@@ -234,6 +246,7 @@ pub async fn Client::create_producer(
         max_pending_messages?,
         block_if_queue_full~,
         send_timeout_ms?,
+        memory_limiter?=self.memory_limiter,
       ),
     )
   }
