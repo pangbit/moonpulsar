@@ -124,6 +124,8 @@ pub(all) struct AthenzZtsOptions {
   tenant_domain : String
   tenant_service : String
   private_key_file : String
+  certificate_file : String?
+  ca_pem_file : String?
   key_id : String
   role : String
   principal_header : String
@@ -133,7 +135,7 @@ pub(all) struct AthenzZtsOptions {
   max_retries : Int
   retry_delay_ms : Int
 }
-pub fn AthenzZtsOptions::new(String, String, String, String, String, key_id? : String, role? : String, principal_header? : String, min_expiry_secs? : Int, max_expiry_secs? : Int, refresh_before_ms? : Int, max_retries? : Int, retry_delay_ms? : Int) -> Self raise PulsarError
+pub fn AthenzZtsOptions::new(String, String, String, String, String, certificate_file? : String, ca_pem_file? : String, key_id? : String, role? : String, principal_header? : String, min_expiry_secs? : Int, max_expiry_secs? : Int, refresh_before_ms? : Int, max_retries? : Int, retry_delay_ms? : Int) -> Self raise PulsarError
 
 pub(all) struct AuthData {
   method_name : String

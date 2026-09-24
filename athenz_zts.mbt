@@ -9,6 +9,8 @@ pub(all) struct AthenzZtsOptions {
   tenant_domain : String
   tenant_service : String
   private_key_file : String
+  certificate_file : String?
+  ca_pem_file : String?
   key_id : String
   role : String
   principal_header : String
@@ -26,6 +28,8 @@ pub fn AthenzZtsOptions::new(
   tenant_domain : String,
   tenant_service : String,
   private_key_file : String,
+  certificate_file? : String,
+  ca_pem_file? : String,
   key_id? : String = "0",
   role? : String = "",
   principal_header? : String = "Athenz-Principal-Auth",
@@ -37,8 +41,10 @@ pub fn AthenzZtsOptions::new(
 ) -> AthenzZtsOptions raise PulsarError {
   guard zts_url != "" &&
     provider_domain != "" &&
-    tenant_domain != "" &&
-    tenant_service != "" &&
+    (
+      certificate_file is Some(_) ||
+      (tenant_domain != "" && tenant_service != "")
+    ) &&
     private_key_file != "" &&
     key_id != "" &&
     principal_header != "" else {
@@ -51,12 +57,27 @@ pub fn AthenzZtsOptions::new(
     retry_delay_ms >= 0 else {
     raise InvalidFrame("invalid Athenz ZTS expiry or retry settings")
   }
+  if certificate_file is Some(cert) {
+    guard cert != "" && zts_url.has_prefix("https://") else {
+      raise InvalidFrame(
+        "Athenz certificate identity requires an HTTPS ZTS URL",
+      )
+    }
+  }
+  if ca_pem_file is Some("") {
+    raise InvalidFrame("Athenz ZTS CA file must not be empty")
+  }
+  if ca_pem_file is Some(_) && certificate_file is None {
+    raise InvalidFrame("Athenz ZTS CA file requires certificate identity")
+  }
   {
     zts_url: zts_url.trim_end(chars="/").to_owned(),
     provider_domain,
     tenant_domain,
     tenant_service,
     private_key_file,
+    certificate_file,
+    ca_pem_file,
     key_id,
     role,
     principal_header,
@@ -125,7 +146,11 @@ priv struct AthenzCachedRoleToken {
 async fn athenz_request_role_token(
   options : AthenzZtsOptions,
 ) -> AthenzCachedRoleToken {
-  let principal = athenz_service_token(options)
+  let principal : String? = if options.certificate_file is Some(_) {
+    None
+  } else {
+    Some(athenz_service_token(options))
+  }
   let mut url = options.zts_url +
     "/zts/v1/domain/" +
     oauth2_form_component(options.provider_domain) +
@@ -133,21 +158,33 @@ async fn athenz_request_role_token(
   if options.role != "" {
     url += "&role=" + oauth2_form_component(options.role)
   }
-  let headers = Map([])
-  headers[@http.CaseInsensitiveString(options.principal_header)] = principal
-  let (response, body) = @http.request(
-    url,
-    @http.RequestMethod::Get,
-    headers,
-    b"",
-  )
-  guard response.code >= 200 && response.code < 300 else {
+  let (status, body) = match options.certificate_file {
+    Some(cert) =>
+      athenz_certificate_get(
+        url,
+        cert,
+        options.private_key_file,
+        options.ca_pem_file,
+      )
+    None => {
+      let headers = Map([])
+      headers[@http.CaseInsensitiveString(options.principal_header)] = principal.unwrap()
+      let (response, body) = @http.request(
+        url,
+        @http.RequestMethod::Get,
+        headers,
+        b"",
+      )
+      (response.code, body.binary())
+    }
+  }
+  guard status >= 200 && status < 300 else {
     raise ServerError(
-      code=response.code,
+      code=status,
       message="Athenz ZTS rejected role-token request",
     )
   }
-  let json = @json.parse(body.text()) catch {
+  let json = @json.parse(@utf8.decode_lossy(body)) catch {
     _ => raise AuthenticationFailed("Athenz ZTS response is not JSON")
   }
   guard json is Object(fields) &&
@@ -166,9 +203,10 @@ async fn athenz_request_role_token(
 }
 
 ///|
-/// Sign a service NToken, exchange it with ZTS, and cache the role token
-/// until shortly before expiry. Failed refreshes retry and may use a still
-/// valid cached token. Pass the result as `ClientOptions::new(auth_provider=...)`.
+/// Sign a service NToken or present a client certificate to ZTS, then cache
+/// the role token until shortly before expiry. Failed refreshes retry and may
+/// use a still valid cached token. Pass the result as
+/// `ClientOptions::new(auth_provider=...)`.
 pub fn athenz_zts_provider(options : AthenzZtsOptions) -> async () -> AuthData {
   let cached : Ref[AthenzCachedRoleToken?] = { val: None, }
   async fn() {
