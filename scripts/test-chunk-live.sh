@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Run on a dedicated Linux host with Docker, MoonBit, and ports 7665/8086 free.
+# Run chunk and receive-queue memory checks on a dedicated Linux host.
+# Requires Docker, MoonBit, and ports 7665/8086 free.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -40,6 +41,9 @@ PULSAR_LIVE_CHUNK_URL=pulsar://127.0.0.1:7665 \
 PULSAR_LIVE_CHUNK_ADMIN_URL=http://127.0.0.1:8086 \
 PULSAR_LIVE_CHUNK_TOPIC="persistent://public/default/$name" \
 moon test chunk_live_wbtest.mbt --target native
+PULSAR_LIVE_QUEUE_URL=pulsar://127.0.0.1:7665 \
+PULSAR_LIVE_QUEUE_TOPIC="persistent://public/default/$name-queue" \
+moon test receive_queue_live_wbtest.mbt --target native
 PULSAR_URL=pulsar://127.0.0.1:7665 \
 PULSAR_NAMESPACE=public/default \
 PULSAR_TEST_PREFIX="$name-roundtrip" \
