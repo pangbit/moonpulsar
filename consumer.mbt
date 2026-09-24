@@ -207,6 +207,7 @@ pub struct SingleConsumer {
   priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
   priv on_event : ((ClientEvent) -> Unit)?
+  priv mut span_recorder : ClientSpanRecorder?
   priv seeking : Ref[Bool]
   priv seek_mu : @async.Mutex
   priv group : @async.TaskGroup[Unit]
@@ -304,6 +305,7 @@ pub async fn SingleConsumer::create(
     reconnect_policy,
     reconnecting: { val: false, },
     on_event,
+    span_recorder: None,
     seeking: { val: false, },
     seek_mu: @async.Mutex::Mutex(),
     group,
@@ -418,6 +420,15 @@ fn SingleConsumer::attach(self : SingleConsumer, conn : Connection) -> Unit {
 /// Re-subscribe on a fresh connection and resume the message flow.
 async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
   guard self.reconnect_with is Some(provider) else { return }
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Reconnect, self.topic)
+  })
+  let span_done : Ref[Bool] = { val: false, }
+  defer (if !span_done.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let policy = self.reconnect_policy
   let retry_method = @async.RetryMethod::ExponentialDelay(
     initial=policy.initial_backoff_ms,
@@ -463,6 +474,10 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
     }
   }
   let result : Result[Unit, Error] = Ok(run()) catch { e => Err(e) }
+  if self.span_recorder is Some(recorder) && span is Some(start) {
+    recorder.finish_result(start, result)
+    span_done.val = true
+  }
   if self.on_event is Some(sink) {
     sink(ClientEvent::ConsumerReconnected(self.topic, result))
   }
@@ -793,6 +808,7 @@ fn build_message(
     on_ack: None,
     on_nack: None,
     interceptors: [],
+    span_recorder: None,
     nack_scheduler,
   }
 }
@@ -1350,6 +1366,22 @@ pub struct Consumer {
   priv mut dead_letter : DeadLetterState?
   priv mut retry_letter : RetryLetterState?
   priv mut interceptors : Array[ConsumerInterceptor]
+  priv mut span_recorder : ClientSpanRecorder?
+}
+
+///|
+fn Consumer::set_span_recorder(
+  self : Consumer,
+  recorder : ClientSpanRecorder?,
+) -> Unit {
+  self.span_recorder = recorder
+  match self.inner {
+    ConsumerImpl::Single(c) => c.span_recorder = recorder
+    ConsumerImpl::Partitioned(state) =>
+      for sub in state.consumers {
+        sub.set_span_recorder(recorder)
+      }
+  }
 }
 
 ///|
@@ -1363,6 +1395,7 @@ fn Consumer::set_interceptors(
 ///|
 fn Consumer::delivered(self : Consumer, message : Message) -> Unit {
   message.interceptors = self.interceptors
+  message.span_recorder = self.span_recorder
   for interceptor in self.interceptors {
     interceptor.delivered(message)
   }
@@ -1484,6 +1517,7 @@ fn Consumer::single(c : SingleConsumer) -> Consumer {
     dead_letter: None,
     retry_letter: None,
     interceptors: [],
+    span_recorder: None,
   }
 }
 
@@ -1523,6 +1557,7 @@ pub fn Consumer::partitioned(
     dead_letter: None,
     retry_letter: None,
     interceptors: [],
+    span_recorder: None,
   }
 }
 
@@ -1544,6 +1579,7 @@ fn Consumer::pattern(pattern : String, subscription : String) -> Consumer {
     dead_letter: None,
     retry_letter: None,
     interceptors: [],
+    span_recorder: None,
   }
 }
 
@@ -1655,25 +1691,57 @@ async fn Consumer::receive_untracked(self : Consumer) -> Message {
 ///|
 /// Receive the next message, blocking until one is available.
 pub async fn Consumer::receive(self : Consumer) -> Message {
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Receive, self.topic())
+  })
+  let span_done : Ref[Bool] = { val: false, }
+  defer (if !span_done.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let result = Ok(self.receive_untracked()) catch { error => Err(error) }
   let message = match result {
     Ok(value) => value
     Err(error) => {
+      if self.span_recorder is Some(recorder) && span is Some(start) {
+        recorder.finish(start, false, error="\{error}")
+        span_done.val = true
+      }
       self.observe_receive_error(error)
       raise error
     }
   }
   self.delivered(message)
+  if self.span_recorder is Some(recorder) && span is Some(start) {
+    recorder.finish({ ..start, message_id: Some(message.id()), }, true)
+    span_done.val = true
+  }
   message
 }
 
 ///|
 /// Non-blocking receive: returns `None` if no message is buffered.
 pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Receive, self.topic())
+  })
   let result = Ok(self.try_receive_raw()) catch { error => Err(error) }
   match result {
-    Ok(value) => value
+    Ok(value) => {
+      if self.span_recorder is Some(recorder) && span is Some(start) {
+        let completed = match value {
+          Some(message) => { ..start, message_id: Some(message.id()), }
+          None => start
+        }
+        recorder.finish(completed, true)
+      }
+      value
+    }
     Err(error) => {
+      if self.span_recorder is Some(recorder) && span is Some(start) {
+        recorder.finish(start, false, error="\{error}")
+      }
       self.observe_receive_error(error)
       raise error
     }
@@ -1732,8 +1800,21 @@ pub async fn Consumer::ack(
   id : MessageId,
   await_response? : Bool = false,
 ) -> Unit {
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Ack, self.topic(), message_id=id)
+  })
+  let span_done : Ref[Bool] = { val: false, }
+  defer (if !span_done.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let result : Result[Unit, Error] = Ok(self.ack_raw(id, await_response)) catch {
     e => Err(e)
+  }
+  if self.span_recorder is Some(recorder) && span is Some(start) {
+    recorder.finish_result(start, result)
+    span_done.val = true
   }
   self.observe_ack(id, result)
   match result {
@@ -1760,10 +1841,23 @@ pub async fn Consumer::ack_ids(
         }
       }
       if !ordinary.is_empty() {
+        let span = self.span_recorder.map(fn(recorder) {
+          recorder.begin(Ack, c.topic())
+        })
+        let span_done : Ref[Bool] = { val: false, }
+        defer (if !span_done.val &&
+          self.span_recorder is Some(recorder) &&
+          span is Some(start) {
+          recorder.finish(start, false, error="cancelled")
+        })
         let result : Result[Unit, Error] = Ok(
           c.ack_ids(ordinary, await_response~),
         ) catch {
           e => Err(e)
+        }
+        if self.span_recorder is Some(recorder) && span is Some(start) {
+          recorder.finish_result(start, result)
+          span_done.val = true
         }
         for id in ordinary {
           self.observe_ack(id, result)
@@ -1813,10 +1907,23 @@ pub async fn Consumer::ack_cumulative(
   id : MessageId,
   await_response? : Bool = false,
 ) -> Unit {
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Ack, self.topic(), message_id=id)
+  })
+  let span_done : Ref[Bool] = { val: false, }
+  defer (if !span_done.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let result : Result[Unit, Error] = Ok(
     self.ack_cumulative_raw(id, await_response),
   ) catch {
     e => Err(e)
+  }
+  if self.span_recorder is Some(recorder) && span is Some(start) {
+    recorder.finish_result(start, result)
+    span_done.val = true
   }
   self.observe_ack(id, result)
   match result {
@@ -1862,10 +1969,23 @@ pub async fn Consumer::ack_txn(
   id : MessageId,
   await_response? : Bool = false,
 ) -> Unit {
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Ack, self.topic(), message_id=id)
+  })
+  let span_done : Ref[Bool] = { val: false, }
+  defer (if !span_done.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let result : Result[Unit, Error] = Ok(
     self.ack_txn_raw(txn, id, await_response),
   ) catch {
     e => Err(e)
+  }
+  if self.span_recorder is Some(recorder) && span is Some(start) {
+    recorder.finish_result(start, result)
+    span_done.val = true
   }
   self.observe_ack(id, result)
   match result {

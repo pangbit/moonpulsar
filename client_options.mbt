@@ -18,6 +18,7 @@ pub struct ClientOptions {
   priv connection_idle_timeout_ms : Int?
   priv max_memory_bytes : Int?
   priv on_event : ((ClientEvent) -> Unit)?
+  priv on_span : ((ClientSpanEvent) -> Unit)?
 }
 
 ///|
@@ -37,6 +38,7 @@ pub fn ClientOptions::new(
   connection_idle_timeout_ms? : Int,
   max_memory_bytes? : Int,
   on_event? : (ClientEvent) -> Unit,
+  on_span? : (ClientSpanEvent) -> Unit,
 ) -> ClientOptions raise PulsarError {
   guard connection_timeout_ms > 0 &&
     operation_timeout_ms > 0 &&
@@ -82,6 +84,7 @@ pub fn ClientOptions::new(
     connection_idle_timeout_ms,
     max_memory_bytes,
     on_event,
+    on_span,
   }
 }
 

@@ -185,6 +185,10 @@ async test "consumer interceptor sees rejected confirmed message ACK" {
         "sub",
       ),
     )
+    let spans : Array[ClientSpanEvent] = []
+    consumer.set_span_recorder(
+      Some(ClientSpanRecorder::new(fn(event) { spans.push(event) })),
+    )
     let seen : Array[Bool] = []
     consumer.set_interceptors([
       ConsumerInterceptor::new(on_ack=fn(_id, result) {
@@ -197,6 +201,11 @@ async test "consumer interceptor sees rejected confirmed message ACK" {
     }
     assert_true(failed is Err(ServerError(message="ack denied", ..)))
     assert_eq(seen, [true])
+    assert_true(
+      spans[3] is Finished(span, _, false, Some(_)) &&
+      span.operation is Ack &&
+      span.message_id == Some(message.id()),
+    )
     consumer.close()
     manager.close()
   })

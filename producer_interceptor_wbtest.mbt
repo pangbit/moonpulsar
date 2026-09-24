@@ -151,6 +151,18 @@ async test "producer interceptor sees queue rejection and async receipt without 
         max_pending_messages=1,
       ),
     )
+    let starts : Array[Int64] = []
+    let finishes : Map[Int64, Bool] = Map([])
+    producer.set_span_recorder(
+      Some(
+        ClientSpanRecorder::new(fn(event) {
+          match event {
+            Started(span) => starts.push(span.id)
+            Finished(span, _, success, _) => finishes[span.id] = success
+          }
+        }),
+      ),
+    )
     let observed : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
       kind=@aqueue.Kind::Blocking(2),
     )
@@ -170,6 +182,9 @@ async test "producer interceptor sees queue rejection and async receipt without 
     release.put(())
     assert_true(@async.with_timeout(1000, async fn() { observed.get() }))
     ignore(pending.wait())
+    assert_eq(starts.length(), 2)
+    assert_eq(finishes.get(starts[0]), Some(true))
+    assert_eq(finishes.get(starts[1]), Some(false))
     producer.close()
     manager.close()
   })

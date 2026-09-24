@@ -14,6 +14,9 @@ async fn main {
     }
     let metrics = @pulsar.ClientMetrics::new()
     let observe = fn(event : @pulsar.ClientEvent) { metrics.record(event) }
+    let observe_span = fn(event : @pulsar.ClientSpanEvent) {
+      metrics.record_span(event)
+    }
     let options = match
       (@env.get_env_var("PULSAR_TOKEN_FILE"), @env.get_env_var("PULSAR_TOKEN")) {
       (Some(path), _) =>
@@ -22,6 +25,7 @@ async fn main {
           auth_provider=@pulsar.token_file_provider(path),
           max_connections_per_broker=pool_size,
           on_event=observe,
+          on_span=observe_span,
         )
       (None, Some(token)) =>
         @pulsar.ClientOptions::new(
@@ -29,12 +33,14 @@ async fn main {
           auth=@pulsar.TokenAuth::new(token),
           max_connections_per_broker=pool_size,
           on_event=observe,
+          on_span=observe_span,
         )
       (None, None) =>
         @pulsar.ClientOptions::new(
           url,
           max_connections_per_broker=pool_size,
           on_event=observe,
+          on_span=observe_span,
         )
     }
     let client = @pulsar.Client::connect_with_options(group, options)
@@ -1156,6 +1162,11 @@ async fn main {
     assert_true(snapshot.sends > 0L)
     assert_true(snapshot.received > 0L)
     assert_true(snapshot.acknowledgments > 0L)
+    assert_true(
+      metrics
+      .prometheus_text()
+      .contains("moonpulsar_operation_duration_ms_count{operation=\"send\"}"),
+    )
     client.close()
     println(
       "live multi-topic, pattern discovery, dead-letter/retry, schema codecs, admin properties/backlog, ack timeout, chunking, partition expansion, and coordinator lookup OK",

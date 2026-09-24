@@ -95,17 +95,25 @@ async test "producer reconnects and replays unconfirmed message" {
     })
     let metrics = ClientMetrics::new()
     let observed : Array[String] = []
+    let spans : Array[ClientSpanEvent] = []
     let client = Client::connect_with_options(
       group,
-      ClientOptions::new("pulsar://\{lookup_addr}", on_event=fn(event) {
-        metrics.record(event)
-        match event {
-          ProducerReconnecting(_) => observed.push("reconnecting")
-          ProducerReconnected(_, Ok(_)) => observed.push("reconnected")
-          SendCompleted(_, _, Ok(_)) => observed.push("sent")
-          _ => ()
-        }
-      }),
+      ClientOptions::new(
+        "pulsar://\{lookup_addr}",
+        on_event=fn(event) {
+          metrics.record(event)
+          match event {
+            ProducerReconnecting(_) => observed.push("reconnecting")
+            ProducerReconnected(_, Ok(_)) => observed.push("reconnected")
+            SendCompleted(_, _, Ok(_)) => observed.push("sent")
+            _ => ()
+          }
+        },
+        on_span=fn(event) {
+          spans.push(event)
+          metrics.record_span(event)
+        },
+      ),
     )
     let producer = client.create_producer(
       "persistent://public/default/t",
@@ -120,6 +128,13 @@ async test "producer reconnects and replays unconfirmed message" {
     assert_true(observed.contains("sent"))
     assert_eq(metrics.snapshot().sends, 1L)
     assert_eq(metrics.snapshot().producer_reconnects, 1L)
+    let mut reconnect_span = false
+    for event in spans {
+      if event is Finished(span, _, true, None) && span.operation is Reconnect {
+        reconnect_span = true
+      }
+    }
+    assert_true(reconnect_span)
     producer.close()
     client.close()
   })
@@ -150,18 +165,26 @@ async test "consumer re-subscribes after connection break" {
     })
     let metrics = ClientMetrics::new()
     let observed : Array[String] = []
+    let spans : Array[ClientSpanEvent] = []
     let client = Client::connect_with_options(
       group,
-      ClientOptions::new("pulsar://\{lookup_addr}", on_event=fn(event) {
-        metrics.record(event)
-        match event {
-          ConsumerReconnecting(_) => observed.push("reconnecting")
-          ConsumerReconnected(_, Ok(_)) => observed.push("reconnected")
-          MessageReceived(_) => observed.push("received")
-          Acknowledged(_, _, Ok(_)) => observed.push("acked")
-          _ => ()
-        }
-      }),
+      ClientOptions::new(
+        "pulsar://\{lookup_addr}",
+        on_event=fn(event) {
+          metrics.record(event)
+          match event {
+            ConsumerReconnecting(_) => observed.push("reconnecting")
+            ConsumerReconnected(_, Ok(_)) => observed.push("reconnected")
+            MessageReceived(_) => observed.push("received")
+            Acknowledged(_, _, Ok(_)) => observed.push("acked")
+            _ => ()
+          }
+        },
+        on_span=fn(event) {
+          spans.push(event)
+          metrics.record_span(event)
+        },
+      ),
     )
     let consumer = client.create_consumer(
       "persistent://public/default/t", "sub-1",
@@ -176,6 +199,13 @@ async test "consumer re-subscribes after connection break" {
     assert_eq(metrics.snapshot().received, 1L)
     assert_eq(metrics.snapshot().acknowledgments, 1L)
     assert_eq(metrics.snapshot().consumer_reconnects, 1L)
+    let mut reconnect_span = false
+    for event in spans {
+      if event is Finished(span, _, true, None) && span.operation is Reconnect {
+        reconnect_span = true
+      }
+    }
+    assert_true(reconnect_span)
     consumer.close()
     client.close()
   })

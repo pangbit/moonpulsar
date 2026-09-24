@@ -98,6 +98,7 @@ pub struct SingleProducer {
   priv pending_slots : @aqueue.Queue[Unit]?
   priv memory_limiter : ClientMemoryLimiter?
   priv on_event : ((ClientEvent) -> Unit)?
+  priv span_recorder : ClientSpanRecorder?
   priv block_if_queue_full : Bool
   priv send_timeout_ms : Int?
   priv compression : CompressionCodec
@@ -193,6 +194,7 @@ async fn SingleProducer::create_with_memory(
   send_timeout_ms? : Int,
   memory_limiter? : ClientMemoryLimiter,
   on_event? : (ClientEvent) -> Unit,
+  span_recorder? : ClientSpanRecorder,
 ) -> SingleProducer {
   if max_pending_messages is Some(limit) && limit <= 0 {
     raise InvalidFrame("max pending messages must be positive")
@@ -246,6 +248,7 @@ async fn SingleProducer::create_with_memory(
     pending_slots,
     memory_limiter,
     on_event,
+    span_recorder,
     block_if_queue_full,
     send_timeout_ms,
     compression,
@@ -392,6 +395,15 @@ fn SingleProducer::on_connection_closed(
 /// Re-register on a fresh connection and replay unconfirmed messages.
 async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
   guard self.reconnect_with is Some(provider) else { return }
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Reconnect, self.topic)
+  })
+  let span_done : Ref[Bool] = { val: false, }
+  defer (if !span_done.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let policy = self.reconnect_policy
   let retry_method = @async.RetryMethod::ExponentialDelay(
     initial=policy.initial_backoff_ms,
@@ -450,6 +462,10 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
     }
   }
   let result : Result[Unit, Error] = Ok(run()) catch { e => Err(e) }
+  if self.span_recorder is Some(recorder) && span is Some(start) {
+    recorder.finish_result(start, result)
+    span_done.val = true
+  }
   if self.on_event is Some(sink) {
     sink(ClientEvent::ProducerReconnected(self.topic, result))
   }
@@ -1156,11 +1172,17 @@ pub struct Producer {
   priv inner : ProducerImpl
   priv closed : Ref[Bool]
   priv mut interceptors : Array[ProducerInterceptor]
+  priv mut span_recorder : ClientSpanRecorder?
 }
 
 ///|
 fn Producer::single(p : SingleProducer) -> Producer {
-  { inner: ProducerImpl::Single(p), closed: { val: false, }, interceptors: [], }
+  {
+    inner: ProducerImpl::Single(p),
+    closed: { val: false, },
+    interceptors: [],
+    span_recorder: None,
+  }
 }
 
 ///|
@@ -1173,7 +1195,16 @@ pub fn Producer::partitioned(
     inner: ProducerImpl::Partitioned(partitions, { val: 0, }, routing),
     closed: { val: false, },
     interceptors: [],
+    span_recorder: None,
   }
+}
+
+///|
+fn Producer::set_span_recorder(
+  self : Producer,
+  recorder : ClientSpanRecorder?,
+) -> Unit {
+  self.span_recorder = recorder
 }
 
 ///|
@@ -1213,6 +1244,9 @@ fn Producer::on_send_result(
 
 ///|
 fn Producer::has_result_interceptor(self : Producer) -> Bool {
+  if self.span_recorder is Some(_) {
+    return true
+  }
   for interceptor in self.interceptors {
     if interceptor.on_send_result is Some(_) {
       return true
@@ -1323,16 +1357,30 @@ pub async fn Producer::send_async(
   self : Producer,
   msg : ProducerMessage,
 ) -> ReceiptFuture {
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Send, self.topic())
+  })
+  let span_transferred : Ref[Bool] = { val: false, }
+  errdefer (if !span_transferred.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let message = self.before_send_message(msg)
   let result = Ok(self.send_async_raw(message)) catch { e => Err(e) }
   let (inner, group) = match result {
     Ok(value) => value
     Err(e) => {
       self.on_send_result(message, Err(e))
+      if self.span_recorder is Some(recorder) && span is Some(start) {
+        recorder.finish(start, false, error="\{e}")
+      }
+      span_transferred.val = true
       raise e
     }
   }
   if !self.has_result_interceptor() {
+    span_transferred.val = true
     return inner
   }
   let reply : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
@@ -1340,10 +1388,23 @@ pub async fn Producer::send_async(
   )
   group.spawn_bg(
     async fn() {
+      let span_done : Ref[Bool] = { val: false, }
+      defer (if !span_done.val &&
+        self.span_recorder is Some(recorder) &&
+        span is Some(start) {
+        recorder.finish(start, false, error="cancelled")
+      })
       let result : Result[SendReceipt, Error] = Ok(inner.wait()) catch {
         e => Err(e)
       }
       self.on_send_result(message, result)
+      if self.span_recorder is Some(recorder) && span is Some(start) {
+        match result {
+          Ok(_) => recorder.finish(start, true)
+          Err(e) => recorder.finish(start, false, error="\{e}")
+        }
+        span_done.val = true
+      }
       match result {
         Ok(receipt) => ignore(reply.try_put(receipt))
         Err(e) => reply.close(error=e, clear=true)
@@ -1352,6 +1413,7 @@ pub async fn Producer::send_async(
     no_wait=true,
     allow_failure=true,
   )
+  span_transferred.val = true
   { reply, }
 }
 
@@ -1362,11 +1424,27 @@ pub async fn Producer::send_txn(
   txn : Transaction,
   msg : ProducerMessage,
 ) -> SendReceipt {
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Send, self.topic())
+  })
+  let span_done : Ref[Bool] = { val: false, }
+  defer (if !span_done.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let message = self.before_send_message(msg)
   let result : Result[SendReceipt, Error] = Ok(self.send_txn_raw(txn, message)) catch {
     e => Err(e)
   }
   self.on_send_result(message, result)
+  if self.span_recorder is Some(recorder) && span is Some(start) {
+    match result {
+      Ok(_) => recorder.finish(start, true)
+      Err(e) => recorder.finish(start, false, error="\{e}")
+    }
+    span_done.val = true
+  }
   match result {
     Ok(receipt) => receipt
     Err(e) => raise e

@@ -154,6 +154,7 @@ pub struct Message {
   priv mut on_ack : ((Message) -> Unit)?
   priv mut on_nack : ((Message) -> Unit)?
   priv mut interceptors : Array[ConsumerInterceptor]
+  priv mut span_recorder : ClientSpanRecorder?
   priv nack_scheduler : ((Message) -> Unit)?
 }
 
@@ -246,8 +247,24 @@ pub async fn Message::ack(
   self : Message,
   await_response? : Bool = false,
 ) -> Unit {
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Ack, self.topic, message_id=self.id)
+  })
+  let span_done : Ref[Bool] = { val: false, }
+  defer (if !span_done.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let result : Result[Unit, Error] = Ok(self.ack_raw(await_response)) catch {
     e => Err(e)
+  }
+  if self.span_recorder is Some(recorder) && span is Some(start) {
+    match result {
+      Ok(_) => recorder.finish(start, true)
+      Err(e) => recorder.finish(start, false, error="\{e}")
+    }
+    span_done.val = true
   }
   self.observe_ack(result)
   match result {
@@ -300,8 +317,24 @@ pub async fn Message::ack_txn(
   txn : Transaction,
   await_response? : Bool = false,
 ) -> Unit {
+  let span = self.span_recorder.map(fn(recorder) {
+    recorder.begin(Ack, self.topic, message_id=self.id)
+  })
+  let span_done : Ref[Bool] = { val: false, }
+  defer (if !span_done.val &&
+    self.span_recorder is Some(recorder) &&
+    span is Some(start) {
+    recorder.finish(start, false, error="cancelled")
+  })
   let result : Result[Unit, Error] = Ok(self.ack_txn_raw(txn, await_response)) catch {
     e => Err(e)
+  }
+  if self.span_recorder is Some(recorder) && span is Some(start) {
+    match result {
+      Ok(_) => recorder.finish(start, true)
+      Err(e) => recorder.finish(start, false, error="\{e}")
+    }
+    span_done.val = true
   }
   self.observe_ack(result)
   match result {

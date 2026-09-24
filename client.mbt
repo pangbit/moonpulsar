@@ -68,6 +68,7 @@ pub struct Client {
   priv reconnect_policy : RetryPolicy
   priv memory_limiter : ClientMemoryLimiter?
   priv on_event : ((ClientEvent) -> Unit)?
+  priv span_recorder : ClientSpanRecorder?
 }
 
 ///|
@@ -123,6 +124,9 @@ pub async fn Client::connect_with_options(
       ClientMemoryLimiter::new(limit)
     }),
     on_event: options.on_event,
+    span_recorder: options.on_span.map(fn(sink) {
+      ClientSpanRecorder::new(sink)
+    }),
   }
 }
 
@@ -196,6 +200,7 @@ fn Client::observe_consumer(
   consumer : Consumer,
   interceptors : Array[ConsumerInterceptor],
 ) -> Consumer {
+  consumer.set_span_recorder(self.span_recorder)
   let hooks : Array[ConsumerInterceptor] = []
   for interceptor in interceptors {
     hooks.push(interceptor)
@@ -282,9 +287,11 @@ pub async fn Client::create_producer(
       send_timeout_ms?,
       memory_limiter?=self.memory_limiter,
       on_event?=self.on_event,
+      span_recorder?=self.span_recorder,
     )
     let producer = Producer::single(single)
     producer.set_interceptors(hooks)
+    producer.set_span_recorder(self.span_recorder)
     return producer
   }
   let create_partition = async fn(i : Int) -> Producer {
@@ -314,6 +321,7 @@ pub async fn Client::create_producer(
         send_timeout_ms?,
         memory_limiter?=self.memory_limiter,
         on_event?=self.on_event,
+        span_recorder?=self.span_recorder,
       ),
     )
   }
@@ -329,6 +337,7 @@ pub async fn Client::create_producer(
   }
   let producer = Producer::partitioned(subs, routing~)
   producer.set_interceptors(hooks)
+  producer.set_span_recorder(self.span_recorder)
   self.manager.group.spawn_bg(
     async fn() {
       while !producer.is_closed() && !manager.is_closed() {
