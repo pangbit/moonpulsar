@@ -160,7 +160,41 @@ async fn main {
     }
     assert_true(clear_retry is Err(@pulsar.PulsarError::InvalidFrame(_)))
     retry_reader.close()
+    let table_topic = topic + "-table"
+    let table_codec = @pulsar.SchemaCodec::string()
+    let table_producer = client.create_producer(
+      table_topic,
+      schema=table_codec.info(),
+      message_crypto=crypto,
+      encryption_key_names=["test-key"],
+    )
+    ignore(
+      table_producer.send(
+        @pulsar.ProducerMessage::new(
+          table_codec.encode("encrypted-table"),
+          key="table-key",
+        ),
+      ),
+    )
+    let table = @async.with_timeout(10000, async fn() {
+      client.create_typed_table_view(
+        table_topic,
+        table_codec,
+        message_crypto=callback_crypto,
+      )
+    })
+    assert_eq(table.get("table-key"), Some("encrypted-table"))
+    table.close()
+    let table_without_key : Result[@pulsar.TypedTableView[String], Error] = Ok(
+      @async.with_timeout(10000, async fn() {
+        client.create_typed_table_view(table_topic, table_codec)
+      }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(table_without_key is Err(@pulsar.PulsarError::InvalidFrame(_)))
+    table_producer.close()
     client.close()
-    println("Go/MoonBit crypto, reader, retry and DLQ encryption OK")
+    println("Go/MoonBit crypto, Reader, TableView, retry and DLQ OK")
   })
 }

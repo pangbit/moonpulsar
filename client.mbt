@@ -974,6 +974,7 @@ pub async fn Client::create_table_view(
   topic : String,
   partition_refresh_ms? : Int = 60000,
   schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
 ) -> TableView {
   let reader = self.create_reader(
     topic,
@@ -981,6 +982,7 @@ pub async fn Client::create_table_view(
     read_compacted=true,
     partition_refresh_ms~,
     schema?,
+    message_crypto?,
   )
   TableView::create(self.manager.group, reader) catch {
     e => {
@@ -1000,11 +1002,13 @@ pub async fn[T] Client::create_typed_table_view(
   topic : String,
   codec : SchemaCodec[T],
   partition_refresh_ms? : Int = 60000,
+  message_crypto? : MessageCrypto,
 ) -> TypedTableView[T] {
   let raw = self.create_table_view(
     topic,
     partition_refresh_ms~,
     schema=codec.info(),
+    message_crypto?,
   )
   let typed = TypedTableView::wrap(raw, codec)
   ignore(

@@ -36,7 +36,7 @@ be passed to single-topic, multi-topic, and pattern consumer constructors.
 - Transactions: coordinator ownership lookup, `new_transaction` / `commit` / `abort`, transactional send and ack
 - Admin REST API: topic create/delete and properties, partitioned topic create/expand/delete and metadata, list topics and partitioned topics, create/list/delete subscriptions, skip or expire subscription backlog, topic and partitioned-topic stats
 - Schema declaration: producers/consumers declare `SchemaInfo` on creation; `SchemaCodec[T]` encodes and decodes STRING, JSON, BYTES, numeric primitives, Avro, Protobuf Native and legacy Protobuf generated messages, or uses custom callbacks
-- Message encryption: `MessageCrypto` loads RSA PEM keys, wraps a fresh AES-256-GCM key with RSA-OAEP-SHA1 for each named recipient, and decrypts in consumers and readers. Pass `message_crypto` and `encryption_key_names` to encrypted producers; encrypted retry/DLQ consumers need both options to re-encrypt forwarded messages.
+- Message encryption: `MessageCrypto` loads RSA PEM keys, wraps a fresh AES-256-GCM key with RSA-OAEP-SHA1 for each named recipient, and decrypts in consumers, readers and TableViews. Pass `message_crypto` and `encryption_key_names` to encrypted producers; encrypted retry/DLQ consumers need both options to re-encrypt forwarded messages.
 - Delayed delivery: `deliver_at` / `deliver_after` on `ProducerMessage`
 - Timestamp seek for readers
 

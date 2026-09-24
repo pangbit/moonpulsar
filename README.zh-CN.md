@@ -33,7 +33,7 @@
 - 事务：协调器归属查找、`new_transaction` / `commit` / `abort`、事务性发送与 ACK
 - Admin REST API：创建/删除 Topic、创建/扩容/删除分区 Topic、查询分区元数据、列出 Topic 与订阅、删除订阅、查询 Topic 及分区 Topic 统计信息
 - Schema 声明：生产者/消费者创建时声明 `SchemaInfo`；`SchemaCodec[T]` 支持 STRING、JSON、BYTES、数值原始类型、Avro、Protobuf Native 和传统 Protobuf 的类型化编解码，也可传入自定义回调
-- 消息加密：`MessageCrypto` 读取 RSA PEM 密钥，按接收方名称用 RSA-OAEP-SHA1 包裹每条消息的新 AES-256-GCM 密钥；消费者和 Reader 解密。加密生产者需传入 `message_crypto` 与 `encryption_key_names`，加密重试/死信消费者也需这两个选项，以便转发时重新加密。
+- 消息加密：`MessageCrypto` 读取 RSA PEM 密钥，按接收方名称用 RSA-OAEP-SHA1 包裹每条消息的新 AES-256-GCM 密钥；消费者、Reader 和 TableView 解密。加密生产者需传入 `message_crypto` 与 `encryption_key_names`，加密重试/死信消费者也需这两个选项，以便转发时重新加密。
 - 延迟投递：`ProducerMessage` 的 `deliver_at` / `deliver_after`
 - Reader 按时间戳 seek
 
