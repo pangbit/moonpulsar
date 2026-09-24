@@ -17,6 +17,7 @@ import (
 )
 
 const descriptorBase64 = "CmwKKHRlc3RkYXRhL3Byb3RvYnVmX25hdGl2ZV9rZXlfdmFsdWUucHJvdG8SDHB1bHNhci5wcm90byIyCghLZXlWYWx1ZRIQCgNrZXkYASACKAlSA2tleRIUCgV2YWx1ZRgCIAIoCVIFdmFsdWU="
+const legacyProtoDefinition = "{\"type\":\"record\",\"name\":\"KeyValue\",\"namespace\":\"pulsar.proto\",\"fields\":[{\"name\":\"key\",\"type\":\"string\"},{\"name\":\"value\",\"type\":\"string\"}]}"
 
 type primitiveCase struct {
 	suffix      string
@@ -99,6 +100,15 @@ func main() {
 			checked(<-results)
 		}
 		int64Producer.Close()
+		legacySchema, err := pulsar.NewProtoSchemaWithValidation(legacyProtoDefinition, nil)
+		checked(err)
+		legacyProducer, err := client.CreateProducer(pulsar.ProducerOptions{
+			Topic: topic + "-protobuf", Schema: legacySchema,
+		})
+		checked(err)
+		_, err = legacyProducer.Send(ctx, &pulsar.ProducerMessage{Value: message(descriptor, "go-legacy")})
+		checked(err)
+		legacyProducer.Close()
 		for _, primitive := range primitives() {
 			producer, err := client.CreateProducer(pulsar.ProducerOptions{
 				Topic: topic + "-" + primitive.suffix, Schema: primitive.schema,
@@ -109,6 +119,7 @@ func main() {
 			producer.Close()
 		}
 		fmt.Println("Go Protobuf Native send OK")
+		fmt.Println("Go legacy Protobuf send OK")
 		fmt.Println("Go numeric schema send OK")
 		return
 	}
@@ -159,6 +170,30 @@ func main() {
 		}
 		consumer.Close()
 	}
+	legacySchema, err := pulsar.NewProtoSchemaWithValidation(legacyProtoDefinition, nil)
+	checked(err)
+	legacyConsumer, err := client.Subscribe(pulsar.ConsumerOptions{
+		Topic:                       topic + "-protobuf",
+		SubscriptionName:            fmt.Sprintf("moonpulsar-go-protobuf-interop-%d", time.Now().UnixNano()),
+		SubscriptionInitialPosition: pulsar.SubscriptionPositionEarliest,
+		Schema:                      legacySchema,
+	})
+	checked(err)
+	for {
+		incoming, err := legacyConsumer.Receive(ctx)
+		checked(err)
+		decoded := dynamicpb.NewMessage(descriptor)
+		checked(incoming.GetSchemaValue(decoded))
+		checked(legacyConsumer.Ack(incoming))
+		if decoded.Get(descriptor.Fields().ByName("value")).String() == "moonbit-legacy" {
+			if decoded.Get(descriptor.Fields().ByName("key")).String() != "source" {
+				panic("unexpected MoonBit legacy Protobuf payload")
+			}
+			break
+		}
+	}
+	legacyConsumer.Close()
+	fmt.Println("MoonBit-to-Go legacy Protobuf decode OK")
 	fmt.Println("MoonBit-to-Go numeric schema decode OK")
 	int64Consumer, err := client.Subscribe(pulsar.ConsumerOptions{
 		Topic:                       topic + "-int64",

@@ -222,6 +222,31 @@ pub fn[T : ToJson + FromJson] SchemaCodec::json(
 }
 
 ///|
+/// Use a generated MoonBit protobuf message with the legacy PROTOBUF schema.
+/// `definition` is the Avro-style JSON schema definition used by the Go and
+/// Java clients for this schema type. Payloads are ordinary protobuf bytes.
+pub fn[M : @lib.Read + @lib.Write] SchemaCodec::protobuf(
+  definition : Bytes,
+) -> SchemaCodec[M] {
+  SchemaCodec::new(
+    SchemaInfo::protobuf(definition),
+    fn(value) {
+      let buffer = @buffer.Buffer()
+      value.write(buffer) catch {
+        _ => raise InvalidFrame("could not encode Protobuf payload")
+      }
+      buffer.to_bytes()
+    },
+    fn(payload) {
+      let reader = @lib.BytesReader::from_bytes(payload)
+      M::read_with_limit(@lib.LimitedReader(reader)) catch {
+        _ => raise InvalidFrame("invalid Protobuf payload")
+      }
+    },
+  )
+}
+
+///|
 /// Use a generated MoonBit protobuf message with a Protobuf Native schema.
 /// The descriptor set must describe `M`. Decoder errors are reported as
 /// `InvalidFrame`.

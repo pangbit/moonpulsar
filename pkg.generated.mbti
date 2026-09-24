@@ -408,6 +408,7 @@ pub fn SchemaCodec::int64(little_endian? : Bool) -> Self[Int64]
 pub fn SchemaCodec::int8() -> Self[Int]
 pub fn[T : ToJson + @json.FromJson] SchemaCodec::json(Bytes) -> Self[T]
 pub fn[T] SchemaCodec::new(SchemaInfo, (T) -> Bytes raise PulsarError, (Bytes) -> T raise PulsarError) -> Self[T]
+pub fn[M : @protobuf.Read + @protobuf.Write] SchemaCodec::protobuf(Bytes) -> Self[M]
 pub fn[M : @protobuf.Read + @protobuf.Write] SchemaCodec::protobuf_native(Bytes, String, String) -> Self[M] raise PulsarError
 pub fn SchemaCodec::string() -> Self[String]
 

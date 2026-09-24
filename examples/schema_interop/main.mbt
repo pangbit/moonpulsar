@@ -90,6 +90,16 @@ async fn main {
     )
     int64_producer.close()
     int64_consumer.close()
+    let legacy_codec : @pulsar.SchemaCodec[@proto.KeyValue] = @pulsar.SchemaCodec::protobuf(
+      b"{\"type\":\"record\",\"name\":\"KeyValue\",\"namespace\":\"pulsar.proto\",\"fields\":[{\"name\":\"key\",\"type\":\"string\"},{\"name\":\"value\",\"type\":\"string\"}]}",
+    )
+    roundtrip_primitive(
+      client,
+      topic + "-protobuf",
+      legacy_codec,
+      @proto.KeyValue::KeyValue("source", "go-legacy"),
+      @proto.KeyValue::KeyValue("source", "moonbit-legacy"),
+    )
     roundtrip_primitive(
       client,
       topic + "-int8",
@@ -152,6 +162,8 @@ async fn main {
     assert_eq(second.wait().message_id.batch_index, 1)
     batch_producer.close()
     client.close()
-    println("Protobuf Native, numeric schemas, and batch Go/MoonBit handoff OK")
+    println(
+      "Protobuf Native, legacy Protobuf, numeric schemas, and batch Go/MoonBit handoff OK",
+    )
   })
 }

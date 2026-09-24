@@ -142,7 +142,7 @@ pub fn SchemaInfo::avro(definition : Bytes) -> SchemaInfo {
 }
 
 ///|
-/// Protobuf schema with the given descriptor definition.
+/// Legacy Protobuf schema with its Avro-style JSON definition.
 pub fn SchemaInfo::protobuf(definition : Bytes) -> SchemaInfo {
   {
     name: "Protobuf",
