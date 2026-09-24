@@ -1,0 +1,43 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "pangbit/moonpulsar/native_tls"
+
+import {
+  "moonbitlang/async/io",
+  "moonbitlang/async/socket",
+}
+
+// Values
+
+// Errors
+pub suberror TlsError {
+  TlsError(String)
+}
+pub fn TlsError::output(Self, &Logger) -> Unit
+pub fn TlsError::to_string(Self) -> String
+pub impl Show for TlsError
+
+// Types and methods
+type Handle
+
+pub struct NativeTls {
+  // private fields
+}
+pub async fn NativeTls::_direct_read(Self, FixedArray[Byte], offset~ : Int, max_len~ : Int) -> Int
+pub fn NativeTls::_get_internal_buffer(Self) -> @io.ReaderBuffer
+pub fn NativeTls::close(Self) -> Unit
+pub async fn NativeTls::connect(@socket.Tcp, String, ca_file? : String, insecure? : Bool, cert_file? : String, key_file? : String, min_version? : Int, max_version? : Int, cipher_list? : String, tls13_ciphersuites? : String) -> Self
+pub async fn NativeTls::drop(Self, Int) -> Int
+pub async fn NativeTls::read(Self, FixedArray[Byte], offset? : Int, max_len? : Int) -> Int
+pub async fn NativeTls::read_all(Self) -> &@io.Data
+pub async fn NativeTls::read_exactly(Self, Int) -> Bytes
+pub async fn NativeTls::read_some(Self, max_len? : Int) -> Bytes?
+pub async fn NativeTls::read_until(Self, StringView) -> String?
+pub async fn NativeTls::write(Self, &@io.Data) -> Unit
+pub async fn NativeTls::write_once(Self, Bytes, offset~ : Int, len~ : Int) -> Int
+pub async fn NativeTls::write_reader(Self, &@io.Reader) -> Unit
+pub impl @io.Reader for NativeTls
+pub impl @io.Writer for NativeTls
+
+// Type aliases
+
+// Traits

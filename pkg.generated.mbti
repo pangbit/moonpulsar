@@ -239,7 +239,7 @@ pub(all) enum ClientOperation {
 pub struct ClientOptions {
   // private fields
 }
-pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, listener_name? : String, lookup_properties? : Map[String, String], reconnect_policy? : RetryPolicy, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int, max_memory_bytes? : Int, on_event? : (ClientEvent) -> Unit, on_span? : (ClientSpanEvent) -> Unit) -> Self raise PulsarError
+pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, tls_identity? : TlsIdentity, tls_identity_provider? : async () -> TlsIdentity, tls_min_version? : TlsVersion, tls_max_version? : TlsVersion, tls_cipher_list? : String, tls13_ciphersuites? : String, listener_name? : String, lookup_properties? : Map[String, String], reconnect_policy? : RetryPolicy, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int, max_memory_bytes? : Int, on_event? : (ClientEvent) -> Unit, on_span? : (ClientSpanEvent) -> Unit) -> Self raise PulsarError
 
 pub(all) struct ClientSpan {
   id : Int64
@@ -269,7 +269,7 @@ pub struct Connection {
   // private fields
 }
 pub fn Connection::close(Self) -> Unit
-pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, keepalive_interval_ms? : Int, timeout_ms? : Int, connection_timeout_ms? : Int, async_auth_provider? : async () -> AuthData) -> Self
+pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, tls_identity? : TlsIdentity, tls_identity_provider? : async () -> TlsIdentity, tls_min_version? : TlsVersion, tls_max_version? : TlsVersion, tls_cipher_list? : String, tls13_ciphersuites? : String, keepalive_interval_ms? : Int, timeout_ms? : Int, connection_timeout_ms? : Int, async_auth_provider? : async () -> AuthData) -> Self
 pub fn Connection::is_closed(Self) -> Bool
 pub fn Connection::max_message_size(Self) -> Int?
 pub fn Connection::next_request_id(Self) -> UInt64
@@ -286,7 +286,7 @@ pub struct ConnectionManager {
 pub fn ConnectionManager::close(Self) -> Unit
 pub async fn ConnectionManager::get(Self, String) -> Connection
 pub fn ConnectionManager::is_closed(Self) -> Bool
-pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, listener_name? : String, lookup_properties? : Map[String, String], async_auth_provider? : async () -> AuthData, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int) -> Self raise PulsarError
+pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, tls_identity? : TlsIdentity, tls_identity_provider? : async () -> TlsIdentity, tls_min_version? : TlsVersion, tls_max_version? : TlsVersion, tls_cipher_list? : String, tls13_ciphersuites? : String, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, listener_name? : String, lookup_properties? : Map[String, String], async_auth_provider? : async () -> AuthData, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int) -> Self raise PulsarError
 pub fn ConnectionManager::uses_tls(Self) -> Bool
 
 pub struct Consumer {
@@ -626,6 +626,17 @@ pub fn TableView::get(Self, String) -> Bytes?
 pub fn TableView::is_empty(Self) -> Bool
 pub fn TableView::keys(Self) -> Array[String]
 pub fn TableView::size(Self) -> Int
+
+pub(all) struct TlsIdentity {
+  certificate_file : String
+  private_key_file : String
+}
+pub fn TlsIdentity::new(String, String) -> Self raise PulsarError
+
+pub(all) enum TlsVersion {
+  TLS12
+  TLS13
+}
 
 pub(all) struct TokenAuth {
   token : String

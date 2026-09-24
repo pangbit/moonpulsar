@@ -46,7 +46,7 @@ pub impl Show for PulsarError with fn output(self, logger) {
     TooManyRedirects => "too many lookup redirects"
     ProducerClosed => "producer closed"
     ProducerQueueFull => "producer pending-message queue is full"
-    ClientMemoryFull => "client pending payload-byte limit is full"
+    ClientMemoryFull => "client retained-byte limit is full"
     ConsumerClosed => "consumer closed"
     ChecksumMismatch => "message checksum mismatch"
     InvalidFrame(msg) => "invalid frame: \{msg}"

@@ -64,6 +64,12 @@ pub async fn Connection::connect(
   /// skip certificate verification (self-signed / testing only)
   tls_insecure? : Bool = false,
   tls_trust? : @tls.TrustedRoot,
+  tls_identity? : TlsIdentity,
+  tls_identity_provider? : async () -> TlsIdentity,
+  tls_min_version? : TlsVersion,
+  tls_max_version? : TlsVersion,
+  tls_cipher_list? : String,
+  tls13_ciphersuites? : String,
   keepalive_interval_ms? : Int = KEEPALIVE_INTERVAL_MS,
   timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
   connection_timeout_ms? : Int = 10000,
@@ -72,12 +78,30 @@ pub async fn Connection::connect(
   guard timeout_ms > 0 && connection_timeout_ms > 0 && keepalive_interval_ms > 0 else {
     raise InvalidFrame("connection timeouts must be positive")
   }
+  guard tls ||
+    (
+      tls_identity is None &&
+      tls_identity_provider is None &&
+      tls_min_version is None &&
+      tls_max_version is None &&
+      tls_cipher_list is None &&
+      tls13_ciphersuites is None
+    ) else {
+    raise InvalidFrame("TLS settings require TLS transport")
+  }
   let auth = match async_auth_provider {
     Some(provider) => Some(provider())
     None =>
       match auth_provider {
         Some(provider) => Some(provider())
-        None => auth
+        None =>
+          if auth is Some(_) {
+            auth
+          } else if tls_identity is Some(_) || tls_identity_provider is Some(_) {
+            Some({ method_name: "tls", data: b"", })
+          } else {
+            None
+          }
       }
   }
   let (host, port) = split_host_port(addr)
@@ -97,12 +121,49 @@ pub async fn Connection::connect(
           @tls.TrustedRoot::SystemRoot
         }
     }
-    let tls_conn = @async.with_timeout(connection_timeout_ms, async fn() {
-      @tls.Tls::client(tcp, host~, trust~)
-    }) catch {
-      e => raise ConnectFailed("TLS handshake with \{addr} failed: \{e}")
+    if tls_identity is Some(_) ||
+      tls_identity_provider is Some(_) ||
+      tls_min_version is Some(_) ||
+      tls_max_version is Some(_) ||
+      tls_cipher_list is Some(_) ||
+      tls13_ciphersuites is Some(_) {
+      let identity = match tls_identity_provider {
+        Some(provider) => Some(provider())
+        None => tls_identity
+      }
+      let ca_file = match trust {
+        @tls.TrustedRoot::CustomPemFile(path) => path
+        _ => ""
+      }
+      let native = @async.with_timeout(connection_timeout_ms, async fn() {
+        @native_tls.NativeTls::connect(
+          tcp,
+          host,
+          ca_file~,
+          insecure=trust is @tls.TrustedRoot::NoVerification,
+          cert_file=identity.map(fn(id) { id.certificate_file }).unwrap_or(""),
+          key_file=identity.map(fn(id) { id.private_key_file }).unwrap_or(""),
+          min_version=tls_min_version
+            .map(fn(v) { v.native_value() })
+            .unwrap_or(0),
+          max_version=tls_max_version
+            .map(fn(v) { v.native_value() })
+            .unwrap_or(0),
+          cipher_list=tls_cipher_list.unwrap_or(""),
+          tls13_ciphersuites=tls13_ciphersuites.unwrap_or(""),
+        )
+      }) catch {
+        e => raise ConnectFailed("TLS handshake with \{addr} failed: \{e}")
+      }
+      (native, native, fn() { native.close() })
+    } else {
+      let tls_conn = @async.with_timeout(connection_timeout_ms, async fn() {
+        @tls.Tls::client(tcp, host~, trust~)
+      }) catch {
+        e => raise ConnectFailed("TLS handshake with \{addr} failed: \{e}")
+      }
+      (tls_conn, tls_conn, fn() { tls_conn.close() })
     }
-    (tls_conn, tls_conn, fn() { tls_conn.close() })
   } else {
     (tcp, tcp, fn() { tcp.close() })
   }

@@ -98,6 +98,17 @@ pub async fn Client::connect_with_options(
   if options.ca_pem_file is Some(_) && !tls {
     raise InvalidFrame("TLS CA requires a pulsar+ssl URL")
   }
+  if !tls &&
+    (
+      options.tls_identity is Some(_) ||
+      options.tls_identity_provider is Some(_) ||
+      options.tls_min_version is Some(_) ||
+      options.tls_max_version is Some(_) ||
+      options.tls_cipher_list is Some(_) ||
+      options.tls13_ciphersuites is Some(_)
+    ) {
+    raise InvalidFrame("TLS settings require a pulsar+ssl URL")
+  }
   let tls_trust = options.ca_pem_file.map(fn(path) {
     @tls.TrustedRoot::CustomPemFile(path)
   })
@@ -108,6 +119,12 @@ pub async fn Client::connect_with_options(
     tls~,
     tls_insecure=options.tls_insecure,
     tls_trust?,
+    tls_identity?=options.tls_identity,
+    tls_identity_provider?=options.tls_identity_provider,
+    tls_min_version?=options.tls_min_version,
+    tls_max_version?=options.tls_max_version,
+    tls_cipher_list?=options.tls_cipher_list,
+    tls13_ciphersuites?=options.tls13_ciphersuites,
     connection_timeout_ms=options.connection_timeout_ms,
     operation_timeout_ms=options.operation_timeout_ms,
     keepalive_interval_ms=options.keepalive_interval_ms,

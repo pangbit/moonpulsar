@@ -15,6 +15,12 @@ pub struct ConnectionManager {
   priv default_tls : Bool
   priv tls_insecure : Bool
   priv tls_trust : @tls.TrustedRoot?
+  priv tls_identity : TlsIdentity?
+  priv tls_identity_provider : (async () -> TlsIdentity)?
+  priv tls_min_version : TlsVersion?
+  priv tls_max_version : TlsVersion?
+  priv tls_cipher_list : String?
+  priv tls13_ciphersuites : String?
   priv connection_timeout_ms : Int
   priv operation_timeout_ms : Int
   priv keepalive_interval_ms : Int
@@ -37,6 +43,12 @@ pub fn ConnectionManager::new(
   tls? : Bool = false,
   tls_insecure? : Bool = false,
   tls_trust? : @tls.TrustedRoot,
+  tls_identity? : TlsIdentity,
+  tls_identity_provider? : async () -> TlsIdentity,
+  tls_min_version? : TlsVersion,
+  tls_max_version? : TlsVersion,
+  tls_cipher_list? : String,
+  tls13_ciphersuites? : String,
   connection_timeout_ms? : Int = 10000,
   operation_timeout_ms? : Int = 60000,
   keepalive_interval_ms? : Int = 30000,
@@ -65,6 +77,12 @@ pub fn ConnectionManager::new(
     default_tls: tls,
     tls_insecure,
     tls_trust,
+    tls_identity,
+    tls_identity_provider,
+    tls_min_version,
+    tls_max_version,
+    tls_cipher_list,
+    tls13_ciphersuites,
     connection_timeout_ms,
     operation_timeout_ms,
     keepalive_interval_ms,
@@ -163,6 +181,12 @@ pub async fn ConnectionManager::get(
     tls=self.default_tls,
     tls_insecure=self.tls_insecure,
     tls_trust?=self.tls_trust,
+    tls_identity?=self.tls_identity,
+    tls_identity_provider?=self.tls_identity_provider,
+    tls_min_version?=self.tls_min_version,
+    tls_max_version?=self.tls_max_version,
+    tls_cipher_list?=self.tls_cipher_list,
+    tls13_ciphersuites?=self.tls13_ciphersuites,
     connection_timeout_ms=self.connection_timeout_ms,
     timeout_ms=self.operation_timeout_ms,
     keepalive_interval_ms=self.keepalive_interval_ms,

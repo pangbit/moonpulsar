@@ -1,5 +1,6 @@
 import {
   "pangbit/moonpulsar/proto",
+  "pangbit/moonpulsar/native_tls",
   "moonbitlang/protobuf" @lib,
   "moonbitlang/protobuf/google/protobuf" @descriptor,
   "moonbitlang/async",

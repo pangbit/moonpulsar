@@ -11,6 +11,12 @@ pub struct ClientOptions {
   priv keepalive_interval_ms : Int
   priv tls_insecure : Bool
   priv ca_pem_file : String?
+  priv tls_identity : TlsIdentity?
+  priv tls_identity_provider : (async () -> TlsIdentity)?
+  priv tls_min_version : TlsVersion?
+  priv tls_max_version : TlsVersion?
+  priv tls_cipher_list : String?
+  priv tls13_ciphersuites : String?
   priv listener_name : String?
   priv lookup_properties : Map[String, String]
   priv reconnect_policy : RetryPolicy
@@ -31,6 +37,12 @@ pub fn ClientOptions::new(
   keepalive_interval_ms? : Int = 30000,
   tls_insecure? : Bool = false,
   ca_pem_file? : String,
+  tls_identity? : TlsIdentity,
+  tls_identity_provider? : async () -> TlsIdentity,
+  tls_min_version? : TlsVersion,
+  tls_max_version? : TlsVersion,
+  tls_cipher_list? : String,
+  tls13_ciphersuites? : String,
   listener_name? : String,
   lookup_properties? : Map[String, String] = {},
   reconnect_policy? : RetryPolicy = RetryPolicy::default(),
@@ -53,6 +65,17 @@ pub fn ClientOptions::new(
   }
   guard !(tls_insecure && ca_pem_file is Some(_)) else {
     raise InvalidFrame("choose TLS verification or insecure TLS")
+  }
+  guard !(tls_identity is Some(_) && tls_identity_provider is Some(_)) else {
+    raise InvalidFrame("choose TLS identity files or a refresh provider")
+  }
+  if tls_min_version is Some(minimum) &&
+    tls_max_version is Some(maximum) &&
+    minimum.native_value() > maximum.native_value() {
+    raise InvalidFrame("TLS minimum version exceeds maximum version")
+  }
+  if tls_cipher_list == Some("") || tls13_ciphersuites == Some("") {
+    raise InvalidFrame("TLS cipher policy must not be empty")
   }
   guard reconnect_policy.max_retries >= -1 &&
     reconnect_policy.initial_backoff_ms > 0 &&
@@ -77,6 +100,12 @@ pub fn ClientOptions::new(
     keepalive_interval_ms,
     tls_insecure,
     ca_pem_file,
+    tls_identity,
+    tls_identity_provider,
+    tls_min_version,
+    tls_max_version,
+    tls_cipher_list,
+    tls13_ciphersuites,
     listener_name,
     lookup_properties,
     reconnect_policy,

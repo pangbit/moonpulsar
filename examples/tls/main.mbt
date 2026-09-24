@@ -1,6 +1,7 @@
 // TLS roundtrip. Set PULSAR_TLS_CA_FILE to verify a private broker CA.
 // Set PULSAR_TOKEN when the broker requires token authentication.
 // System roots are used by default; PULSAR_TLS_INSECURE skips verification.
+// Set PULSAR_TLS_CLIENT_CERT_FILE and PULSAR_TLS_CLIENT_KEY_FILE for mutual TLS.
 
 ///|
 async fn main {
@@ -10,6 +11,13 @@ async fn main {
   @async.with_task_group(async fn(group) {
     let ca = @env.get_env_var("PULSAR_TLS_CA_FILE")
     let insecure = @env.get_env_var("PULSAR_TLS_INSECURE") is Some(_)
+    let cert = @env.get_env_var("PULSAR_TLS_CLIENT_CERT_FILE").unwrap_or("")
+    let key = @env.get_env_var("PULSAR_TLS_CLIENT_KEY_FILE").unwrap_or("")
+    let identity = if cert != "" || key != "" {
+      Some(@pulsar.TlsIdentity::new(cert, key))
+    } else {
+      None
+    }
     let options = match @env.get_env_var("PULSAR_TOKEN") {
       Some(token) =>
         @pulsar.ClientOptions::new(
@@ -17,9 +25,15 @@ async fn main {
           auth=@pulsar.TokenAuth::new(token),
           ca_pem_file?=ca,
           tls_insecure=insecure,
+          tls_identity?=identity,
         )
       None =>
-        @pulsar.ClientOptions::new(url, ca_pem_file?=ca, tls_insecure=insecure)
+        @pulsar.ClientOptions::new(
+          url,
+          ca_pem_file?=ca,
+          tls_insecure=insecure,
+          tls_identity?=identity,
+        )
     }
     let client = @pulsar.Client::connect_with_options(group, options)
     let topic = @env.get_env_var("PULSAR_TOPIC").unwrap_or(

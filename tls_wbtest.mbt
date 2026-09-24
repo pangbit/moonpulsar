@@ -77,6 +77,153 @@ async test "custom CA validates a TLS broker" {
 }
 
 ///|
+async test "native TLS policy verifies CA and completes Pulsar handshake" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_tls_mock_broker(group)
+    let client = @async.with_timeout(5000, async fn() {
+      Client::connect_with_options(
+        group,
+        ClientOptions::new(
+          "pulsar+ssl://\{addr}",
+          ca_pem_file="testdata/tls/server.crt",
+          tls_min_version=TLS12,
+          tls_identity=TlsIdentity::new(
+            "testdata/tls/server.crt", "testdata/tls/server.key",
+          ),
+        ),
+      )
+    })
+    client.close()
+  })
+}
+
+///|
+async test "native TLS rejects untrusted broker and missing client key" {
+  @async.with_task_group(async fn(group) {
+    let untrusted_addr = start_tls_mock_broker(group)
+    let untrusted : Result[Client, Error] = Ok(
+      @async.with_timeout(5000, async fn() {
+        Client::connect_with_options(
+          group,
+          ClientOptions::new(
+            "pulsar+ssl://\{untrusted_addr}",
+            tls_min_version=TLS12,
+          ),
+        )
+      }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(untrusted is Err(_))
+    let missing_addr = start_tls_mock_broker(group)
+    let missing : Result[Client, Error] = Ok(
+      @async.with_timeout(5000, async fn() {
+        Client::connect_with_options(
+          group,
+          ClientOptions::new(
+            "pulsar+ssl://\{missing_addr}",
+            ca_pem_file="testdata/tls/server.crt",
+            tls_identity=TlsIdentity::new(
+              "testdata/tls/server.crt", "testdata/tls/no-key.pem",
+            ),
+          ),
+        )
+      }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(missing is Err(ConnectFailed(_)))
+  })
+}
+
+///|
+async test "native TLS identity supplier refreshes on reconnect" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_tls_mock_broker(group, connections=2)
+    let calls : Ref[Int] = { val: 0, }
+    let client = Client::connect_with_options(
+      group,
+      ClientOptions::new(
+        "pulsar+ssl://\{addr}",
+        ca_pem_file="testdata/tls/server.crt",
+        tls_identity_provider=fn() raise {
+          calls.val += 1
+          TlsIdentity::new("testdata/tls/server.crt", "testdata/tls/server.key")
+        },
+      ),
+    )
+    assert_eq(calls.val, 1)
+    let first = client.manager.get(addr)
+    first.close()
+    ignore(@async.with_timeout(5000, async fn() { client.manager.get(addr) }))
+    assert_eq(calls.val, 2)
+    client.close()
+  })
+}
+
+///|
+async test "native TLS negotiates TLS 1.3 with an allowed cipher suite" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_tls_mock_broker(group)
+    let client = @async.with_timeout(5000, async fn() {
+      Client::connect_with_options(
+        group,
+        ClientOptions::new(
+          "pulsar+ssl://\{addr}",
+          ca_pem_file="testdata/tls/server.crt",
+          tls_min_version=TLS13,
+          tls_max_version=TLS13,
+          tls13_ciphersuites="TLS_AES_128_GCM_SHA256",
+        ),
+      )
+    })
+    client.close()
+  })
+}
+
+///|
+async test "native TLS rejects unsupported cipher policy" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_tls_mock_broker(group)
+    let bad : Result[Client, Error] = Ok(
+      @async.with_timeout(5000, async fn() {
+        Client::connect_with_options(
+          group,
+          ClientOptions::new(
+            "pulsar+ssl://\{addr}",
+            ca_pem_file="testdata/tls/server.crt",
+            tls_cipher_list="NOT_A_CIPHER",
+          ),
+        )
+      }),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(bad is Err(ConnectFailed(_)))
+  })
+}
+
+///|
+test "TLS identity and version policy reject invalid combinations" {
+  let missing : Result[TlsIdentity, Error] = Ok(
+    TlsIdentity::new("testdata/tls/server.crt", ""),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(missing is Err(InvalidFrame(_)))
+  let reversed : Result[ClientOptions, Error] = Ok(
+    ClientOptions::new(
+      "pulsar+ssl://localhost:6651",
+      tls_min_version=TLS13,
+      tls_max_version=TLS12,
+    ),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(reversed is Err(InvalidFrame(_)))
+}
+
+///|
 async test "system roots reject an untrusted TLS broker" {
   @async.with_task_group(async fn(group) {
     let addr = start_tls_mock_broker(group)
