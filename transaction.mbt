@@ -159,7 +159,16 @@ pub async fn Transaction::add_partition(
   req.txnid_most_bits = Some(self.most)
   req.partitions.push(topic)
   cmd.add_partition_to_txn = Some(req)
-  ignore(self.coord.conn.request(cmd))
+  let reply = self.coord.conn.request(cmd)
+  guard reply.add_partition_to_txn_response is Some(resp) else {
+    raise UnexpectedResponse("expected ADD_PARTITION_TO_TXN_RESPONSE")
+  }
+  if resp.error is Some(err) {
+    raise ServerError(
+      code=err.to_enum().0.reinterpret_as_int(),
+      message=resp.message.unwrap_or("ADD_PARTITION_TO_TXN failed"),
+    )
+  }
 }
 
 ///|
@@ -180,5 +189,14 @@ pub async fn Transaction::add_subscription(
   sub.subscription = subscription
   req.subscription.push(sub)
   cmd.add_subscription_to_txn = Some(req)
-  ignore(self.coord.conn.request(cmd))
+  let reply = self.coord.conn.request(cmd)
+  guard reply.add_subscription_to_txn_response is Some(resp) else {
+    raise UnexpectedResponse("expected ADD_SUBSCRIPTION_TO_TXN_RESPONSE")
+  }
+  if resp.error is Some(err) {
+    raise ServerError(
+      code=err.to_enum().0.reinterpret_as_int(),
+      message=resp.message.unwrap_or("ADD_SUBSCRIPTION_TO_TXN failed"),
+    )
+  }
 }

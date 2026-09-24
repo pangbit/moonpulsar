@@ -149,6 +149,8 @@ async fn main {
 | `examples/athenz` | 读取由 sidecar 维护的 Athenz 角色令牌文件 |
 | `examples/producer_compression` | Zstd 压缩负载 |
 | `examples/reader` | 从头回放 Topic |
+| `examples/encryption_interop` | Go/MoonBit 加密互通、Reader 回放及重试/死信转发 |
+| `examples/transaction_participants` | 在事务中注册生产者及订阅参与者 |
 | `examples/live_capabilities` | 多 Topic、模式订阅、ACK 超时、seek、分块、事务和可选 Admin REST 的真实 broker 回归场景 |
 
 运行示例：

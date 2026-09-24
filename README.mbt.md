@@ -156,6 +156,8 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/athenz` | Athenz role token file maintained by a sidecar |
 | `examples/producer_compression` | Zstd-compressed payloads |
 | `examples/reader` | replay a topic from the start with a reader |
+| `examples/encryption_interop` | Go/MoonBit encrypted messages, reader replay, retry and dead-letter forwarding |
+| `examples/transaction_participants` | register producer and subscription participants in a transaction |
 | `examples/live_capabilities` | real-broker regression for multi-topic, pattern, ack timeout, seek, chunking, transactions, and optional Admin REST |
 
 Run one with:

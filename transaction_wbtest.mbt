@@ -122,3 +122,189 @@ async test "client resolves transaction coordinator ownership" {
     client.close()
   })
 }
+
+///|
+async test "transaction participant registration rejects broker errors and wrong replies" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let connect = peer.next()
+      guard connect.cmd.tc_client_connect_request is Some(tc_req) else {
+        fail("expected TC_CLIENT_CONNECT_REQUEST")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_RESPONSE
+      let resp = @proto.CommandTcClientConnectResponse::default()
+      resp.request_id = tc_req.request_id
+      reply.tc_client_connect_response = Some(resp)
+      peer.send_command(reply)
+      let create = peer.next()
+      guard create.cmd.new_txn is Some(txn_req) else {
+        fail("expected NEW_TXN")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::NEW_TXN_RESPONSE
+      let resp = @proto.CommandNewTxnResponse::default()
+      resp.request_id = txn_req.request_id
+      resp.txnid_least_bits = Some(42UL)
+      resp.txnid_most_bits = Some(3UL)
+      reply.new_txn_response = Some(resp)
+      peer.send_command(reply)
+      for index in 0..<4 {
+        let frame = peer.next()
+        let request_id = if index < 2 {
+          guard frame.cmd.add_partition_to_txn is Some(req) else {
+            fail("expected ADD_PARTITION_TO_TXN")
+          }
+          assert_eq(req.partitions, ["persistent://public/default/tx-topic"])
+          req.request_id
+        } else {
+          guard frame.cmd.add_subscription_to_txn is Some(req) else {
+            fail("expected ADD_SUBSCRIPTION_TO_TXN")
+          }
+          assert_eq(req.subscription[0].subscription, "tx-sub")
+          req.request_id
+        }
+        let reply = @proto.BaseCommand::default()
+        if index % 2 == 1 {
+          reply.type_ = @proto.BaseCommand_Type::SUCCESS
+          let success = @proto.CommandSuccess::default()
+          success.request_id = request_id
+          reply.success = Some(success)
+        } else if index < 2 {
+          reply.type_ = @proto.BaseCommand_Type::ADD_PARTITION_TO_TXN_RESPONSE
+          let resp = @proto.CommandAddPartitionToTxnResponse::default()
+          resp.request_id = request_id
+          resp.error = Some(@proto.ServerError::InvalidTxnStatus)
+          resp.message = Some("partition rejected")
+          reply.add_partition_to_txn_response = Some(resp)
+        } else {
+          reply.type_ = @proto.BaseCommand_Type::ADD_SUBSCRIPTION_TO_TXN_RESPONSE
+          let resp = @proto.CommandAddSubscriptionToTxnResponse::default()
+          resp.request_id = request_id
+          resp.error = Some(@proto.ServerError::InvalidTxnStatus)
+          resp.message = Some("subscription rejected")
+          reply.add_subscription_to_txn_response = Some(resp)
+        }
+        peer.send_command(reply)
+      }
+    })
+    let coord = TransactionCoordinator::connect(group, addr, 7UL)
+    let txn = coord.new_transaction()
+    let partition_error : Result[Unit, Error] = Ok(
+      txn.add_partition("persistent://public/default/tx-topic"),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      partition_error is Err(ServerError(message="partition rejected", ..)),
+    )
+    let partition_reply : Result[Unit, Error] = Ok(
+      txn.add_partition("persistent://public/default/tx-topic"),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(partition_reply is Err(UnexpectedResponse(_)))
+    let subscription_error : Result[Unit, Error] = Ok(
+      txn.add_subscription("persistent://public/default/tx-topic", "tx-sub"),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      subscription_error
+      is Err(ServerError(message="subscription rejected", ..)),
+    )
+    let subscription_reply : Result[Unit, Error] = Ok(
+      txn.add_subscription("persistent://public/default/tx-topic", "tx-sub"),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(subscription_reply is Err(UnexpectedResponse(_)))
+    coord.close()
+  })
+}
+
+///|
+async test "transaction begin and end report broker errors and wrong replies" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let connect = peer.next()
+      guard connect.cmd.tc_client_connect_request is Some(tc_req) else {
+        fail("expected TC_CLIENT_CONNECT_REQUEST")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_RESPONSE
+      let resp = @proto.CommandTcClientConnectResponse::default()
+      resp.request_id = tc_req.request_id
+      reply.tc_client_connect_response = Some(resp)
+      peer.send_command(reply)
+      for index in 0..<3 {
+        let frame = peer.next()
+        guard frame.cmd.new_txn is Some(req) else { fail("expected NEW_TXN") }
+        let reply = @proto.BaseCommand::default()
+        if index == 1 {
+          reply.type_ = @proto.BaseCommand_Type::SUCCESS
+          let resp = @proto.CommandSuccess::default()
+          resp.request_id = req.request_id
+          reply.success = Some(resp)
+        } else {
+          reply.type_ = @proto.BaseCommand_Type::NEW_TXN_RESPONSE
+          let resp = @proto.CommandNewTxnResponse::default()
+          resp.request_id = req.request_id
+          if index == 0 {
+            resp.error = Some(@proto.ServerError::InvalidTxnStatus)
+            resp.message = Some("begin rejected")
+          } else {
+            resp.txnid_least_bits = Some(42UL)
+            resp.txnid_most_bits = Some(3UL)
+          }
+          reply.new_txn_response = Some(resp)
+        }
+        peer.send_command(reply)
+      }
+      for index in 0..<2 {
+        let frame = peer.next()
+        guard frame.cmd.end_txn is Some(req) else { fail("expected END_TXN") }
+        let expected = if index == 0 {
+          @proto.TxnAction::COMMIT
+        } else {
+          @proto.TxnAction::ABORT
+        }
+        assert_eq(req.txn_action, Some(expected))
+        let reply = @proto.BaseCommand::default()
+        if index == 1 {
+          reply.type_ = @proto.BaseCommand_Type::SUCCESS
+          let resp = @proto.CommandSuccess::default()
+          resp.request_id = req.request_id
+          reply.success = Some(resp)
+        } else {
+          reply.type_ = @proto.BaseCommand_Type::END_TXN_RESPONSE
+          let resp = @proto.CommandEndTxnResponse::default()
+          resp.request_id = req.request_id
+          resp.error = Some(@proto.ServerError::InvalidTxnStatus)
+          resp.message = Some("commit rejected")
+          reply.end_txn_response = Some(resp)
+        }
+        peer.send_command(reply)
+      }
+    })
+    let coord = TransactionCoordinator::connect(group, addr, 7UL)
+    let begin_error : Result[Transaction, Error] = Ok(coord.new_transaction()) catch {
+      e => Err(e)
+    }
+    assert_true(begin_error is Err(ServerError(message="begin rejected", ..)))
+    let begin_reply : Result[Transaction, Error] = Ok(coord.new_transaction()) catch {
+      e => Err(e)
+    }
+    assert_true(begin_reply is Err(UnexpectedResponse(_)))
+    let txn = coord.new_transaction()
+    let commit_error : Result[Unit, Error] = Ok(txn.commit()) catch {
+      e => Err(e)
+    }
+    assert_true(commit_error is Err(ServerError(message="commit rejected", ..)))
+    let abort_reply : Result[Unit, Error] = Ok(txn.abort()) catch {
+      e => Err(e)
+    }
+    assert_true(abort_reply is Err(UnexpectedResponse(_)))
+    coord.close()
+  })
+}
