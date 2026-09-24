@@ -69,6 +69,7 @@ pub struct Client {
   priv memory_limiter : ClientMemoryLimiter?
   priv on_event : ((ClientEvent) -> Unit)?
   priv span_recorder : ClientSpanRecorder?
+  priv avro_writers : Map[String, @avro_schema.Schema]
 }
 
 ///|
@@ -127,6 +128,7 @@ pub async fn Client::connect_with_options(
     span_recorder: options.on_span.map(fn(sink) {
       ClientSpanRecorder::new(sink)
     }),
+    avro_writers: Map([]),
   }
 }
 

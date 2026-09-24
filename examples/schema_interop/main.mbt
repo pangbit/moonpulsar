@@ -137,6 +137,28 @@ async fn main {
       { id: 27, name: "from-go", },
       { id: 42, name: "from-moonbit", },
     )
+    let evolution_reader = @pulsar.SchemaCodec::avro_datum(
+      b"{\"type\":\"record\",\"name\":\"EvolvingUser\",\"fields\":[{\"name\":\"identifier\",\"type\":\"long\",\"aliases\":[\"id\"]},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"active\",\"type\":\"boolean\",\"default\":true}]}",
+    )
+    let evolution_consumer = client.create_consumer(
+      topic + "-avro-evolution",
+      "moonpulsar-avro-evolution-\{@async.now()}",
+      initial_position=Earliest,
+    )
+    let evolution_message = @async.with_timeout(10000, async fn() {
+      evolution_consumer.receive()
+    })
+    assert_true(evolution_message.schema_version() is Some(_))
+    assert_eq(
+      client.decode_avro(evolution_message, evolution_reader),
+      @avro_codec.Datum::Record([
+        ("identifier", @avro_codec.Datum::Long(19L)),
+        ("name", @avro_codec.Datum::String("from-go-v1")),
+        ("active", @avro_codec.Datum::Boolean(true)),
+      ]),
+    )
+    evolution_message.ack(await_response=true)
+    evolution_consumer.close()
     roundtrip_primitive(
       client,
       topic + "-int8",
@@ -200,7 +222,7 @@ async fn main {
     batch_producer.close()
     client.close()
     println(
-      "Protobuf Native, legacy Protobuf, Avro, numeric schemas, and batch Go/MoonBit handoff OK",
+      "Protobuf Native, legacy Protobuf, Avro evolution, numeric schemas, and batch Go/MoonBit handoff OK",
     )
   })
 }

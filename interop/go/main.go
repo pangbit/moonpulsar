@@ -19,8 +19,14 @@ import (
 const descriptorBase64 = "CmwKKHRlc3RkYXRhL3Byb3RvYnVmX25hdGl2ZV9rZXlfdmFsdWUucHJvdG8SDHB1bHNhci5wcm90byIyCghLZXlWYWx1ZRIQCgNrZXkYASACKAlSA2tleRIUCgV2YWx1ZRgCIAIoCVIFdmFsdWU="
 const legacyProtoDefinition = "{\"type\":\"record\",\"name\":\"KeyValue\",\"namespace\":\"pulsar.proto\",\"fields\":[{\"name\":\"key\",\"type\":\"string\"},{\"name\":\"value\",\"type\":\"string\"}]}"
 const avroDefinition = "{\"type\":\"record\",\"name\":\"AvroInteropRecord\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"},{\"name\":\"name\",\"type\":\"string\"}]}"
+const avroEvolutionWriter = "{\"type\":\"record\",\"name\":\"EvolvingUser\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"},{\"name\":\"name\",\"type\":\"string\"}]}"
 
 type avroInteropRecord struct {
+	ID   int32  `avro:"id"`
+	Name string `avro:"name"`
+}
+
+type avroEvolutionRecord struct {
 	ID   int32  `avro:"id"`
 	Name string `avro:"name"`
 }
@@ -126,6 +132,17 @@ func main() {
 		})
 		checked(err)
 		avroProducer.Close()
+		evolutionSchema, err := pulsar.NewAvroSchemaWithValidation(avroEvolutionWriter, nil)
+		checked(err)
+		evolutionProducer, err := client.CreateProducer(pulsar.ProducerOptions{
+			Topic: topic + "-avro-evolution", Schema: evolutionSchema,
+		})
+		checked(err)
+		_, err = evolutionProducer.Send(ctx, &pulsar.ProducerMessage{
+			Value: avroEvolutionRecord{ID: 19, Name: "from-go-v1"},
+		})
+		checked(err)
+		evolutionProducer.Close()
 		for _, primitive := range primitives() {
 			producer, err := client.CreateProducer(pulsar.ProducerOptions{
 				Topic: topic + "-" + primitive.suffix, Schema: primitive.schema,

@@ -27,6 +27,8 @@ pub(all) suberror PulsarError {
   ChecksumMismatch
   /// Malformed frame received from the broker.
   InvalidFrame(String)
+  /// The writer's Avro schema cannot be read with the requested reader schema.
+  SchemaIncompatible(String)
   /// A request to the broker timed out.
   RequestTimeout
   /// Authentication failed.
@@ -48,6 +50,7 @@ pub impl Show for PulsarError with fn output(self, logger) {
     ConsumerClosed => "consumer closed"
     ChecksumMismatch => "message checksum mismatch"
     InvalidFrame(msg) => "invalid frame: \{msg}"
+    SchemaIncompatible(msg) => "incompatible schema: \{msg}"
     RequestTimeout => "request timeout"
     AuthenticationFailed(msg) => "authentication failed: \{msg}"
   }

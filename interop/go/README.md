@@ -25,7 +25,9 @@ The Go client first writes typed Protobuf Native, legacy Protobuf, Avro, a
 two-message INT64 batch, and INT8, INT16, INT32, FLOAT, DOUBLE, and BYTES
 values. MoonBit decodes these and writes matching values in the other direction,
 then writes a two-message STRING batch. Go decodes the MoonBit messages. The
-legacy Protobuf schema uses an Avro-style JSON definition and ordinary
+Go sender also writes an older Avro `EvolvingUser` record; MoonBit reads it
+through a newer schema with a renamed field, numeric promotion and default.
+The legacy Protobuf schema uses an Avro-style JSON definition and ordinary
 protobuf message bytes;
 INT16/32/64 use the Go client's little-endian integer encoding. The test uses
 a new subscription for each read. Delete the dedicated topic and its
