@@ -60,7 +60,7 @@ Not yet / known gaps:
 - Pass `interceptors=[ConsumerInterceptor::new(before_consume=..., on_receive_error=..., on_ack=..., on_nack=...)]` to a consumer constructor. Hooks run on application delivery, a failed `receive()` / `try_receive()`, and when its message or ID ACK/nack call completes. `on_ack` reports a rejected confirmed ACK as an error; an unconfirmed ACK callback means the frame was submitted, not broker-confirmed.
 - Use `let metrics = ClientMetrics::new()` and `ClientOptions::new(url, on_event=fn(event) { metrics.record(event) })` for a local counter snapshot. `ClientMetrics::snapshot` records completed sends, send failures, receives, receive failures, ACK/nack calls and failures, and reconnect outcomes. Callbacks are synchronous; a tracing adapter can read message properties from `ClientEvent::SendCompleted` and `ClientEvent::MessageReceived`. Built-in spans and exporters are still open.
 - `Connection::max_message_size` exposes the negotiated broker limit; producers cap encoded frames to that limit and can select a chunk size from it automatically.
-- `pulsar+ssl://` is implemented via `moonbitlang/async/tls`. A local TLS mock covers custom CA verification and reconnection. Isolated Pulsar 4.2.4 and 3.3.9 brokers also passed verified TLS send/receive and rejected an unrelated CA; 4.2.4 passed reuse of the same producer and consumer after broker restart. Token plus TLS and mutual TLS remain unverified; the current TLS client API does not expose a client certificate.
+- `pulsar+ssl://` is implemented via `moonbitlang/async/tls`. A local TLS mock covers custom CA verification and reconnection. Isolated Pulsar 4.2.4 and 3.3.9 brokers passed verified TLS send/receive, rejected an unrelated CA, accepted a valid token over TLS and rejected an invalid one; 4.2.4 passed reuse of the same producer and consumer after broker restart with CA and token. Mutual TLS remains unverified; the current TLS client API does not expose a client certificate.
 
 ## Verified against a real broker
 
@@ -170,7 +170,8 @@ Run one with:
 moon run examples/producer --target native
 ```
 
-For a TLS broker, set `PULSAR_TLS_URL` and `PULSAR_TLS_CA_FILE`. Set
+For a TLS broker, set `PULSAR_TLS_URL` and `PULSAR_TLS_CA_FILE`; set
+`PULSAR_TOKEN` if the broker requires token authentication. Set
 `PULSAR_TOPIC` and `PULSAR_SUBSCRIPTION` to isolate the run. To verify an
 existing client across a broker restart, also set
 `PULSAR_TLS_RECONNECT_CHECK=1` and restart the broker after the first

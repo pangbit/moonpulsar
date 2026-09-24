@@ -1,5 +1,6 @@
 // TLS roundtrip. Set PULSAR_TLS_CA_FILE to verify a private broker CA.
-// Without it this example skips certificate verification for local testing.
+// Set PULSAR_TOKEN when the broker requires token authentication.
+// Without a CA file this example skips certificate verification for local testing.
 
 ///|
 async fn main {
@@ -7,9 +8,24 @@ async fn main {
     "pulsar+ssl://127.0.0.1:6651",
   )
   @async.with_task_group(async fn(group) {
-    let client = match @env.get_env_var("PULSAR_TLS_CA_FILE") {
-      Some(ca_file) => @pulsar.Client::connect_tls_with_ca(group, url, ca_file)
-      None => @pulsar.Client::connect_tls_insecure(group, url)
+    let client = match
+      (@env.get_env_var("PULSAR_TLS_CA_FILE"), @env.get_env_var("PULSAR_TOKEN")) {
+      (Some(ca_file), Some(token)) =>
+        @pulsar.Client::connect_tls_with_ca(
+          group,
+          url,
+          ca_file,
+          auth=@pulsar.TokenAuth::new(token),
+        )
+      (Some(ca_file), None) =>
+        @pulsar.Client::connect_tls_with_ca(group, url, ca_file)
+      (None, Some(token)) =>
+        @pulsar.Client::connect_tls_insecure(
+          group,
+          url,
+          auth=@pulsar.TokenAuth::new(token),
+        )
+      (None, None) => @pulsar.Client::connect_tls_insecure(group, url)
     }
     let topic = @env.get_env_var("PULSAR_TOPIC").unwrap_or(
       "persistent://public/default/moonpulsar-tls",
