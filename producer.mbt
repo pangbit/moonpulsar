@@ -101,6 +101,8 @@ pub struct SingleProducer {
   priv block_if_queue_full : Bool
   priv send_timeout_ms : Int?
   priv compression : CompressionCodec
+  priv message_crypto : MessageCrypto?
+  priv encryption_key_names : Array[String]
   priv chunk_size : Int?
   priv automatic_chunking : Bool
   priv chunk_mu : @async.Mutex
@@ -137,6 +139,8 @@ pub async fn SingleProducer::create(
   batching? : BatchingConfig,
   reconnect_with? : async () -> Connection,
   compression? : CompressionCodec = None,
+  message_crypto? : MessageCrypto,
+  encryption_key_names? : Array[String] = [],
   chunk_size? : Int,
   automatic_chunking? : Bool = false,
   schema? : SchemaInfo,
@@ -155,6 +159,8 @@ pub async fn SingleProducer::create(
     batching?,
     reconnect_with?,
     compression~,
+    message_crypto?,
+    encryption_key_names~,
     chunk_size?,
     automatic_chunking~,
     schema?,
@@ -176,6 +182,8 @@ async fn SingleProducer::create_with_memory(
   batching? : BatchingConfig,
   reconnect_with? : async () -> Connection,
   compression? : CompressionCodec = None,
+  message_crypto? : MessageCrypto,
+  encryption_key_names? : Array[String] = [],
   chunk_size? : Int,
   automatic_chunking? : Bool = false,
   schema? : SchemaInfo,
@@ -197,6 +205,9 @@ async fn SingleProducer::create_with_memory(
   }
   if (chunk_size is Some(_) || automatic_chunking) && batching is Some(_) {
     raise InvalidFrame("chunking and batching cannot be combined")
+  }
+  guard (message_crypto is Some(_)) == !encryption_key_names.is_empty() else {
+    raise InvalidFrame("encryption requires a crypto instance and key names")
   }
   let request_id = conn.next_request_id()
   let producer_id = conn.next_request_id()
@@ -238,6 +249,8 @@ async fn SingleProducer::create_with_memory(
     block_if_queue_full,
     send_timeout_ms,
     compression,
+    message_crypto,
+    encryption_key_names,
     chunk_size,
     automatic_chunking,
     chunk_mu: @async.Mutex::Mutex(),
@@ -496,6 +509,25 @@ fn SingleProducer::build_metadata(
 }
 
 ///|
+async fn SingleProducer::encrypt_payload(
+  self : SingleProducer,
+  metadata : @proto.MessageMetadata,
+  payload : Bytes,
+) -> Bytes raise PulsarError {
+  match self.message_crypto {
+    Some(crypto) => {
+      if self.compression is None {
+        metadata.uncompressed_size = Some(
+          payload.length().reinterpret_as_uint(),
+        )
+      }
+      crypto.encrypt(metadata, payload, self.encryption_key_names)
+    }
+    None => payload
+  }
+}
+
+///|
 /// Send a message and wait for the broker's receipt.
 pub async fn SingleProducer::send(
   self : SingleProducer,
@@ -644,6 +676,7 @@ async fn SingleProducer::send_chunked(
     )
     compress(self.compression, msg.payload)
   }
+  let payload = self.encrypt_payload(metadata, payload)
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::SEND
   let send = @proto.CommandSend::default()
@@ -783,6 +816,7 @@ async fn SingleProducer::send_messages(
     metadata.uncompressed_size = Some(payload.length().reinterpret_as_uint())
     compress(self.compression, payload)
   }
+  let payload = self.encrypt_payload(metadata, payload)
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::SEND
   let send = @proto.CommandSend::default()

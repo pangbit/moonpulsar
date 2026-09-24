@@ -34,6 +34,7 @@ pub struct SingleReader {
   priv receiver_permits : Int
   priv read_compacted : Bool
   priv schema : SchemaInfo?
+  priv message_crypto : MessageCrypto?
   priv include_start_message_id : Bool
   priv start_bound : Ref[MessageId?]
   priv mut available_permits : Int
@@ -63,6 +64,7 @@ pub async fn SingleReader::create(
   subscription_role_prefix? : String = "reader",
   chunk_policy? : ChunkAssemblyPolicy,
   schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
 ) -> SingleReader {
   guard subscription_name != Some("") && subscription_role_prefix != "" else {
     raise InvalidFrame("reader subscription name or prefix must not be empty")
@@ -91,6 +93,7 @@ pub async fn SingleReader::create(
     receiver_permits: receiver_queue_size,
     read_compacted,
     schema,
+    message_crypto,
     include_start_message_id,
     start_bound: { val: reader_start_bound(start_message_id), },
     available_permits: 0,
@@ -319,7 +322,10 @@ fn SingleReader::on_frame(self : SingleReader, frame : IncomingFrame) -> Unit {
   match frame.cmd.type_ {
     @proto.BaseCommand_Type::MESSAGE =>
       self.dispatch_message(frame) catch {
-        _ => ()
+        error =>
+          if frame.metadata is Some(meta) && !meta.encryption_keys.is_empty() {
+            self.events.close(error~, clear=true)
+          }
       }
     @proto.BaseCommand_Type::REACHED_END_OF_TOPIC =>
       if frame.cmd.reached_end_of_topic is Some(end) {
@@ -354,6 +360,14 @@ fn SingleReader::dispatch_message(
       )
     }
     return
+  }
+  let assembled = if metadata.encryption_keys.is_empty() {
+    assembled
+  } else {
+    match self.message_crypto {
+      Some(crypto) => crypto.decrypt(metadata, assembled)
+      None => raise InvalidFrame("encrypted message requires decryption keys")
+    }
   }
   let payload = match metadata.compression {
     Some(t) =>

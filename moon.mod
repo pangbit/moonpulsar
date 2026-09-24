@@ -31,4 +31,5 @@ import {
   "moonbit-community/flate@0.8.3",
   "Milky2018/zstd@0.1.3",
   "yugonlian/moon-avro@0.3.0",
+  "cc06b/mooncry@0.95.0",
 }

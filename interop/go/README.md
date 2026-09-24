@@ -33,3 +33,22 @@ type-suffixed companions afterward with your broker's Admin API.
 
 The full three-step exchange passed on Pulsar 4.2.4 and an isolated Pulsar
 3.3.9 broker.
+
+## Encryption interoperability
+
+`encryption/main.go` and `examples/encryption_interop` exchange RSA-OAEP-SHA1
+wrapped, AES-256-GCM encrypted messages in both directions. The MoonBit example
+also checks encrypted Reader replay, retry and dead-letter forwarding, and
+errors when no private key is configured. Use a fresh `PULSAR_TOPIC` and the
+same `PULSAR_URL` / optional `PULSAR_TOKEN` variables as above:
+
+```sh
+(cd interop/go && go run ./encryption send)
+moon run examples/encryption_interop --target native
+(cd interop/go && go run ./encryption receive)
+```
+
+The MoonBit sender also writes encrypted Zlib and two-message batches; the Go
+receiver decodes every payload. The PEM files under `testdata/encryption` are
+disposable test keys. The full exchange passed on Pulsar 4.2.4 and an isolated
+3.3.9 broker.

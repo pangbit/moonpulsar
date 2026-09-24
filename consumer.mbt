@@ -176,6 +176,7 @@ pub struct SingleConsumer {
   priv sub_type : SubscriptionType
   priv key_shared_policy : KeySharedPolicy?
   priv schema : SchemaInfo?
+  priv message_crypto : MessageCrypto?
   priv consumer_name : String?
   priv initial_position : SubscriptionInitialPosition
   priv priority_level : Int
@@ -233,6 +234,7 @@ pub async fn SingleConsumer::create(
   nack_backoff? : NackBackoff,
   reconnect_with? : async () -> Connection,
   schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
   reconnect_policy? : RetryPolicy = RetryPolicy::default(),
   chunk_policy? : ChunkAssemblyPolicy,
   enable_batch_index_ack? : Bool = false,
@@ -263,6 +265,7 @@ pub async fn SingleConsumer::create(
     sub_type,
     key_shared_policy,
     schema,
+    message_crypto,
     consumer_name,
     initial_position,
     priority_level,
@@ -552,7 +555,10 @@ fn SingleConsumer::on_frame(
     @proto.BaseCommand_Type::MESSAGE =>
       if !self.seeking.val {
         self.dispatch_message(frame) catch {
-          _ => ()
+          error =>
+            if frame.metadata is Some(meta) && !meta.encryption_keys.is_empty() {
+              self.messages.close(error~, clear=true)
+            }
         }
       }
     @proto.BaseCommand_Type::CLOSE_CONSUMER =>
@@ -598,6 +604,14 @@ fn SingleConsumer::dispatch_message(
       )
     }
     return
+  }
+  let assembled = if metadata.encryption_keys.is_empty() {
+    assembled
+  } else {
+    match self.message_crypto {
+      Some(crypto) => crypto.decrypt(metadata, assembled)
+      None => raise InvalidFrame("encrypted message requires decryption keys")
+    }
   }
   let payload = match metadata.compression {
     Some(t) =>

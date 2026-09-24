@@ -13,8 +13,10 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/base64",
   "moonbit-community/flate/zlib",
   "Milky2018/zstd",
   "yugonlian/moon-avro/codec" @avro_codec,
   "yugonlian/moon-avro/schema" @avro_schema,
+  "cc06b/mooncry/lib" @crypto,
 }

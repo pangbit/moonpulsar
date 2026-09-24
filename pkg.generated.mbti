@@ -152,12 +152,12 @@ pub async fn Client::connect(@async.TaskGroup[Unit], String, auth? : &Authentica
 pub async fn Client::connect_tls_insecure(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
 pub async fn Client::connect_tls_with_ca(@async.TaskGroup[Unit], String, String, auth? : &Authentication) -> Self
 pub async fn Client::connect_with_options(@async.TaskGroup[Unit], ClientOptions) -> Self
-pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
-pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
-pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
-pub async fn Client::create_producer(Self, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, compression? : CompressionCodec, chunk_size? : Int, automatic_chunking? : Bool, schema? : SchemaInfo, partition_refresh_ms? : Int, routing? : ProducerRoutingMode, max_pending_messages? : Int, block_if_queue_full? : Bool, send_timeout_ms? : Int, interceptors? : Array[ProducerInterceptor]) -> Producer
-pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, partition_refresh_ms? : Int, include_start_message_id? : Bool, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String, chunk_policy? : ChunkAssemblyPolicy, schema? : SchemaInfo) -> Reader
-pub async fn Client::create_retry_consumer(Self, String, String, String, DeadLetterPolicy, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
+pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
+pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
+pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
+pub async fn Client::create_producer(Self, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, compression? : CompressionCodec, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], chunk_size? : Int, automatic_chunking? : Bool, schema? : SchemaInfo, partition_refresh_ms? : Int, routing? : ProducerRoutingMode, max_pending_messages? : Int, block_if_queue_full? : Bool, send_timeout_ms? : Int, interceptors? : Array[ProducerInterceptor]) -> Producer
+pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, partition_refresh_ms? : Int, include_start_message_id? : Bool, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String, chunk_policy? : ChunkAssemblyPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto) -> Reader
+pub async fn Client::create_retry_consumer(Self, String, String, String, DeadLetterPolicy, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
 pub async fn Client::create_table_view(Self, String, partition_refresh_ms? : Int, schema? : SchemaInfo) -> TableView
 pub async fn[T] Client::create_typed_table_view(Self, String, SchemaCodec[T], partition_refresh_ms? : Int) -> TypedTableView[T]
 pub async fn Client::get_schema(Self, String, version? : Bytes) -> VersionedSchema
@@ -265,6 +265,16 @@ pub fn DeadLetterPolicy::max_deliveries(Self) -> UInt
 pub fn DeadLetterPolicy::new(UInt, String) -> Self raise PulsarError
 pub fn DeadLetterPolicy::topic(Self) -> String
 
+pub struct EncryptionPrivateKey {
+  // private fields
+}
+pub fn EncryptionPrivateKey::from_pem(Bytes) -> Self raise PulsarError
+
+pub struct EncryptionPublicKey {
+  // private fields
+}
+pub fn EncryptionPublicKey::from_pem(Bytes) -> Self raise PulsarError
+
 pub(all) struct IncomingFrame {
   cmd : @proto.BaseCommand
   metadata : @proto.MessageMetadata?
@@ -298,6 +308,17 @@ pub fn Message::redelivery_count(Self) -> UInt
 pub fn Message::schema_version(Self) -> Bytes?
 pub fn Message::sequence_id(Self) -> UInt64?
 pub fn Message::topic(Self) -> String
+
+pub struct MessageCrypto {
+  // private fields
+}
+pub fn MessageCrypto::add_private_key(Self, String, Bytes) -> Unit raise PulsarError
+pub fn MessageCrypto::add_public_key(Self, String, Bytes) -> Unit raise PulsarError
+pub fn MessageCrypto::decrypt(Self, @proto.MessageMetadata, Bytes) -> Bytes raise PulsarError
+pub async fn MessageCrypto::encrypt(Self, @proto.MessageMetadata, Bytes, Array[String]) -> Bytes raise PulsarError
+pub async fn MessageCrypto::load_private_key_file(Self, String, String) -> Unit raise PulsarError
+pub async fn MessageCrypto::load_public_key_file(Self, String, String) -> Unit raise PulsarError
+pub fn MessageCrypto::new() -> Self
 
 pub(all) struct MessageId {
   ledger_id : UInt64
@@ -453,7 +474,7 @@ pub async fn SingleConsumer::ack(Self, MessageId, await_response? : Bool) -> Uni
 pub async fn SingleConsumer::ack_cumulative(Self, MessageId, await_response? : Bool) -> Unit
 pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId, await_response? : Bool) -> Unit
 pub async fn SingleConsumer::close(Self) -> Unit
-pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, reconnect_with? : async () -> Connection, schema? : SchemaInfo, reconnect_policy? : RetryPolicy, chunk_policy? : ChunkAssemblyPolicy, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, on_event? : (ClientEvent) -> Unit) -> Self
+pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, reconnect_with? : async () -> Connection, schema? : SchemaInfo, message_crypto? : MessageCrypto, reconnect_policy? : RetryPolicy, chunk_policy? : ChunkAssemblyPolicy, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, on_event? : (ClientEvent) -> Unit) -> Self
 pub fn SingleConsumer::is_closed(Self) -> Bool
 pub async fn SingleConsumer::nack(Self, MessageId) -> Unit
 pub async fn SingleConsumer::receive(Self) -> Message
@@ -467,7 +488,7 @@ pub struct SingleProducer {
   // private fields
 }
 pub async fn SingleProducer::close(Self) -> Unit
-pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, chunk_size? : Int, automatic_chunking? : Bool, schema? : SchemaInfo, reconnect_policy? : RetryPolicy, max_pending_messages? : Int, block_if_queue_full? : Bool, send_timeout_ms? : Int) -> Self
+pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], chunk_size? : Int, automatic_chunking? : Bool, schema? : SchemaInfo, reconnect_policy? : RetryPolicy, max_pending_messages? : Int, block_if_queue_full? : Bool, send_timeout_ms? : Int) -> Self
 pub async fn SingleProducer::flush(Self) -> Unit
 pub fn SingleProducer::last_sequence_id(Self) -> UInt64?
 pub fn SingleProducer::name(Self) -> String
@@ -480,7 +501,7 @@ pub struct SingleReader {
   // private fields
 }
 pub async fn SingleReader::close(Self) -> Unit
-pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, include_start_message_id? : Bool, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String, chunk_policy? : ChunkAssemblyPolicy, schema? : SchemaInfo) -> Self
+pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, include_start_message_id? : Bool, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String, chunk_policy? : ChunkAssemblyPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto) -> Self
 pub async fn SingleReader::has_message_available(Self) -> Bool
 pub async fn SingleReader::last_message_id(Self) -> MessageId
 pub async fn SingleReader::next(Self) -> Message?

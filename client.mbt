@@ -231,6 +231,8 @@ pub async fn Client::create_producer(
   access_mode? : ProducerAccessMode = Shared,
   batching? : BatchingConfig,
   compression? : CompressionCodec = None,
+  message_crypto? : MessageCrypto,
+  encryption_key_names? : Array[String] = [],
   chunk_size? : Int,
   automatic_chunking? : Bool = false,
   schema? : SchemaInfo,
@@ -266,6 +268,8 @@ pub async fn Client::create_producer(
       batching?,
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
       compression~,
+      message_crypto?,
+      encryption_key_names~,
       chunk_size?,
       automatic_chunking~,
       schema?,
@@ -296,6 +300,8 @@ pub async fn Client::create_producer(
           lookup_topic(manager, addr, partition_topic)
         },
         compression~,
+        message_crypto?,
+        encryption_key_names~,
         chunk_size?,
         automatic_chunking~,
         schema?,
@@ -370,6 +376,8 @@ pub async fn Client::create_consumer(
   nack_backoff? : NackBackoff,
   dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
+  encryption_key_names? : Array[String] = [],
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   retry_topic? : String,
@@ -400,6 +408,8 @@ pub async fn Client::create_consumer(
       ack_timeout_ms~,
       nack_backoff?,
       schema?,
+      message_crypto?,
+      encryption_key_names~,
       partition_refresh_ms~,
       chunk_policy?,
       enable_batch_index_ack~,
@@ -444,6 +454,7 @@ pub async fn Client::create_consumer(
       nack_backoff?,
       reconnect_with=async fn() { lookup_topic(manager, addr, topic) },
       schema?,
+      message_crypto?,
       reconnect_policy=self.reconnect_policy,
       chunk_policy?,
       enable_batch_index_ack~,
@@ -454,6 +465,8 @@ pub async fn Client::create_consumer(
     let consumer = self.with_dead_letter(
       Consumer::single(single),
       dead_letter_policy,
+      message_crypto?,
+      encryption_key_names~,
     )
     return self.observe_consumer(consumer, interceptors)
   }
@@ -482,6 +495,7 @@ pub async fn Client::create_consumer(
           lookup_topic(manager, addr, partition_topic)
         },
         schema?,
+        message_crypto?,
         reconnect_policy=self.reconnect_policy,
         chunk_policy?,
         enable_batch_index_ack~,
@@ -529,7 +543,12 @@ pub async fn Client::create_consumer(
     no_wait=true,
     allow_failure=true,
   )
-  let consumer = self.with_dead_letter(consumer, dead_letter_policy)
+  let consumer = self.with_dead_letter(
+    consumer,
+    dead_letter_policy,
+    message_crypto?,
+    encryption_key_names~,
+  )
   self.observe_consumer(consumer, interceptors)
 }
 
@@ -538,9 +557,15 @@ async fn Client::with_dead_letter(
   self : Client,
   consumer : Consumer,
   policy : DeadLetterPolicy?,
+  message_crypto? : MessageCrypto,
+  encryption_key_names? : Array[String] = [],
 ) -> Consumer {
   if policy is Some(config) {
-    let producer = self.create_producer(config.topic()) catch {
+    let producer = self.create_producer(
+      config.topic(),
+      message_crypto?,
+      encryption_key_names~,
+    ) catch {
       e => {
         consumer.close() catch {
           _ => ()
@@ -560,6 +585,8 @@ async fn Client::attach_retry_source(
   retry_topic : String,
   policy : DeadLetterPolicy,
   create_retry_source : async () -> Consumer,
+  message_crypto? : MessageCrypto,
+  encryption_key_names? : Array[String] = [],
 ) -> Consumer {
   let source = create_retry_source() catch {
     e => {
@@ -580,8 +607,17 @@ async fn Client::attach_retry_source(
       raise e
     }
   }
-  let consumer = self.with_dead_letter(consumer, Some(policy))
-  let producer = self.create_producer(retry_topic) catch {
+  let consumer = self.with_dead_letter(
+    consumer,
+    Some(policy),
+    message_crypto?,
+    encryption_key_names~,
+  )
+  let producer = self.create_producer(
+    retry_topic,
+    message_crypto?,
+    encryption_key_names~,
+  ) catch {
     e => {
       consumer.close() catch {
         _ => ()
@@ -616,6 +652,8 @@ pub async fn Client::create_retry_consumer(
   ack_timeout_ms? : Int = 0,
   nack_backoff? : NackBackoff,
   schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
+  encryption_key_names? : Array[String] = [],
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   enable_batch_index_ack? : Bool = false,
@@ -646,6 +684,8 @@ pub async fn Client::create_retry_consumer(
       ack_timeout_ms~,
       nack_backoff?,
       schema?,
+      message_crypto?,
+      encryption_key_names~,
       partition_refresh_ms~,
       chunk_policy?,
       enable_batch_index_ack~,
@@ -665,8 +705,17 @@ pub async fn Client::create_retry_consumer(
   let combined = Consumer::partitioned(self.manager.group, [
     source, retry_source,
   ])
-  let combined = self.with_dead_letter(combined, Some(dead_letter_policy))
-  let producer = self.create_producer(retry_topic) catch {
+  let combined = self.with_dead_letter(
+    combined,
+    Some(dead_letter_policy),
+    message_crypto?,
+    encryption_key_names~,
+  )
+  let producer = self.create_producer(
+    retry_topic,
+    message_crypto?,
+    encryption_key_names~,
+  ) catch {
     e => {
       combined.close() catch {
         _ => ()
@@ -699,6 +748,8 @@ pub async fn Client::create_multi_topic_consumer(
   nack_backoff? : NackBackoff,
   dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
+  encryption_key_names? : Array[String] = [],
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   retry_topic? : String,
@@ -746,6 +797,8 @@ pub async fn Client::create_multi_topic_consumer(
         nack_backoff?,
         dead_letter_policy?=source_policy,
         schema?,
+        message_crypto?,
+        encryption_key_names~,
         partition_refresh_ms~,
         chunk_policy?,
         enable_batch_index_ack~,
@@ -769,30 +822,39 @@ pub async fn Client::create_multi_topic_consumer(
   guard retry_topic is Some(retry) && dead_letter_policy is Some(policy) else {
     return combined
   }
-  self.attach_retry_source(combined, retry, policy, async fn() {
-    self.create_consumer(
-      retry,
-      subscription,
-      sub_type~,
-      key_shared_policy?,
-      consumer_name?,
-      initial_position~,
-      priority_level~,
-      durable~,
-      read_compacted~,
-      properties~,
-      subscription_properties~,
-      receiver_queue_size~,
-      ack_timeout_ms~,
-      nack_backoff?,
-      schema?,
-      partition_refresh_ms~,
-      chunk_policy?,
-      enable_batch_index_ack~,
-      ack_grouping?,
-      auto_scaled_receiver_queue~,
-    )
-  })
+  self.attach_retry_source(
+    combined,
+    retry,
+    policy,
+    async fn() {
+      self.create_consumer(
+        retry,
+        subscription,
+        sub_type~,
+        key_shared_policy?,
+        consumer_name?,
+        initial_position~,
+        priority_level~,
+        durable~,
+        read_compacted~,
+        properties~,
+        subscription_properties~,
+        receiver_queue_size~,
+        ack_timeout_ms~,
+        nack_backoff?,
+        schema?,
+        message_crypto?,
+        encryption_key_names~,
+        partition_refresh_ms~,
+        chunk_policy?,
+        enable_batch_index_ack~,
+        ack_grouping?,
+        auto_scaled_receiver_queue~,
+      )
+    },
+    message_crypto?,
+    encryption_key_names~,
+  )
 }
 
 ///|
@@ -813,6 +875,7 @@ pub async fn Client::create_reader(
   subscription_role_prefix? : String = "reader",
   chunk_policy? : ChunkAssemblyPolicy,
   schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
 ) -> Reader {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -837,6 +900,7 @@ pub async fn Client::create_reader(
         subscription_role_prefix~,
         chunk_policy?,
         schema?,
+        message_crypto?,
       ),
     )
   }
@@ -857,6 +921,7 @@ pub async fn Client::create_reader(
       subscription_role_prefix~,
       chunk_policy?,
       schema?,
+      message_crypto?,
     )
   }
   let subs : Array[SingleReader] = []
@@ -1034,6 +1099,8 @@ pub async fn Client::create_pattern_consumer(
   nack_backoff? : NackBackoff,
   dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
+  message_crypto? : MessageCrypto,
+  encryption_key_names? : Array[String] = [],
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   retry_topic? : String,
@@ -1096,6 +1163,8 @@ pub async fn Client::create_pattern_consumer(
           nack_backoff?,
           dead_letter_policy?=source_policy,
           schema?,
+          message_crypto?,
+          encryption_key_names~,
           partition_refresh_ms~,
           chunk_policy?,
           enable_batch_index_ack~,
@@ -1125,30 +1194,39 @@ pub async fn Client::create_pattern_consumer(
   }
   if retry_topic is Some(retry) && dead_letter_policy is Some(policy) {
     ignore(
-      self.attach_retry_source(consumer, retry, policy, async fn() {
-        self.create_consumer(
-          retry,
-          subscription,
-          sub_type~,
-          key_shared_policy?,
-          consumer_name?,
-          initial_position~,
-          priority_level~,
-          durable~,
-          read_compacted~,
-          properties~,
-          subscription_properties~,
-          receiver_queue_size~,
-          ack_timeout_ms~,
-          nack_backoff?,
-          schema?,
-          partition_refresh_ms~,
-          chunk_policy?,
-          enable_batch_index_ack~,
-          ack_grouping?,
-          auto_scaled_receiver_queue~,
-        )
-      }),
+      self.attach_retry_source(
+        consumer,
+        retry,
+        policy,
+        async fn() {
+          self.create_consumer(
+            retry,
+            subscription,
+            sub_type~,
+            key_shared_policy?,
+            consumer_name?,
+            initial_position~,
+            priority_level~,
+            durable~,
+            read_compacted~,
+            properties~,
+            subscription_properties~,
+            receiver_queue_size~,
+            ack_timeout_ms~,
+            nack_backoff?,
+            schema?,
+            message_crypto?,
+            encryption_key_names~,
+            partition_refresh_ms~,
+            chunk_policy?,
+            enable_batch_index_ack~,
+            ack_grouping?,
+            auto_scaled_receiver_queue~,
+          )
+        },
+        message_crypto?,
+        encryption_key_names~,
+      ),
     )
   }
   self.manager.group.spawn_bg(
