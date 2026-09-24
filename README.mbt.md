@@ -242,7 +242,8 @@ moon fmt         # format
 ```
 
 The mock suite includes handshake timeout, broker CONNECT rejection, excessive
-authentication challenges, and inclusive Reader replay from a nonempty topic.
+authentication challenges, inclusive Reader replay from a nonempty topic,
+and disabled or out-of-range transaction coordinator IDs.
 On the disposable Linux test host, `scripts/test-athenz-broker-live.sh 4.2.4`
 (and `3.3.9`) exercises signed role tokens and service-NToken ZTS exchange
 against an isolated Athenz-authenticated broker.

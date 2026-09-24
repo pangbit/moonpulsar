@@ -223,7 +223,7 @@ moon fmt         # 格式化
 ```
 
 Mock 测试覆盖握手超时、Broker 拒绝 CONNECT、认证挑战次数上限，以及非空 Topic
-上 Reader 包含起始 ID 的回放。隔离 Linux 测试机可运行
+上 Reader 包含起始 ID 的回放，以及事务协调器未启用或 ID 越界。隔离 Linux 测试机可运行
 `scripts/test-athenz-broker-live.sh 4.2.4`（或 `3.3.9`），验证签名角色令牌及服务 NToken 换取令牌后对 Athenz 认证 broker 的收发。
 
 GitHub Actions 会在 push 和 pull request 时运行 native 类型检查、debug/release 测试、格式检查、生成接口检查、文档生成和打包。仓库中的 localhost TLS 私钥与证书是公开的一次性测试材料，绝不能用于真实 broker；Mooncakes 包不包含这些材料，也不包含测试和示例。

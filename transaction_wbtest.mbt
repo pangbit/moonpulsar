@@ -123,6 +123,32 @@ async test "coordinator attach rejects error and malformed broker replies" {
 }
 
 ///|
+async test "coordinator connect rejects broker failure" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.tc_client_connect_request is Some(req) else {
+        fail("expected TC_CLIENT_CONNECT_REQUEST")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_RESPONSE
+      let response = @proto.CommandTcClientConnectResponse::default()
+      response.request_id = req.request_id
+      response.error = Some(@proto.ServerError::InvalidTxnStatus)
+      response.message = Some("coordinator rejected")
+      reply.tc_client_connect_response = Some(response)
+      peer.send_command(reply)
+    })
+    let result : Result[TransactionCoordinator, Error] = Ok(
+      TransactionCoordinator::connect(group, addr, 7UL),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ServerError(message="coordinator rejected", ..)))
+  })
+}
+
+///|
 async test "client resolves transaction coordinator ownership" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(addr, peer) {
@@ -166,6 +192,47 @@ async test "client resolves transaction coordinator ownership" {
     let coord = client.transaction_coordinator(1UL)
     coord.close()
     assert_eq(client.partitions_of(TRANSACTION_COORDINATOR_ASSIGN_TOPIC), 2)
+    client.close()
+  })
+}
+
+///|
+async test "client rejects disabled and out-of-range transaction coordinators" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      for partitions in [0U, 2U] {
+        let frame = peer.next()
+        guard frame.cmd.partition_metadata is Some(req) else {
+          fail("expected transaction coordinator partition metadata")
+        }
+        assert_eq(req.topic, TRANSACTION_COORDINATOR_ASSIGN_TOPIC)
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::PARTITIONED_METADATA_RESPONSE
+        let response = @proto.CommandPartitionedTopicMetadataResponse::default()
+        response.request_id = req.request_id
+        response.partitions = Some(partitions)
+        reply.partition_metadata_response = Some(response)
+        peer.send_command(reply)
+      }
+    })
+    let client = Client::connect(group, "pulsar://\{addr}")
+    let disabled : Result[TransactionCoordinator, Error] = Ok(
+      client.transaction_coordinator(0UL),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      disabled is Err(LookupFailed("transaction coordinators are not enabled")),
+    )
+    let out_of_range : Result[TransactionCoordinator, Error] = Ok(
+      client.transaction_coordinator(2UL),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      out_of_range
+      is Err(LookupFailed("transaction coordinator id is out of range")),
+    )
     client.close()
   })
 }
