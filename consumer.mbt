@@ -208,6 +208,7 @@ pub struct SingleConsumer {
   priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
   priv on_event : ((ClientEvent) -> Unit)?
+  priv memory_limiter : ClientMemoryLimiter?
   priv mut span_recorder : ClientSpanRecorder?
   priv seeking : Ref[Bool]
   priv seek_mu : @async.Mutex
@@ -368,6 +369,7 @@ async fn SingleConsumer::create_with_memory(
     reconnect_policy,
     reconnecting: { val: false, },
     on_event,
+    memory_limiter,
     span_recorder: None,
     seeking: { val: false, },
     seek_mu: @async.Mutex::Mutex(),
@@ -549,6 +551,7 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
       self.closed.val = true
       self.stop_chunk_sweeper()
       self.ack_dispatcher.stop()
+      self.clear_buffered_messages()
       self.messages.close(error=ConnectionClosed, clear=true)
     }
   }
@@ -567,6 +570,7 @@ fn SingleConsumer::on_connection_closed(
       self.closed.val = true
       self.stop_chunk_sweeper()
       self.ack_dispatcher.stop()
+      self.clear_buffered_messages()
       self.messages.close(error=ConnectionClosed, clear=true)
     }
     return
@@ -633,10 +637,11 @@ fn SingleConsumer::on_frame(
 ) -> Unit {
   match frame.cmd.type_ {
     @proto.BaseCommand_Type::MESSAGE =>
-      if !self.seeking.val {
+      if !self.closed.val && !self.seeking.val {
         self.dispatch_message(frame) catch {
           ClientMemoryFull => {
             self.chunks.clear()
+            self.clear_buffered_messages()
             self.messages.close(error=ClientMemoryFull, clear=true)
             self.conn_ref.val.message_handlers.remove(self.consumer_id)
             self.stop_chunk_sweeper()
@@ -658,6 +663,7 @@ fn SingleConsumer::on_frame(
           }
           error =>
             if frame.metadata is Some(meta) && !meta.encryption_keys.is_empty() {
+              self.clear_buffered_messages()
               self.messages.close(error~, clear=true)
             }
         }
@@ -672,6 +678,7 @@ fn SingleConsumer::on_frame(
         self.closed.val = true
         self.stop_chunk_sweeper()
         self.ack_dispatcher.stop()
+        self.clear_buffered_messages()
         self.messages.close(error=ConsumerClosed, clear=true)
       }
     _ => ()
@@ -689,6 +696,7 @@ fn SingleConsumer::discard_encrypted(
     async fn() {
       send_ack(conn, consumer_id, @proto.CommandAck_AckType::Individual, ids) catch {
         e => {
+          self.clear_buffered_messages()
           self.messages.close(error=e, clear=true)
           return
         }
@@ -873,13 +881,27 @@ fn SingleConsumer::push_message(
     on_delivery=fn(m) { self.track_ack(m) },
     nack_scheduler?=scheduler,
   )
-  if self.messages.try_put(message) {
+  message.retain_for_queue(self.memory_limiter)
+  if (self.messages.try_put(message) catch { _ => false }) {
     self.buffered_messages += 1
     if self.auto_scaled_receiver_queue &&
       self.buffered_messages >= self.current_receiver_permits {
       self.scale_receiver_hint = true
     }
+  } else {
+    message.release_retained_memory()
   }
+}
+
+///|
+fn SingleConsumer::clear_buffered_messages(self : SingleConsumer) -> Unit {
+  while true {
+    match (self.messages.try_get() catch { _ => None }) {
+      Some(message) => message.release_retained_memory()
+      None => break
+    }
+  }
+  self.buffered_messages = 0
 }
 
 ///|
@@ -966,6 +988,7 @@ fn build_message(
     interceptors: [],
     span_recorder: None,
     nack_scheduler,
+    memory_lease: None,
   }
 }
 
@@ -1369,10 +1392,7 @@ pub async fn SingleConsumer::seek(
   guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
     raise UnexpectedResponse("expected SUCCESS for SEEK")
   }
-  while (self.messages.try_get() catch { _ => None }) is Some(_) {
-
-  }
-  self.buffered_messages = 0
+  self.clear_buffered_messages()
   self.scale_receiver_hint = false
   self.ack_pending.clear()
   self.batch_acks.clear()
@@ -1417,6 +1437,8 @@ pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
     return
   }
   self.closed.val = true
+  self.clear_buffered_messages()
+  self.chunks.clear()
   self.stop_chunk_sweeper()
   self.ack_dispatcher.stop()
   self.ack_dispatcher.flush() catch {
@@ -1437,7 +1459,6 @@ pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
   self.conn_ref.val.message_handlers.remove(self.consumer_id)
   self.ack_pending.clear()
   self.batch_acks.clear()
-  self.chunks.clear()
   self.chunk_acks.clear()
   self.messages.close(error=ConsumerClosed, clear=true)
 }
@@ -1472,6 +1493,7 @@ pub async fn SingleConsumer::unsubscribe(
   self.batch_acks.clear()
   self.chunks.clear()
   self.chunk_acks.clear()
+  self.clear_buffered_messages()
   self.messages.close(error=ConsumerClosed, clear=true)
 }
 
@@ -1512,6 +1534,41 @@ priv struct PartitionedConsumerState {
 priv struct ForwardedMessage {
   source_id : Int
   message : Message
+}
+
+///|
+fn PartitionedConsumerState::clear_buffered_messages(
+  self : PartitionedConsumerState,
+) -> Unit {
+  while true {
+    match (self.queue.try_get() catch { _ => None }) {
+      Some(item) => item.message.release_retained_memory()
+      None => break
+    }
+  }
+}
+
+///|
+fn PartitionedConsumerState::prune_inactive(
+  self : PartitionedConsumerState,
+) -> Unit {
+  let active = []
+  while true {
+    match (self.queue.try_get() catch { _ => None }) {
+      Some(item) =>
+        if self.active_sources.contains(item.source_id) {
+          active.push(item)
+        } else {
+          item.message.release_retained_memory()
+        }
+      None => break
+    }
+  }
+  for item in active {
+    if !(self.queue.try_put(item) catch { _ => false }) {
+      item.message.release_retained_memory()
+    }
+  }
 }
 
 ///|
@@ -1648,6 +1705,7 @@ async fn DeadLetterState::route(
   self : DeadLetterState,
   message : Message,
 ) -> Unit {
+  defer message.release_retained_memory()
   let outgoing = ProducerMessage::new(
     message.payload(),
     key?=message.key(),
@@ -1756,12 +1814,15 @@ fn PartitionedConsumerState::add_source(
         while true {
           let msg = sub.receive_untracked()
           while self.active_sources.contains(source_id) && !self.closed.val {
-            if self.queue.try_put({ source_id, message: msg, }) {
+            if (self.queue.try_put({ source_id, message: msg, }) catch {
+                _ => false
+              }) {
               break
             }
             @async.sleep(5)
           }
           if !self.active_sources.contains(source_id) || self.closed.val {
+            msg.release_retained_memory()
             return
           }
         }
@@ -1786,6 +1847,7 @@ async fn Consumer::remove_source(self : Consumer, topic : String) -> Unit {
           let source_id = state.source_ids.remove(index)
           state.active_sources.remove(source_id)
           removed.close()
+          state.prune_inactive()
         } else {
           index += 1
         }
@@ -1822,6 +1884,7 @@ async fn Consumer::receive_raw(self : Consumer) -> Message {
         if state.active_sources.contains(item.source_id) {
           return item.message
         }
+        item.message.release_retained_memory()
       }
       raise ConsumerClosed
     }
@@ -1925,6 +1988,8 @@ fn Consumer::try_receive_raw(self : Consumer) -> Message? raise {
             if state.active_sources.contains(item.source_id) {
               result = Some(item.message)
               done = true
+            } else {
+              item.message.release_retained_memory()
             }
           None => done = true
         }
@@ -2253,9 +2318,7 @@ pub async fn Consumer::seek(self : Consumer, position : SeekPosition) -> Unit {
             candidates[0].seek(position)
           }
       }
-      while (state.queue.try_get() catch { _ => None }) is Some(_) {
-
-      }
+      state.clear_buffered_messages()
     }
   }
 }
@@ -2269,10 +2332,11 @@ pub async fn Consumer::close(self : Consumer) -> Unit {
       ConsumerImpl::Single(c) => c.close()
       ConsumerImpl::Partitioned(state) => {
         state.closed.val = true
+        state.clear_buffered_messages()
+        state.queue.close(error=ConsumerClosed, clear=true)
         for c in state.consumers {
           c.close()
         }
-        state.queue.close(error=ConsumerClosed, clear=true)
       }
     }
   } catch {
@@ -2311,6 +2375,7 @@ pub async fn Consumer::unsubscribe(
           }
         }
         state.closed.val = true
+        state.clear_buffered_messages()
         state.queue.close(error=ConsumerClosed, clear=true)
         if failure is Some(error) {
           raise error

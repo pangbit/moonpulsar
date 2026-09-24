@@ -18,6 +18,30 @@ struct ClientMemoryLimiter {
 }
 
 ///|
+struct ClientMemoryLease {
+  limiter : ClientMemoryLimiter
+  size : Int
+  released : Ref[Bool]
+}
+
+///|
+fn ClientMemoryLease::new(
+  limiter : ClientMemoryLimiter,
+  size : Int,
+) -> ClientMemoryLease raise PulsarError {
+  limiter.reserve_now(size)
+  { limiter, size, released: { val: false, }, }
+}
+
+///|
+fn ClientMemoryLease::release(self : ClientMemoryLease) -> Unit {
+  if !self.released.val {
+    self.released.val = true
+    self.limiter.release_now(self.size)
+  }
+}
+
+///|
 fn ClientMemoryLimiter::new(limit : Int) -> ClientMemoryLimiter {
   {
     limit,

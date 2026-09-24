@@ -172,6 +172,49 @@ pub struct Message {
   priv mut interceptors : Array[ConsumerInterceptor]
   priv mut span_recorder : ClientSpanRecorder?
   priv nack_scheduler : ((Message) -> Unit)?
+  priv mut memory_lease : ClientMemoryLease?
+}
+
+///|
+fn Message::retained_bytes(self : Message) -> Int {
+  let mut size = self.payload.length() + @utf8.encode(self.topic).length()
+  size += @utf8.encode(self.producer_name).length()
+  if self.subscription is Some(value) {
+    size += @utf8.encode(value).length()
+  }
+  if self.key is Some(value) {
+    size += @utf8.encode(value).length()
+  }
+  if self.ordering_key is Some(value) {
+    size += value.length()
+  }
+  if self.schema_version is Some(value) {
+    size += value.length()
+  }
+  for key, value in self.properties {
+    size += @utf8.encode(key).length() + @utf8.encode(value).length()
+  }
+  size
+}
+
+///|
+fn Message::retain_for_queue(
+  self : Message,
+  limiter : ClientMemoryLimiter?,
+) -> Unit raise PulsarError {
+  if limiter is Some(budget) {
+    self.memory_lease = Some(
+      ClientMemoryLease::new(budget, self.retained_bytes()),
+    )
+  }
+}
+
+///|
+fn Message::release_retained_memory(self : Message) -> Unit {
+  if self.memory_lease is Some(lease) {
+    lease.release()
+    self.memory_lease = None
+  }
 }
 
 ///|
@@ -190,6 +233,7 @@ fn Message::observe_nack(self : Message, result : Result[Unit, Error]) -> Unit {
 
 ///|
 fn Message::mark_delivered(self : Message) -> Unit {
+  self.release_retained_memory()
   if self.on_delivery is Some(callback) {
     callback(self)
   }

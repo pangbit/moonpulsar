@@ -12,6 +12,13 @@ priv enum ReaderEvent {
 }
 
 ///|
+fn ReaderEvent::release_retained_memory(self : ReaderEvent) -> Unit {
+  if self is Msg(message) {
+    message.release_retained_memory()
+  }
+}
+
+///|
 fn ReaderEvent::consumer_id(self : ReaderEvent) -> UInt64 {
   match self {
     Msg(msg) => msg.consumer_id
@@ -35,6 +42,7 @@ pub struct SingleReader {
   priv read_compacted : Bool
   priv schema : SchemaInfo?
   priv message_crypto : MessageCrypto?
+  priv memory_limiter : ClientMemoryLimiter?
   priv decryption_failure_action : DecryptionFailureAction
   priv include_start_message_id : Bool
   priv start_bound : Ref[MessageId?]
@@ -134,6 +142,7 @@ async fn SingleReader::create_with_memory(
     read_compacted,
     schema,
     message_crypto,
+    memory_limiter,
     decryption_failure_action,
     include_start_message_id,
     start_bound: { val: reader_start_bound(start_message_id), },
@@ -255,7 +264,18 @@ fn SingleReader::on_connection_closed(self : SingleReader) -> Unit {
   self.close_error.val = Some(ConnectionClosed)
   self.conn.message_handlers.remove(self.consumer_id)
   self.chunks.clear()
+  self.clear_buffered_events()
   self.events.close(error=ConnectionClosed, clear=true)
+}
+
+///|
+fn SingleReader::clear_buffered_events(self : SingleReader) -> Unit {
+  while true {
+    match (self.events.try_get() catch { _ => None }) {
+      Some(event) => event.release_retained_memory()
+      None => break
+    }
+  }
 }
 
 ///|
@@ -312,6 +332,7 @@ async fn SingleReader::resubscribe(
   start_message_id : MessageId?,
 ) -> Unit {
   self.chunks.clear()
+  self.clear_buffered_events()
   let conn = self.conn_ref.val
   conn.message_handlers.remove(self.consumer_id)
   // best-effort close of the old consumer
@@ -348,10 +369,11 @@ async fn SingleReader::send_flow(self : SingleReader, permits : Int) -> Unit {
 ///|
 fn SingleReader::on_frame(self : SingleReader, frame : IncomingFrame) -> Unit {
   match frame.cmd.type_ {
-    @proto.BaseCommand_Type::MESSAGE =>
+    @proto.BaseCommand_Type::MESSAGE if !self.closed.val =>
       self.dispatch_message(frame) catch {
         ClientMemoryFull => {
           self.chunks.clear()
+          self.clear_buffered_events()
           self.events.close(error=ClientMemoryFull, clear=true)
           self.conn.message_handlers.remove(self.consumer_id)
           self.stop_chunk_sweeper()
@@ -373,6 +395,7 @@ fn SingleReader::on_frame(self : SingleReader, frame : IncomingFrame) -> Unit {
         }
         error =>
           if frame.metadata is Some(meta) && !meta.encryption_keys.is_empty() {
+            self.clear_buffered_events()
             self.events.close(error~, clear=true)
           }
       }
@@ -483,7 +506,10 @@ fn SingleReader::dispatch_message(
         redelivery_count,
       )
       if !self.discard_before_start(msg.id()) {
-        ignore(self.events.try_put(Msg(msg)))
+        msg.retain_for_queue(self.memory_limiter)
+        if !(self.events.try_put(Msg(msg)) catch { _ => false }) {
+          msg.release_retained_memory()
+        }
       }
     }
   } else {
@@ -502,7 +528,10 @@ fn SingleReader::dispatch_message(
       decryption_failed~,
     )
     if !self.discard_before_start(msg.id()) {
-      ignore(self.events.try_put(Msg(msg)))
+      msg.retain_for_queue(self.memory_limiter)
+      if !(self.events.try_put(Msg(msg)) catch { _ => false }) {
+        msg.release_retained_memory()
+      }
     }
   }
 }
@@ -513,7 +542,10 @@ fn SingleReader::dispatch_message(
 /// again.
 pub async fn SingleReader::next(self : SingleReader) -> Message? {
   match self.next_event() {
-    Msg(msg) => Some(msg)
+    Msg(msg) => {
+      msg.release_retained_memory()
+      Some(msg)
+    }
     EndOfTopic(_) => None
   }
 }
@@ -639,9 +671,13 @@ fn SingleReader::requeue_front(
       None => break
     }
   }
-  ignore(self.events.try_put(event))
+  if !(self.events.try_put(event) catch { _ => false }) {
+    event.release_retained_memory()
+  }
   for e in rest {
-    ignore(self.events.try_put(e))
+    if !(self.events.try_put(e) catch { _ => false }) {
+      e.release_retained_memory()
+    }
   }
 }
 
@@ -667,9 +703,7 @@ pub async fn SingleReader::seek(
     raise ConsumerClosed
   }
   // drop everything buffered before the seek
-  while (self.events.try_get() catch { _ => None }) is Some(_) {
-
-  }
+  self.clear_buffered_events()
   match position {
     PositionId(id) => {
       self.last_seen.val = Some(id)
@@ -703,6 +737,8 @@ pub async fn SingleReader::close(self : SingleReader) -> Unit {
     return
   }
   self.closed.val = true
+  self.clear_buffered_events()
+  self.chunks.clear()
   self.stop_chunk_sweeper()
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
@@ -712,7 +748,6 @@ pub async fn SingleReader::close(self : SingleReader) -> Unit {
   cmd.close_consumer = Some(close)
   ignore(self.conn.request(cmd) catch { _ => @proto.BaseCommand::default() })
   self.conn.message_handlers.remove(self.consumer_id)
-  self.chunks.clear()
   self.events.close(error=ConsumerClosed, clear=true)
 }
 
@@ -737,6 +772,22 @@ priv struct PartitionedReaderState {
   readers : Array[SingleReader]
   closed : Ref[Bool]
   mut peeked : PartitionedReaderEvent?
+}
+
+///|
+fn PartitionedReaderState::clear_buffered_events(
+  self : PartitionedReaderState,
+) -> Unit {
+  if self.peeked is Some(item) {
+    item.event.release_retained_memory()
+    self.peeked = None
+  }
+  while true {
+    match (self.queue.try_get() catch { _ => None }) {
+      Some(item) => item.event.release_retained_memory()
+      None => break
+    }
+  }
 }
 
 ///|
@@ -786,13 +837,20 @@ fn PartitionedReaderState::forward_source(
       while true {
         let event = reader.next_event() catch {
           e => {
-            self.peeked = None
+            self.clear_buffered_events()
             self.queue.close(error=e, clear=true)
             return
           }
         }
         if event.consumer_id() == reader.consumer_id {
-          self.queue.put({ source, event, })
+          self.queue.put({ source, event, }) catch {
+            _ => {
+              event.release_retained_memory()
+              return
+            }
+          }
+        } else {
+          event.release_retained_memory()
         }
       }
     },
@@ -853,6 +911,7 @@ pub async fn Reader::next(self : Reader) -> Message? {
           None => state.queue.get()
         }
         if !state.is_current(item) {
+          item.event.release_retained_memory()
           continue
         }
         match item.event {
@@ -861,6 +920,7 @@ pub async fn Reader::next(self : Reader) -> Message? {
               state.ended_sources.remove(item.source)
               state.ended -= 1
             }
+            msg.release_retained_memory()
             return Some(msg)
           }
           EndOfTopic(_) => {
@@ -885,11 +945,17 @@ pub async fn Reader::has_message_available(self : Reader) -> Bool {
     ReaderImpl::One(r) => r.has_message_available()
     ReaderImpl::Many(state) => {
       if state.peeked is Some(item) && !state.is_current(item) {
+        item.event.release_retained_memory()
         state.peeked = None
       }
       while state.peeked is None {
         match state.queue.try_get() {
-          Some(item) => if state.is_current(item) { state.peeked = Some(item) }
+          Some(item) =>
+            if state.is_current(item) {
+              state.peeked = Some(item)
+            } else {
+              item.event.release_retained_memory()
+            }
           None => break
         }
       }
@@ -945,7 +1011,7 @@ pub async fn Reader::seek(self : Reader, position : SeekPosition) -> Unit {
       }
       state.ended = 0
       state.ended_sources.clear()
-      state.peeked = None
+      state.clear_buffered_events()
     }
   }
 }
@@ -957,11 +1023,11 @@ pub async fn Reader::close(self : Reader) -> Unit {
     ReaderImpl::One(r) => r.close()
     ReaderImpl::Many(state) => {
       state.closed.val = true
-      state.peeked = None
+      state.clear_buffered_events()
+      state.queue.close(error=ConsumerClosed, clear=true)
       for r in state.readers {
         r.close()
       }
-      state.queue.close(error=ConsumerClosed, clear=true)
     }
   }
 }

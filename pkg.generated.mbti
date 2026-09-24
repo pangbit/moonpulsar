@@ -203,6 +203,8 @@ pub(all) enum ClientEvent {
   ConsumerReconnected(String, Result[Unit, Error])
 }
 
+type ClientMemoryLease
+
 type ClientMemoryLimiter
 
 pub struct ClientMetrics {
