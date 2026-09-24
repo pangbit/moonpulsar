@@ -4,6 +4,7 @@
 ///|
 pub struct ConsumerInterceptor {
   priv before_consume : ((Message) -> Unit)?
+  priv on_receive_error : ((Error) -> Unit)?
   priv on_ack : ((MessageId, Result[Unit, Error]) -> Unit)?
   priv on_nack : ((MessageId, Result[Unit, Error]) -> Unit)?
 }
@@ -11,10 +12,21 @@ pub struct ConsumerInterceptor {
 ///|
 pub fn ConsumerInterceptor::new(
   before_consume? : (Message) -> Unit,
+  on_receive_error? : (Error) -> Unit,
   on_ack? : (MessageId, Result[Unit, Error]) -> Unit,
   on_nack? : (MessageId, Result[Unit, Error]) -> Unit,
 ) -> ConsumerInterceptor {
-  { before_consume, on_ack, on_nack, }
+  { before_consume, on_receive_error, on_ack, on_nack, }
+}
+
+///|
+fn ConsumerInterceptor::receive_failed(
+  self : ConsumerInterceptor,
+  error : Error,
+) -> Unit {
+  if self.on_receive_error is Some(callback) {
+    callback(error)
+  }
 }
 
 ///|

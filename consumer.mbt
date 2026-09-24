@@ -1604,7 +1604,12 @@ async fn Consumer::receive_untracked(self : Consumer) -> Message {
 ///|
 /// Receive the next message, blocking until one is available.
 pub async fn Consumer::receive(self : Consumer) -> Message {
-  let message = self.receive_untracked()
+  let message = self.receive_untracked() catch {
+    error => {
+      self.observe_receive_error(error)
+      raise error
+    }
+  }
   self.delivered(message)
   message
 }
@@ -1612,6 +1617,23 @@ pub async fn Consumer::receive(self : Consumer) -> Message {
 ///|
 /// Non-blocking receive: returns `None` if no message is buffered.
 pub fn Consumer::try_receive(self : Consumer) -> Message? raise {
+  self.try_receive_raw() catch {
+    error => {
+      self.observe_receive_error(error)
+      raise error
+    }
+  }
+}
+
+///|
+fn Consumer::observe_receive_error(self : Consumer, error : Error) -> Unit {
+  for interceptor in self.interceptors {
+    interceptor.receive_failed(error)
+  }
+}
+
+///|
+fn Consumer::try_receive_raw(self : Consumer) -> Message? raise {
   let message = match self.inner {
     ConsumerImpl::Single(c) => c.try_receive_untracked()
     ConsumerImpl::Partitioned(state) => {

@@ -4,6 +4,7 @@
 pub(all) enum ClientEvent {
   SendCompleted(String, ProducerMessage, Result[SendReceipt, Error])
   MessageReceived(Message)
+  ReceiveFailed(String, Error)
   Acknowledged(String, MessageId, Result[Unit, Error])
   NegativelyAcknowledged(String, MessageId, Result[Unit, Error])
   ProducerReconnecting(String)
@@ -17,9 +18,11 @@ pub struct ClientMetrics {
   priv mut sends : Int64
   priv mut send_failures : Int64
   priv mut received : Int64
+  priv mut receive_failures : Int64
   priv mut acknowledgments : Int64
   priv mut ack_failures : Int64
   priv mut negative_acknowledgments : Int64
+  priv mut negative_ack_failures : Int64
   priv mut producer_reconnects : Int64
   priv mut consumer_reconnects : Int64
   priv mut reconnect_failures : Int64
@@ -30,9 +33,11 @@ pub(all) struct ClientMetricsSnapshot {
   sends : Int64
   send_failures : Int64
   received : Int64
+  receive_failures : Int64
   acknowledgments : Int64
   ack_failures : Int64
   negative_acknowledgments : Int64
+  negative_ack_failures : Int64
   producer_reconnects : Int64
   consumer_reconnects : Int64
   reconnect_failures : Int64
@@ -44,9 +49,11 @@ pub fn ClientMetrics::new() -> ClientMetrics {
     sends: 0L,
     send_failures: 0L,
     received: 0L,
+    receive_failures: 0L,
     acknowledgments: 0L,
     ack_failures: 0L,
     negative_acknowledgments: 0L,
+    negative_ack_failures: 0L,
     producer_reconnects: 0L,
     consumer_reconnects: 0L,
     reconnect_failures: 0L,
@@ -63,13 +70,19 @@ pub fn ClientMetrics::record(self : ClientMetrics, event : ClientEvent) -> Unit 
       }
     }
     MessageReceived(_) => self.received += 1L
+    ReceiveFailed(_, _) => self.receive_failures += 1L
     Acknowledged(_, _, result) => {
       self.acknowledgments += 1L
       if result is Err(_) {
         self.ack_failures += 1L
       }
     }
-    NegativelyAcknowledged(_, _, _) => self.negative_acknowledgments += 1L
+    NegativelyAcknowledged(_, _, result) => {
+      self.negative_acknowledgments += 1L
+      if result is Err(_) {
+        self.negative_ack_failures += 1L
+      }
+    }
     ProducerReconnecting(_) | ConsumerReconnecting(_) => ()
     ProducerReconnected(_, result) => {
       self.producer_reconnects += 1L
@@ -92,9 +105,11 @@ pub fn ClientMetrics::snapshot(self : ClientMetrics) -> ClientMetricsSnapshot {
     sends: self.sends,
     send_failures: self.send_failures,
     received: self.received,
+    receive_failures: self.receive_failures,
     acknowledgments: self.acknowledgments,
     ack_failures: self.ack_failures,
     negative_acknowledgments: self.negative_acknowledgments,
+    negative_ack_failures: self.negative_ack_failures,
     producer_reconnects: self.producer_reconnects,
     consumer_reconnects: self.consumer_reconnects,
     reconnect_failures: self.reconnect_failures,

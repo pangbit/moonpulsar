@@ -168,6 +168,7 @@ pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordin
 pub(all) enum ClientEvent {
   SendCompleted(String, ProducerMessage, Result[SendReceipt, Error])
   MessageReceived(Message)
+  ReceiveFailed(String, Error)
   Acknowledged(String, MessageId, Result[Unit, Error])
   NegativelyAcknowledged(String, MessageId, Result[Unit, Error])
   ProducerReconnecting(String)
@@ -189,9 +190,11 @@ pub(all) struct ClientMetricsSnapshot {
   sends : Int64
   send_failures : Int64
   received : Int64
+  receive_failures : Int64
   acknowledgments : Int64
   ack_failures : Int64
   negative_acknowledgments : Int64
+  negative_ack_failures : Int64
   producer_reconnects : Int64
   consumer_reconnects : Int64
   reconnect_failures : Int64
@@ -256,7 +259,7 @@ pub async fn Consumer::unsubscribe(Self, force? : Bool) -> Unit
 pub struct ConsumerInterceptor {
   // private fields
 }
-pub fn ConsumerInterceptor::new(before_consume? : (Message) -> Unit, on_ack? : (MessageId, Result[Unit, Error]) -> Unit, on_nack? : (MessageId, Result[Unit, Error]) -> Unit) -> Self
+pub fn ConsumerInterceptor::new(before_consume? : (Message) -> Unit, on_receive_error? : (Error) -> Unit, on_ack? : (MessageId, Result[Unit, Error]) -> Unit, on_nack? : (MessageId, Result[Unit, Error]) -> Unit) -> Self
 
 pub struct DeadLetterPolicy {
   // private fields

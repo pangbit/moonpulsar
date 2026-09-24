@@ -67,6 +67,81 @@ async test "consumer interceptor observes message and ID acknowledgments and nac
 }
 
 ///|
+async test "consumer interceptor observes receive failure after close" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+    })
+    let manager = ConnectionManager::new(group)
+    let consumer = Consumer::single(
+      SingleConsumer::create(
+        group,
+        manager.get(addr),
+        "persistent://public/default/interceptor-receive-error",
+        "sub",
+      ),
+    )
+    let failures : Array[Error] = []
+    consumer.set_interceptors([
+      ConsumerInterceptor::new(on_receive_error=fn(error) {
+        failures.push(error)
+      }),
+    ])
+    consumer.close()
+    let result : Result[Message, Error] = Ok(consumer.receive()) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConsumerClosed))
+    let nonblocking : Result[Message?, Error] = Ok(consumer.try_receive()) catch {
+      e => Err(e)
+    }
+    assert_true(nonblocking is Err(ConsumerClosed))
+    assert_eq(failures.length(), 2)
+    assert_true(failures[0] is ConsumerClosed)
+    manager.close()
+  })
+}
+
+///|
+async test "client event and metrics record failed asynchronous receive" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      expect_subscribe(peer)
+    })
+    let metrics = ClientMetrics::new()
+    let failed_topics : Array[String] = []
+    let client = Client::connect_with_options(
+      group,
+      ClientOptions::new("pulsar://\{addr}", on_event=fn(event) {
+        if event is ClientEvent::ReceiveFailed(topic, _) {
+          failed_topics.push(topic)
+        }
+        metrics.record(event)
+      }),
+    )
+    let topic = "persistent://public/default/client-receive-error"
+    let consumer = client.observe_consumer(
+      Consumer::single(
+        SingleConsumer::create(group, client.manager.get(addr), topic, "sub"),
+      ),
+      [],
+    )
+    consumer.close()
+    let result : Result[Message, Error] = Ok(consumer.receive()) catch {
+      e => Err(e)
+    }
+    assert_true(result is Err(ConsumerClosed))
+    let nonblocking : Result[Message?, Error] = Ok(consumer.try_receive()) catch {
+      e => Err(e)
+    }
+    assert_true(nonblocking is Err(ConsumerClosed))
+    assert_eq(failed_topics, [topic, topic])
+    assert_eq(metrics.snapshot().receive_failures, 2L)
+    client.close()
+  })
+}
+
+///|
 async test "consumer interceptor sees rejected confirmed message ACK" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {

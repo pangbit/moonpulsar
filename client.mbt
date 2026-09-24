@@ -207,6 +207,9 @@ fn Client::observe_consumer(
         before_consume=fn(message) {
           sink(ClientEvent::MessageReceived(message))
         },
+        on_receive_error=fn(error) {
+          sink(ClientEvent::ReceiveFailed(topic, error))
+        },
         on_ack=fn(id, result) {
           sink(ClientEvent::Acknowledged(topic, id, result))
         },
