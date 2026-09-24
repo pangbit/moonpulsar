@@ -738,6 +738,7 @@ async fn SingleProducer::send_chunked(
   }
   metadata.uuid = Some("\{self.name}-\{sequence_id}")
   metadata.total_chunk_msg_size = Some(payload.length())
+  send.is_chunk = Some(true)
   let mut size = self.chunk_size.unwrap_or(payload.length())
   if limit is Some(max_size) {
     while true {

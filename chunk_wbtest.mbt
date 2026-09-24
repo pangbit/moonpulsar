@@ -19,6 +19,7 @@ async test "producer sends sequential chunks under one message identity" {
         assert_eq(meta.chunk_id, Some(index))
         assert_eq(meta.num_chunks_from_msg, Some(3))
         assert_eq(meta.total_chunk_msg_size, Some(7))
+        assert_eq(send.is_chunk, Some(true))
         assert_true(meta.uuid is Some(_))
         if index == 0 {
           sequence_id = Some(send.sequence_id)
@@ -69,6 +70,7 @@ async test "automatic chunking fits the broker's negotiated max message size" {
           }
           assert_true(frame.wire_size <= 256)
           assert_eq(meta.chunk_id, Some(index))
+          assert_eq(send.is_chunk, Some(true))
           if index == 0 {
             sequence_id = Some(send.sequence_id)
           } else {

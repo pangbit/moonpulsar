@@ -86,7 +86,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - grouped ACKs with count-triggered flush and close flush on 4.2.4 and 3.3.9
 - a buffered batch message expires before flush while the next message is delivered on 4.2.4 and 3.3.9
 - two producers sharing a client-wide pending payload-byte budget on 4.2.4 and 3.3.9
-- `examples/memory_budget` passed a 1 MiB shared budget across sequential send/receive, chunked delivery and Reader replay in isolated 4.2.4 and 3.3.9 containers with a dedicated namespace; over-limit failure paths are covered by the mock broker
+- `examples/memory_budget` passed a 1 MiB shared budget across sequential send/receive, chunked delivery and Reader replay in isolated 4.2.4 and 3.3.9 containers with a dedicated namespace. `scripts/test-chunk-live.sh` also verifies incomplete-chunk expiry ACK, shared-budget failure and release, and a subsequent receive on both versions; Reader incomplete-chunk failure paths remain mock-verified.
 - an auto-scaled receive queue sending and acknowledging messages on 4.2.4 and 3.3.9; exact FLOW growth is covered by the mock broker
 - producer interceptor payload transformation and receipt callback on 4.2.4 and 3.3.9
 - consumer interceptor delivery and ACK callback on 4.2.4 and 3.3.9
@@ -211,6 +211,11 @@ On a dedicated Linux test host, `scripts/test-token-reconnect-live.sh 4.2.4`
 or `scripts/test-token-reconnect-live.sh 3.3.9` runs the full scenario as root
 with a disposable authenticated container on ports 7665 and 8086. The script
 generates fresh signing keys and tokens, then removes them with the container.
+
+On a dedicated Linux test host, run `scripts/test-chunk-live.sh 4.2.4` or
+`scripts/test-chunk-live.sh 3.3.9` to exercise incomplete-chunk expiry ACK,
+shared-budget failure/release and a complete chunked roundtrip against a
+disposable broker on ports 7665 and 8086. The script cleans up its container.
 
 The extended integration scenario accepts `PULSAR_URL`, `PULSAR_TOKEN` or
 `PULSAR_TOKEN_FILE`,

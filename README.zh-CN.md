@@ -81,7 +81,7 @@
 - 4.2.4 与 3.3.9 上的按数量冲刷与关闭前冲刷的 ACK 分组
 - 4.2.4 与 3.3.9 上的批次消息 flush 前超时与后续消息成功投递
 - 4.2.4 与 3.3.9 上两个生产者共享客户端待发送负载字节预算
-- 独立 4.2.4 和 3.3.9 容器及专用命名空间中，`examples/memory_budget` 在 1 MiB 共享预算下通过顺序收发、分块接收和 Reader 回放；超额失败路径由 Mock Broker 验证
+- 独立 4.2.4 和 3.3.9 容器及专用命名空间中，`examples/memory_budget` 在 1 MiB 共享预算下通过顺序收发、分块接收和 Reader 回放。`scripts/test-chunk-live.sh` 还在两个版本上验证了消费者未完成分块过期 ACK、共享预算耗尽与释放以及后续消息接收；Reader 的未完成分块失败路径仍由 Mock Broker 验证。
 - 4.2.4 与 3.3.9 上自动扩容接收队列的收发与确认；精确 FLOW 扩容由 mock broker 验证
 - 4.2.4 与 3.3.9 上生产者拦截器修改负载和观察回执
 - 4.2.4 与 3.3.9 上消费者拦截器观察交付与 ACK
@@ -196,6 +196,10 @@ broker 拒绝轮换后的无效 Token，再让同一客户端用第二个有效 
 在独立 Linux 测试机上，以 root 运行 `scripts/test-token-reconnect-live.sh 4.2.4`
 或 `scripts/test-token-reconnect-live.sh 3.3.9` 可自动执行该场景；脚本使用 7665、
 8086 端口，生成一次性签名密钥和 Token，并在结束时清理容器与密钥。
+
+在独立 Linux 测试机上运行 `scripts/test-chunk-live.sh 4.2.4` 或
+`scripts/test-chunk-live.sh 3.3.9`，可用 7665、8086 端口上的一次性 Broker
+验证未完成分块过期 ACK、共享预算耗尽与释放，以及完整分块消息往返；脚本结束时清理容器。
 
 扩展集成场景接受 `PULSAR_URL`、`PULSAR_TOKEN` 或 `PULSAR_TOKEN_FILE`、`PULSAR_TEST_PREFIX` 和可选的 `PULSAR_ADMIN_URL`：
 

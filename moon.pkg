@@ -23,3 +23,7 @@ import {
   "yugonlian/moon-avro/schema" @avro_schema,
   "cc06b/mooncry/lib" @crypto,
 }
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
