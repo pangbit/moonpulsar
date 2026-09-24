@@ -170,6 +170,7 @@ static int moonpulsar_tls_status(moonpulsar_tls_handle *handle, int result) {
 
 MOONBIT_FFI_EXPORT
 int moonpulsar_tls_handshake(moonpulsar_tls_handle *handle) {
+  ERR_clear_error();
   int result = SSL_do_handshake(handle->ssl);
   if (result == 1) return 1;
   return moonpulsar_tls_status(handle, result);
@@ -202,6 +203,7 @@ moonbit_bytes_t moonpulsar_tls_drain(moonpulsar_tls_handle *handle) {
 MOONBIT_FFI_EXPORT
 int moonpulsar_tls_read(moonpulsar_tls_handle *handle, unsigned char *buf,
                         int offset, int len) {
+  ERR_clear_error();
   int result = SSL_read(handle->ssl, buf + offset, len);
   if (result > 0) return result;
   return moonpulsar_tls_status(handle, result);
@@ -210,6 +212,7 @@ int moonpulsar_tls_read(moonpulsar_tls_handle *handle, unsigned char *buf,
 MOONBIT_FFI_EXPORT
 int moonpulsar_tls_write(moonpulsar_tls_handle *handle, const unsigned char *buf,
                          int offset, int len) {
+  ERR_clear_error();
   int result = SSL_write(handle->ssl, buf + offset, len);
   if (result > 0) return result;
   return moonpulsar_tls_status(handle, result);

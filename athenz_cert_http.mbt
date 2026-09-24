@@ -42,7 +42,7 @@ async fn athenz_certificate_get(
       ),
     )
     let header = tls.read_until("\r\n\r\n") catch {
-      _ => raise AuthenticationFailed("invalid Athenz ZTS HTTP response")
+      e => raise AuthenticationFailed("invalid Athenz ZTS HTTP response: \{e}")
     }
     guard header is Some(header) && header.length() <= 16384 else {
       raise AuthenticationFailed("invalid Athenz ZTS HTTP header")

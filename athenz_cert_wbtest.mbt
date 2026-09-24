@@ -83,6 +83,10 @@ async test "Athenz certificate ZTS reads chunked and close-delimited responses" 
 ///|
 async test "Athenz certificate ZTS exchange caches and retries over verified TLS" {
   @async.with_task_group(async fn(group) {
+    // OpenSSL records an error when an RSA key is probed as an EC key. TLS
+    // reads must clear that queue before calling SSL_get_error.
+    let rsa = @fs.read_file("testdata/encryption/rsa_public.pem").binary()
+    assert_true(!@native_ecies.is_public_key(rsa))
     let url = start_mock_certificate_zts(group, [503, 200])
     let provider = athenz_zts_provider(
       AthenzZtsOptions::new(
