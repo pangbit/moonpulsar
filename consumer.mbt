@@ -193,6 +193,7 @@ pub struct SingleConsumer {
   priv nack_backoff : NackBackoff?
   priv nack_epoch : Ref[Int]
   priv ack_pending : Map[MessageId, Int]
+  priv batch_acks : BatchAckTracker
   priv mut next_ack_token : Int
   priv chunks : ChunkAssembler
   priv chunk_sweeper_stop : @aqueue.Queue[Unit]
@@ -229,6 +230,7 @@ pub async fn SingleConsumer::create(
   schema? : SchemaInfo,
   reconnect_policy? : RetryPolicy = RetryPolicy::default(),
   chunk_policy? : ChunkAssemblyPolicy,
+  enable_batch_index_ack? : Bool = false,
 ) -> SingleConsumer {
   guard ack_timeout_ms >= 0 else {
     raise InvalidFrame("ack timeout must not be negative")
@@ -266,6 +268,7 @@ pub async fn SingleConsumer::create(
     nack_backoff,
     nack_epoch: { val: 0, },
     ack_pending: {},
+    batch_acks: BatchAckTracker::new(enable_batch_index_ack),
     next_ack_token: 0,
     chunks: ChunkAssembler::new(policy?=chunk_policy),
     chunk_sweeper_stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
@@ -387,6 +390,7 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
     self.conn_ref.val = conn
     self.nack_epoch.val += 1
     self.ack_pending.clear()
+    self.batch_acks.clear()
     self.chunks.clear()
     self.chunk_acks.clear()
     // the broker forgot our permits with the old connection; re-open the
@@ -557,8 +561,17 @@ fn SingleConsumer::dispatch_message(
     raise InvalidFrame("chunked and batched message")
   }
   if batch_size > 1 {
+    self.batch_acks.register(base_id, batch_size, message.ack_set)
     let singles = split_batch_payload(payload, batch_size)
     for i, single in singles {
+      if !message.ack_set.is_empty() &&
+        (
+          i / 64 >= message.ack_set.length() ||
+          ((message.ack_set[i / 64].reinterpret_as_uint64() >> (i % 64)) & 1UL) ==
+          0UL
+        ) {
+        continue
+      }
       let (meta, body) = single
       self.push_message(
         base_id,
@@ -612,6 +625,7 @@ fn SingleConsumer::push_message(
     payload,
     redelivery_count,
     ack_tracker=self.ack_pending,
+    batch_ack_tracker=self.batch_acks,
     chunk_ids?,
     chunk_tracker=self.chunk_acks,
     on_delivery=fn(m) { self.track_ack(m) },
@@ -634,6 +648,7 @@ fn build_message(
   payload : Bytes,
   redelivery_count : UInt,
   ack_tracker? : Map[MessageId, Int],
+  batch_ack_tracker? : BatchAckTracker,
   chunk_ids? : Array[MessageId],
   chunk_tracker? : Map[MessageId, Array[MessageId]],
   on_delivery? : (Message) -> Unit,
@@ -690,6 +705,7 @@ fn build_message(
     schema_version: metadata.schema_version,
     redelivery_count,
     ack_tracker,
+    batch_ack_tracker,
     chunk_ids,
     chunk_tracker,
     on_delivery,
@@ -911,14 +927,24 @@ pub async fn SingleConsumer::ack(
   id : MessageId,
   await_response? : Bool = false,
 ) -> Unit {
-  let ids = self.chunk_acks.get(id).unwrap_or([id])
-  send_ack(
-    self.conn_ref.val,
-    self.consumer_id,
-    @proto.CommandAck_AckType::Individual,
-    ids,
-    await_response~,
-  )
+  if id.batch_index >= 0 {
+    self.batch_acks.ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      id,
+      @proto.CommandAck_AckType::Individual,
+      await_response~,
+    )
+  } else {
+    let ids = self.chunk_acks.get(id).unwrap_or([id])
+    send_ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      @proto.CommandAck_AckType::Individual,
+      ids,
+      await_response~,
+    )
+  }
   self.ack_pending.remove(id)
   self.chunk_acks.remove(id)
 }
@@ -930,13 +956,23 @@ pub async fn SingleConsumer::ack_cumulative(
   id : MessageId,
   await_response? : Bool = false,
 ) -> Unit {
-  send_ack(
-    self.conn_ref.val,
-    self.consumer_id,
-    @proto.CommandAck_AckType::Cumulative,
-    [id],
-    await_response~,
-  )
+  if id.batch_index >= 0 {
+    self.batch_acks.ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      id,
+      @proto.CommandAck_AckType::Cumulative,
+      await_response~,
+    )
+  } else {
+    send_ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      @proto.CommandAck_AckType::Cumulative,
+      [id],
+      await_response~,
+    )
+  }
   self.clear_cumulative_ack(id)
 }
 
@@ -948,15 +984,26 @@ pub async fn SingleConsumer::ack_txn(
   id : MessageId,
   await_response? : Bool = false,
 ) -> Unit {
-  let ids = self.chunk_acks.get(id).unwrap_or([id])
-  send_ack(
-    self.conn_ref.val,
-    self.consumer_id,
-    @proto.CommandAck_AckType::Individual,
-    ids,
-    txn~,
-    await_response~,
-  )
+  if id.batch_index >= 0 {
+    self.batch_acks.ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      id,
+      @proto.CommandAck_AckType::Individual,
+      txn~,
+      await_response~,
+    )
+  } else {
+    let ids = self.chunk_acks.get(id).unwrap_or([id])
+    send_ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      @proto.CommandAck_AckType::Individual,
+      ids,
+      txn~,
+      await_response~,
+    )
+  }
   self.ack_pending.remove(id)
   self.chunk_acks.remove(id)
 }
@@ -1012,6 +1059,7 @@ pub async fn SingleConsumer::seek(
   }
   self.buffered_messages = 0
   self.ack_pending.clear()
+  self.batch_acks.clear()
   self.chunks.clear()
   self.chunk_acks.clear()
   self.nack_epoch.val += 1
@@ -1061,6 +1109,7 @@ pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
   )
   self.conn_ref.val.message_handlers.remove(self.consumer_id)
   self.ack_pending.clear()
+  self.batch_acks.clear()
   self.chunks.clear()
   self.chunk_acks.clear()
   self.messages.close(error=ConsumerClosed, clear=true)
@@ -1091,6 +1140,7 @@ pub async fn SingleConsumer::unsubscribe(
   self.nack_epoch.val += 1
   self.conn_ref.val.message_handlers.remove(self.consumer_id)
   self.ack_pending.clear()
+  self.batch_acks.clear()
   self.chunks.clear()
   self.chunk_acks.clear()
   self.messages.close(error=ConsumerClosed, clear=true)

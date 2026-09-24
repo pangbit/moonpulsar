@@ -48,6 +48,69 @@ async fn main {
     }
     assert_eq(received.get(topic_a), Some("a"))
     assert_eq(received.get(topic_b), Some("b"))
+    println("live batch ACK: begin")
+    let batch_topic = "persistent://public/default/\{prefix}-batch-ack"
+    let batch_producer = client.create_producer(batch_topic, batching=@pulsar.BatchingConfig::{
+      max_messages: 2,
+      max_bytes: 4096,
+      max_delay_ms: 60000,
+    })
+    let batch_consumer = client.create_consumer(
+      batch_topic,
+      "\{prefix}-batch-ack-sub",
+      initial_position=Earliest,
+    )
+    let index_consumer = client.create_consumer(
+      batch_topic,
+      "\{prefix}-batch-index-sub",
+      initial_position=Earliest,
+      enable_batch_index_ack=true,
+    )
+    let batch_zero = batch_producer.send_async(
+      @pulsar.ProducerMessage::new(b"batch-zero"),
+    )
+    let batch_one = batch_producer.send_async(
+      @pulsar.ProducerMessage::new(b"batch-one"),
+    )
+    batch_producer.flush()
+    assert_eq(batch_zero.wait().message_id.batch_index, 0)
+    assert_eq(batch_one.wait().message_id.batch_index, 1)
+    let full_zero = @async.with_timeout(10000, async fn() {
+      batch_consumer.receive()
+    })
+    let full_one = @async.with_timeout(10000, async fn() {
+      batch_consumer.receive()
+    })
+    assert_eq(full_zero.payload(), b"batch-zero")
+    assert_eq(full_one.payload(), b"batch-one")
+    full_zero.ack()
+    full_one.ack(await_response=true)
+    batch_consumer.close()
+    let index_zero = @async.with_timeout(10000, async fn() {
+      index_consumer.receive()
+    })
+    let index_one = @async.with_timeout(10000, async fn() {
+      index_consumer.receive()
+    })
+    assert_eq(index_zero.id().batch_index, 0)
+    assert_eq(index_one.id().batch_index, 1)
+    index_zero.ack(await_response=true)
+    index_consumer.close()
+    println("live batch ACK: index acknowledged, reopening")
+    @async.sleep(200)
+    let reopened_index_consumer = client.create_consumer(
+      batch_topic,
+      "\{prefix}-batch-index-sub",
+      enable_batch_index_ack=true,
+    )
+    let remaining = @async.with_timeout(10000, async fn() {
+      reopened_index_consumer.receive()
+    })
+    assert_eq(remaining.payload(), b"batch-one")
+    remaining.ack(await_response=true)
+    reopened_index_consumer.close()
+    batch_producer.close()
+    println("live batch ACK: completed")
     let timeout_consumer = client.create_consumer(
       topic_a,
       "\{prefix}-timeout-sub",

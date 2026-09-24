@@ -3,7 +3,7 @@
 Compared with the public APIs of [pulsar-rs](https://github.com/streamnative/pulsar-rs)
 and [pulsar-client-go](https://github.com/apache/pulsar-client-go). This is a
 functional comparison, not an API-by-API claim of parity. Status reflects the
-repository on 2026-09-23.
+repository on 2026-09-24.
 
 | Capability | Status | Verification |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ repository on 2026-09-23.
 | Single, partitioned, and explicit multi-topic consumption | Implemented; initially partitioned consumers discover added partitions | Mock one-to-two expansion and bounded slow-consumer forwarding; live two-to-three expansion |
 | KeyShared auto-split and sticky hash ranges | Implemented | Range validation and SUBSCRIBE wire mock; sticky policy live broker |
 | Pattern subscriptions | Topic additions and removals implemented | Addition: mock and live broker; removal and stale-queue filtering: mock |
-| Consumer options, ack/nack, ack timeout, seek, unsubscribe | ACK can optionally await a broker response; zero-sized on-demand receive queue implemented for single-topic consumers; ACK grouping, batch-index ACK and auto-sized receive queue remain open. Composite consumers still prefetch into their merge queue | Mock ACK success/failure/protocol-gate, pending deadlines and zero-queue FLOW-on-demand; confirmed ACK, zero-queue receive, ack timeout and ID seek on 4.2.4 and 3.3.9 |
+| Consumer options, ack/nack, ack timeout, seek, unsubscribe | ACK can optionally await a broker response; opt-in batch-index ACK and default whole-batch ACK implemented; zero-sized on-demand receive queue implemented for single-topic consumers. ACK grouping, auto-sized receive queue and transactional batch ACK remain open. Composite consumers still prefetch into their merge queue | Mock batch ACK bitmaps (including 65 indexes), cumulative ACK, broker ACK-set filtering, rejected ACK retry, partial confirmation failure, pending deadlines and zero-queue FLOW-on-demand; whole-batch and per-index ACK with consumer reopen on 4.2.4 and 3.3.9 (`acknowledgmentAtBatchIndexLevelEnabled=true`); confirmed ACK, zero-queue receive, ack timeout and ID seek on both versions |
 | Exponential negative-ack backoff | Implemented for `Message::nack` | Timing and close-cancellation mock tests; live broker redelivery |
 | Chunk reassembly and ACK | Implemented with bounded memory and configurable expiry/pending count; optional ACK of evicted incomplete chunks open | Mock wire and periodic-expiry tests for consumer/reader; live consumer/reader replay |
 | Reader, seek, replay, and added-partition discovery | Implemented for initially partitioned topics; custom name/properties/subscription, last-message ID, inclusive start and seek | Mock inclusive/exclusive and empty-latest paths, one-to-two expansion, SUBSCRIBE metadata, last-ID query, bounded slow-reader forwarding, chunk expiry, and disconnect wakeup; live explicit/latest inclusive on 4.2.4 and 3.3.9, two-to-three expansion |

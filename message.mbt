@@ -145,6 +145,7 @@ pub struct Message {
   priv schema_version : Bytes?
   priv redelivery_count : UInt
   priv ack_tracker : Map[MessageId, Int]?
+  priv batch_ack_tracker : BatchAckTracker?
   priv chunk_ids : Array[MessageId]?
   priv chunk_tracker : Map[MessageId, Array[MessageId]]?
   priv on_delivery : ((Message) -> Unit)?
@@ -228,13 +229,23 @@ pub async fn Message::ack(
   self : Message,
   await_response? : Bool = false,
 ) -> Unit {
-  send_ack(
-    self.conn_ref.val,
-    self.consumer_id,
-    @proto.CommandAck_AckType::Individual,
-    self.chunk_ids.unwrap_or([self.id]),
-    await_response~,
-  )
+  if self.id.batch_index >= 0 && self.batch_ack_tracker is Some(tracker) {
+    tracker.ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      self.id,
+      @proto.CommandAck_AckType::Individual,
+      await_response~,
+    )
+  } else {
+    send_ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      @proto.CommandAck_AckType::Individual,
+      self.chunk_ids.unwrap_or([self.id]),
+      await_response~,
+    )
+  }
   if self.ack_tracker is Some(pending) {
     pending.remove(self.id)
   }
@@ -253,14 +264,25 @@ pub async fn Message::ack_txn(
   txn : Transaction,
   await_response? : Bool = false,
 ) -> Unit {
-  send_ack(
-    self.conn_ref.val,
-    self.consumer_id,
-    @proto.CommandAck_AckType::Individual,
-    self.chunk_ids.unwrap_or([self.id]),
-    txn~,
-    await_response~,
-  )
+  if self.id.batch_index >= 0 && self.batch_ack_tracker is Some(tracker) {
+    tracker.ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      self.id,
+      @proto.CommandAck_AckType::Individual,
+      txn~,
+      await_response~,
+    )
+  } else {
+    send_ack(
+      self.conn_ref.val,
+      self.consumer_id,
+      @proto.CommandAck_AckType::Individual,
+      self.chunk_ids.unwrap_or([self.id]),
+      txn~,
+      await_response~,
+    )
+  }
   if self.ack_tracker is Some(pending) {
     pending.remove(self.id)
   }
@@ -303,6 +325,8 @@ async fn send_ack(
   ids : Array[MessageId],
   txn? : Transaction,
   await_response? : Bool = false,
+  batch_ack_set? : Array[Int64],
+  batch_size? : Int,
 ) -> Unit {
   if await_response && conn.remote_protocol_version() < 17 {
     raise InvalidFrame("broker protocol does not support ACK responses")
@@ -313,6 +337,14 @@ async fn send_ack(
   ack.consumer_id = consumer_id
   ack.ack_type = ack_type
   ack.message_id = ids.map(fn(id) { id.to_proto() })
+  if batch_ack_set is Some(bits) {
+    guard ids.length() == 1 && batch_size is Some(size) && size > 0 else {
+      raise InvalidFrame("batch ACK requires one message ID and batch size")
+    }
+    ack.message_id[0].batch_index = None
+    ack.message_id[0].batch_size = Some(size)
+    ack.message_id[0].ack_set = bits
+  }
   if await_response {
     ack.request_id = Some(conn.next_request_id())
   }

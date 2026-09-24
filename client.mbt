@@ -301,6 +301,7 @@ pub async fn Client::create_consumer(
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   retry_topic? : String,
+  enable_batch_index_ack? : Bool = false,
 ) -> Consumer {
   if retry_topic is Some(retry) {
     guard dead_letter_policy is Some(policy) else {
@@ -326,6 +327,7 @@ pub async fn Client::create_consumer(
       schema?,
       partition_refresh_ms~,
       chunk_policy?,
+      enable_batch_index_ack~,
     )
   }
   guard partition_refresh_ms > 0 else {
@@ -366,6 +368,7 @@ pub async fn Client::create_consumer(
       schema?,
       reconnect_policy=self.reconnect_policy,
       chunk_policy?,
+      enable_batch_index_ack~,
     )
     return self.with_dead_letter(Consumer::single(single), dead_letter_policy)
   }
@@ -396,6 +399,7 @@ pub async fn Client::create_consumer(
         schema?,
         reconnect_policy=self.reconnect_policy,
         chunk_policy?,
+        enable_batch_index_ack~,
       ),
     )
   }
@@ -525,6 +529,7 @@ pub async fn Client::create_retry_consumer(
   schema? : SchemaInfo,
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
+  enable_batch_index_ack? : Bool = false,
 ) -> Consumer {
   guard retry_topic != "" &&
     retry_topic != topic &&
@@ -551,6 +556,7 @@ pub async fn Client::create_retry_consumer(
       schema?,
       partition_refresh_ms~,
       chunk_policy?,
+      enable_batch_index_ack~,
     )
   }
   let source = create(topic)
@@ -602,6 +608,7 @@ pub async fn Client::create_multi_topic_consumer(
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   retry_topic? : String,
+  enable_batch_index_ack? : Bool = false,
 ) -> Consumer {
   guard !topics.is_empty() else {
     raise InvalidFrame("multi-topic consumer requires at least one topic")
@@ -644,6 +651,7 @@ pub async fn Client::create_multi_topic_consumer(
         schema?,
         partition_refresh_ms~,
         chunk_policy?,
+        enable_batch_index_ack~,
       ) catch {
         e => {
           for existing in consumers {
@@ -680,6 +688,7 @@ pub async fn Client::create_multi_topic_consumer(
       schema?,
       partition_refresh_ms~,
       chunk_policy?,
+      enable_batch_index_ack~,
     )
   })
 }
@@ -926,6 +935,7 @@ pub async fn Client::create_pattern_consumer(
   partition_refresh_ms? : Int = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   retry_topic? : String,
+  enable_batch_index_ack? : Bool = false,
 ) -> Consumer {
   guard refresh_interval_ms > 0 else {
     raise InvalidFrame("topic refresh interval must be positive")
@@ -982,6 +992,7 @@ pub async fn Client::create_pattern_consumer(
           schema?,
           partition_refresh_ms~,
           chunk_policy?,
+          enable_batch_index_ack~,
         )
         consumer.add_source(self.manager.group, sub)
         seen[topic] = true
@@ -1025,6 +1036,7 @@ pub async fn Client::create_pattern_consumer(
           schema?,
           partition_refresh_ms~,
           chunk_policy?,
+          enable_batch_index_ack~,
         )
       }),
     )

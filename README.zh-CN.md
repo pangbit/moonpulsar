@@ -10,7 +10,7 @@
 - `ClientOptions` 可设置连接/操作超时、保活间隔、每 broker 连接池大小及空闲回收、监听器和查找属性；异步认证提供器可在连接及认证挑战时重读 Token 文件
 - Topic 查找、重定向跟随和连接池
 - 生产者：同步与异步发送、共享/独占/等待独占/抢占式访问模式、生产者元数据、按条数/字节数/延迟触发的批量发送、手动 flush、broker 回执与发送错误传递；可限制待发送消息数、选择满队列等待或立即报错，并设置发送帧超时
-- 消费者：Exclusive、Shared、Failover、KeyShared 订阅（含自动拆分和固定哈希范围策略）；可选 broker 确认的单条/累计 ACK、负面 ACK 与可选的指数退避重投、ACK 超时、按消息 ID 或时间戳 seek、取消订阅、FLOW 许可控制、单主题零接收队列按需请求，以及批量消息拆包
+- 消费者：Exclusive、Shared、Failover、KeyShared 订阅（含自动拆分和固定哈希范围策略）；可选 broker 确认的单条/累计 ACK、负面 ACK 与可选的指数退避重投、ACK 超时、按消息 ID 或时间戳 seek、取消订阅、FLOW 许可控制、单主题零接收队列按需请求，以及批量消息拆包和可选的批次索引 ACK
 - 死信策略：消息超过允许的失败次数后转发到死信 Topic，保留负载、key、排序 key、属性和事件时间；死信生产者收到 broker 回执后才确认源消息
 - 重试信 Topic 消费者：普通订阅可设置 `retry_topic`，也可使用显式构造函数；`reconsume_later` 延迟重新投递，达到上限后转入死信 Topic
 - 可按最新或指定版本查询 Schema；生产者在消息中附带 broker 分配的版本，消费者可读取 `schema_version()`
@@ -39,6 +39,7 @@
 - 测试所用的 Pulsar 4.2.4 broker 在已有非分区 Topic 上创建分区元数据时返回 HTTP 409。需要转换时，应把数据迁移到新的分区 Topic。
 - 单 Topic、多 Topic 和模式消费者可通过 `retry_topic` 自动加入重试 Topic，也可使用显式 `create_retry_consumer`。Athenz ZTS 密钥/证书换取角色令牌、TLS 客户端证书、加密和 Avro/Protobuf 类型化序列化尚未实现。OAuth2 当前在每次连接或认证挑战时重新取令牌；本地令牌端点已通过 4.2.4 认证 broker 的收发验证，尚未用外部身份提供方验证。Athenz 角色令牌供应器目前只有 mock broker 验证。
 - 支持显式 `chunk_size` 或按 broker 协商上限自动分块；自动模式要求 broker 公布最大消息尺寸。尚未实现过期未完成分块的可选 ACK。
+- 批次消息默认在全部索引确认后发送整批 ACK；消费者设置 `enable_batch_index_ack=true` 后可逐索引确认，broker 需启用 `acknowledgmentAtBatchIndexLevelEnabled`。默认模式下，未完成整批的 ACK 不能请求 broker 确认。事务性批次 ACK 和 ACK 分组仍未实现。
 - `send_timeout_ms` 从 SEND 帧登记时开始计时；缓冲中的批次可能先等待 flush 延时。超时不代表 broker 一定拒绝消息，重试时应使用稳定的生产者名称和序列号。
 - `Connection::max_message_size` 可读取 broker 握手报告的上限；生产者会按此限制编码后的帧，并可自动选择分块大小。
 - `pulsar+ssl://` 使用 `moonbitlang/async/tls`。自定义 CA 握手和重连由本地 TLS mock 覆盖；此前的真实 broker 测试使用带 token 认证的明文 TCP。当前 TLS 客户端 API 不提供用于双向 TLS 的客户端证书。
@@ -60,6 +61,7 @@
 - 独占生产者拒绝竞争者；原生产者关闭后，等待独占的生产者进入就绪状态
 - 显式 NACK 后的死信路由、发布成功后确认源消息，以及消息元数据保留
 - Shared 订阅下延迟 5 秒的重试信投递，以及超过重试上限后进入死信 Topic
+- 4.2.4 与 3.3.9 上的整批及逐索引 ACK；在启用 broker 批次索引 ACK 后，重建消费者只收到未确认的索引
 
 这些是既有验证记录，不代表当前提交已在所有 broker 配置上重新测试。
 
