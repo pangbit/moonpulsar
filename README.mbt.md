@@ -23,7 +23,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com).
 `DeadLetterPolicy::new(1U, dead_letter_topic)` allows one application attempt;
 after a NACK, the next delivery goes to the dead-letter topic. The policy can
 be passed to single-topic, multi-topic, and pattern consumer constructors.
-- Explicit multi-topic consumers and pattern consumers that discover added topics and close removed sources in a namespace
+- Explicit multi-topic consumers and pattern consumers that discover added topics and close removed sources in a namespace. Broker-initiated source closure is reconciled by the next discovery refresh, so deleting an active topic does not immediately recreate it.
 - Bounded merge queues for composite consumers and readers, so slow applications stop source forwarding
 - Automatic reconnection: producers replay unconfirmed messages and consumers re-subscribe after a broker connection breaks; `ClientOptions` can set backoff and a finite retry count
 - `max_memory_bytes` charges producer messages (payload, keys and properties), encoded replay frames, incomplete chunks, queued consumer/reader messages (payload and dynamic metadata), and inbound broker frames from their declared length through dispatch. Producer reservations release on receipt, error, timeout or close; chunk reservations release on completion, eviction or clear; receive reservations release on application delivery, seek or close. The encoded frame must fit alongside its source message; frame admission fails with `ClientMemoryFull` if it cannot fit. A receive reservation that exceeds the remaining shared budget closes its consumer/reader queue with `ClientMemoryFull`; an oversized inbound frame closes its broker connection and reports `ClientMemoryFull` to affected consumers and readers without retrying that frame. A new client with a sufficient budget can replay it. TLS/socket internal buffers and runtime heap overhead are not counted.
@@ -170,6 +170,7 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/transaction_participants` | register producer and subscription participants in a transaction |
 | `examples/transactional_batch_ack` | verify rollback redelivery and commit for whole-batch or per-index transactional ACK (`PULSAR_BATCH_INDEX_ACK=true`) |
 | `examples/live_capabilities` | real-broker regression for multi-topic, pattern, ack timeout, seek, chunking, transactions, and optional Admin REST |
+| `examples/pattern_removal` | delete and recreate active non-partitioned and partitioned pattern sources, then receive again |
 
 Run one with:
 

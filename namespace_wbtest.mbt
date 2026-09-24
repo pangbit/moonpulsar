@@ -256,3 +256,111 @@ async test "pattern consumer closes removed topics and discards stale queued mes
     client.close()
   })
 }
+
+///|
+async test "pattern source waits for discovery after broker closes its consumer" {
+  @async.with_task_group(async fn(group) {
+    let topic = "persistent://public/default/pattern-broker-close"
+    let deleted : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    let readd : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    let addr = start_partitioned_broker(group, 0, async fn(_addr, peer) {
+      let first = peer.next()
+      guard first.cmd.get_topics_of_namespace is Some(query) else {
+        fail("expected initial topic discovery")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::GET_TOPICS_OF_NAMESPACE_RESPONSE
+      let response = @proto.CommandGetTopicsOfNamespaceResponse::default()
+      response.request_id = query.request_id
+      response.topics = [topic]
+      reply.get_topics_of_namespace_response = Some(response)
+      peer.send_command(reply)
+      let subscribed = peer.next()
+      guard subscribed.cmd.subscribe is Some(sub) else {
+        fail("expected source subscription")
+      }
+      let success = @proto.BaseCommand::default()
+      success.type_ = @proto.BaseCommand_Type::SUCCESS
+      let ok = @proto.CommandSuccess::default()
+      ok.request_id = sub.request_id
+      success.success = Some(ok)
+      peer.send_command(success)
+      assert_true(peer.next().cmd.flow is Some(_))
+      deleted.get()
+      let close = @proto.BaseCommand::default()
+      close.type_ = @proto.BaseCommand_Type::CLOSE_CONSUMER
+      let closed = @proto.CommandCloseConsumer::default()
+      closed.consumer_id = sub.consumer_id
+      closed.request_id = 99UL
+      close.close_consumer = Some(closed)
+      peer.send_command(close)
+      let absent = peer.next()
+      guard absent.cmd.get_topics_of_namespace is Some(query) else {
+        fail("pattern source re-subscribed before discovery")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::GET_TOPICS_OF_NAMESPACE_RESPONSE
+      let response = @proto.CommandGetTopicsOfNamespaceResponse::default()
+      response.request_id = query.request_id
+      response.topics = []
+      reply.get_topics_of_namespace_response = Some(response)
+      peer.send_command(reply)
+      let next = peer.next()
+      guard next.cmd.get_topics_of_namespace is Some(query) else {
+        fail("expected discovery after topic removal")
+      }
+      readd.get()
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::GET_TOPICS_OF_NAMESPACE_RESPONSE
+      let response = @proto.CommandGetTopicsOfNamespaceResponse::default()
+      response.request_id = query.request_id
+      response.topics = [topic]
+      reply.get_topics_of_namespace_response = Some(response)
+      peer.send_command(reply)
+      let subscribed = peer.next()
+      guard subscribed.cmd.subscribe is Some(again) else {
+        fail("expected source subscription after re-addition")
+      }
+      let success = @proto.BaseCommand::default()
+      success.type_ = @proto.BaseCommand_Type::SUCCESS
+      let ok = @proto.CommandSuccess::default()
+      ok.request_id = again.request_id
+      success.success = Some(ok)
+      peer.send_command(success)
+      assert_true(peer.next().cmd.flow is Some(_))
+      let (cmd, metadata, payload) = message_frame(
+        again.consumer_id,
+        2,
+        1,
+        b"re-added",
+        test_metadata(),
+      )
+      peer.send_message(cmd, metadata, payload)
+    })
+    let client = Client::connect(group, "pulsar://\{addr}")
+    let consumer = client.create_pattern_consumer(
+      "public/default",
+      "^persistent://public/default/pattern-broker-close$",
+      "pattern-broker-close-sub",
+      refresh_interval_ms=20,
+    )
+    assert_true(consumer.topics().contains(topic))
+    deleted.put(())
+    @async.with_timeout(3000, async fn() {
+      while consumer.topics().contains(topic) {
+        @async.sleep(1)
+      }
+    })
+    readd.put(())
+    let message = @async.with_timeout(3000, async fn() { consumer.receive() })
+    assert_eq(message.topic(), topic)
+    assert_eq(message.payload(), b"re-added")
+    message.ack()
+    consumer.close()
+    client.close()
+  })
+}

@@ -20,7 +20,7 @@
 
 `DeadLetterPolicy::new(1U, dead_letter_topic)` 表示允许应用处理一次；发生 NACK 后，下次投递将转入死信 Topic。单 Topic、多 Topic 和模式消费者构造函数都可接收这一策略。
 
-- 多 Topic 消费者，以及能够发现新增 Topic 并关闭已移除源的模式消费者
+- 多 Topic 消费者，以及能够发现新增 Topic 并关闭已移除源的模式消费者。Broker 主动关闭模式订阅来源后，客户端等下一次命名空间发现再决定是否重建，删除中的 Topic 不会被立即重建。
 - 复合消费者与 Reader 的有界合并队列；慢速应用会对源转发形成背压
 - 自动重连：连接断开后，生产者重放尚未确认的消息，消费者重新订阅；`ClientOptions` 可设置退避和有限重试次数
 - `max_memory_bytes` 对生产者消息的载荷、键、属性及编码重放帧、未完成分块、消费者和 Reader 队列中的消息载荷与动态元数据，以及 Broker 入站帧从读取前到分发完成期间的声明字节数记账。生产者预留在确认、错误、超时或关闭后释放；分块预留在完成、淘汰或清理后释放；接收预留在交付应用、seek 或关闭后释放。编码帧须与原消息同时容纳，无法容纳时返回 `ClientMemoryFull`；接收预算超额时，受影响的消费者或 Reader 队列以 `ClientMemoryFull` 关闭，入站帧超额时关闭该 Broker 连接，并向受影响的消费者和 Reader 返回 `ClientMemoryFull`，不重复尝试同一帧；使用足够预算的新客户端可重新读取。TLS/socket 内部缓冲与运行时堆开销不计入。
@@ -163,6 +163,7 @@ async fn main {
 | `examples/transaction_participants` | 在事务中注册生产者及订阅参与者 |
 | `examples/transactional_batch_ack` | 验证整批或逐索引事务 ACK 的回滚重投和提交（`PULSAR_BATCH_INDEX_ACK=true`） |
 | `examples/live_capabilities` | 多 Topic、模式订阅、ACK 超时、seek、分块、事务和可选 Admin REST 的真实 broker 回归场景 |
+| `examples/pattern_removal` | 删除模式订阅中的非分区和分区 Topic，重建后再次接收 |
 
 运行示例：
 

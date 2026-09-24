@@ -1126,6 +1126,7 @@ pub async fn Client::create_pattern_consumer(
   }
   let regex = @string.Regex::Regex(pattern)
   let consumer = Consumer::pattern(pattern, subscription)
+  consumer.set_reconnect_on_broker_close(false)
   ignore(self.observe_consumer(consumer, interceptors))
   let seen : Map[String, Bool] = Map([])
   let source_policy = if retry_topic is None {
@@ -1140,6 +1141,10 @@ pub async fn Client::create_pattern_consumer(
       let topic = base_topic_name(name)
       if regex.execute(topic) is Some(_) {
         current[topic] = true
+      }
+      if seen.contains(topic) && consumer.has_closed_source(topic) {
+        consumer.remove_source(topic)
+        seen.remove(topic)
       }
       if current.contains(topic) &&
         !seen.contains(topic) &&
@@ -1174,6 +1179,7 @@ pub async fn Client::create_pattern_consumer(
           ack_grouping?,
           auto_scaled_receiver_queue~,
         )
+        sub.set_reconnect_on_broker_close(false)
         consumer.add_source(self.manager.group, sub)
         seen[topic] = true
       }

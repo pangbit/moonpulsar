@@ -205,6 +205,7 @@ pub struct SingleConsumer {
   priv chunk_sweeper_stop : @aqueue.Queue[Unit]
   priv chunk_acks : Map[MessageId, Array[MessageId]]
   priv reconnect_with : (async () -> Connection)?
+  priv mut reconnect_on_broker_close : Bool
   priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
   priv on_event : ((ClientEvent) -> Unit)?
@@ -366,6 +367,7 @@ async fn SingleConsumer::create_with_memory(
     chunk_sweeper_stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
     chunk_acks: {},
     reconnect_with,
+    reconnect_on_broker_close: true,
     reconnect_policy,
     reconnecting: { val: false, },
     on_event,
@@ -684,14 +686,20 @@ fn SingleConsumer::on_frame(
     @proto.BaseCommand_Type::CLOSE_CONSUMER =>
       if self.seeking.val {
         ()
-      } else if self.reconnect_with is Some(_) {
+      } else if self.reconnect_with is Some(_) && self.reconnect_on_broker_close {
         self.conn_ref.val.message_handlers.remove(self.consumer_id)
         self.on_connection_closed(None)
       } else if !self.closed.val {
         self.closed.val = true
         self.stop_chunk_sweeper()
         self.ack_dispatcher.stop()
+        self.ack_dispatcher.pending = []
+        self.ack_pending.clear()
+        self.batch_acks.clear()
+        self.chunk_acks.clear()
+        self.chunks.clear()
         self.clear_buffered_messages()
+        self.conn_ref.val.message_handlers.remove(self.consumer_id)
         self.messages.close(error=ConsumerClosed, clear=true)
       }
     _ => ()
@@ -1534,6 +1542,7 @@ priv enum ConsumerImpl {
 ///|
 priv struct PartitionedConsumerState {
   consumers : Array[Consumer]
+  reconnect_on_broker_close : Ref[Bool]
   source_ids : Array[Int]
   mut next_source_id : Int
   active_sources : Map[Int, Bool]
@@ -1607,6 +1616,38 @@ fn Consumer::set_span_recorder(
       for sub in state.consumers {
         sub.set_span_recorder(recorder)
       }
+  }
+}
+
+///|
+fn Consumer::set_reconnect_on_broker_close(
+  self : Consumer,
+  enabled : Bool,
+) -> Unit {
+  match self.inner {
+    ConsumerImpl::Single(c) => c.reconnect_on_broker_close = enabled
+    ConsumerImpl::Partitioned(state) => {
+      state.reconnect_on_broker_close.val = enabled
+      for sub in state.consumers {
+        sub.set_reconnect_on_broker_close(enabled)
+      }
+    }
+  }
+}
+
+///|
+fn Consumer::has_closed_source(self : Consumer, topic : String) -> Bool {
+  match self.inner {
+    ConsumerImpl::Single(c) =>
+      base_topic_name(c.topic()) == topic && c.is_closed()
+    ConsumerImpl::Partitioned(state) => {
+      for sub in state.consumers {
+        if sub.has_closed_source(topic) {
+          return true
+        }
+      }
+      false
+    }
   }
 }
 
@@ -1766,6 +1807,7 @@ pub fn Consumer::partitioned(
   }
   let state : PartitionedConsumerState = {
     consumers: [],
+    reconnect_on_broker_close: { val: true, },
     source_ids: [],
     next_source_id: 0,
     active_sources: {},
@@ -1793,6 +1835,7 @@ fn Consumer::pattern(pattern : String, subscription : String) -> Consumer {
   {
     inner: ConsumerImpl::Partitioned({
       consumers: [],
+      reconnect_on_broker_close: { val: true, },
       source_ids: [],
       next_source_id: 0,
       active_sources: {},
@@ -1816,6 +1859,7 @@ fn PartitionedConsumerState::add_source(
   group : @async.TaskGroup[Unit],
   sub : Consumer,
 ) -> Unit {
+  sub.set_reconnect_on_broker_close(self.reconnect_on_broker_close.val)
   let source_id = self.next_source_id
   self.next_source_id += 1
   self.source_ids.push(source_id)
