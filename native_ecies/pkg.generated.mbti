@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "pangbit/moonpulsar/native_ecies"
+
+// Values
+pub fn decrypt_key(Bytes, Bytes) -> Bytes?
+
+pub fn encrypt_key(Bytes, Bytes) -> Bytes?
+
+pub fn is_private_key(Bytes) -> Bool
+
+pub fn is_public_key(Bytes) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

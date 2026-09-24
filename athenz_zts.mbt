@@ -98,6 +98,11 @@ async fn athenz_service_token(options : AthenzZtsOptions) -> String {
   let key = EncryptionPrivateKey::from_pem(pem) catch {
     _ => raise AuthenticationFailed("invalid Athenz RSA private key")
   }
+  guard key.ec_pem is None else {
+    raise AuthenticationFailed(
+      "Athenz service NToken requires an RSA private key",
+    )
+  }
   let now = @async.now() / 1000L
   let salt = athenz_hex(encryption_random(8))
   let unsigned = "v=S1;d=\{options.tenant_domain};n=\{options.tenant_service};k=\{options.key_id};a=\{salt};t=\{now};e=\{now + 3600L}"

@@ -5,12 +5,14 @@
 pub struct EncryptionPublicKey {
   priv modulus : Bytes
   priv exponent : Bytes
+  priv ec_pem : Bytes?
 }
 
 ///|
 pub struct EncryptionPrivateKey {
   priv modulus : Bytes
   priv private_exponent : Bytes
+  priv ec_pem : Bytes?
 }
 
 ///|
@@ -122,7 +124,7 @@ fn parse_pkcs1_public(der : Bytes) -> EncryptionPublicKey raise PulsarError {
     exponent.length() > 0 else {
     raise InvalidFrame("invalid RSA public key")
   }
-  { modulus, exponent, }
+  { modulus, exponent, ec_pem: None, }
 }
 
 ///|
@@ -130,6 +132,9 @@ fn parse_pkcs1_public(der : Bytes) -> EncryptionPublicKey raise PulsarError {
 pub fn EncryptionPublicKey::from_pem(
   pem : Bytes,
 ) -> EncryptionPublicKey raise PulsarError {
+  if @native_ecies.is_public_key(pem) {
+    return { modulus: b"", exponent: b"", ec_pem: Some(pem), }
+  }
   let text = @utf8.decode(pem) catch {
     _ => raise InvalidFrame("invalid UTF-8 RSA PEM")
   }
@@ -165,7 +170,7 @@ fn parse_pkcs1_private(der : Bytes) -> EncryptionPrivateKey raise PulsarError {
     private_exponent.length() > 0 else {
     raise InvalidFrame("invalid RSA private key")
   }
-  { modulus, private_exponent, }
+  { modulus, private_exponent, ec_pem: None, }
 }
 
 ///|
@@ -173,6 +178,9 @@ fn parse_pkcs1_private(der : Bytes) -> EncryptionPrivateKey raise PulsarError {
 pub fn EncryptionPrivateKey::from_pem(
   pem : Bytes,
 ) -> EncryptionPrivateKey raise PulsarError {
+  if @native_ecies.is_private_key(pem) {
+    return { modulus: b"", private_exponent: b"", ec_pem: Some(pem), }
+  }
   let text = @utf8.decode(pem) catch {
     _ => raise InvalidFrame("invalid UTF-8 RSA PEM")
   }
@@ -330,18 +338,27 @@ pub async fn MessageCrypto::encrypt(
   let nonce = encryption_random(12)
   let keys = []
   for (name, key) in recipients {
-    let seed = encryption_random(20)
-    let wrapped = match
-      @crypto.rsa_oaep_encrypt_with_or(
-        data_key,
-        key.modulus,
-        key.exponent,
-        seed,
-        b"",
-        @crypto.rsa_hash_sha1,
-      ) {
-      Ok(value) => value
-      Err(_) => raise InvalidFrame("could not wrap encryption data key")
+    let wrapped = match key.ec_pem {
+      Some(pem) =>
+        match @native_ecies.encrypt_key(pem, data_key) {
+          Some(value) => value
+          None => raise InvalidFrame("could not wrap EC encryption data key")
+        }
+      None => {
+        let seed = encryption_random(20)
+        match
+          @crypto.rsa_oaep_encrypt_with_or(
+            data_key,
+            key.modulus,
+            key.exponent,
+            seed,
+            b"",
+            @crypto.rsa_hash_sha1,
+          ) {
+          Ok(value) => value
+          Err(_) => raise InvalidFrame("could not wrap encryption data key")
+        }
+      }
     }
     keys.push(@proto.EncryptionKeys::EncryptionKeys(name, wrapped, []))
   }
@@ -376,15 +393,23 @@ pub fn MessageCrypto::decrypt(
   for wrapped in metadata.encryption_keys {
     let available = self.private_key(wrapped.key) catch { _ => None }
     if available is Some(key) {
-      match
-        @crypto.rsa_oaep_decrypt_with_or(
-          wrapped.value,
-          key.modulus,
-          key.private_exponent,
-          b"",
-          @crypto.rsa_hash_sha1,
-        ) {
-        Ok(data_key) if data_key.length() == 32 => {
+      let unwrapped = match key.ec_pem {
+        Some(pem) => @native_ecies.decrypt_key(pem, wrapped.value)
+        None =>
+          match
+            @crypto.rsa_oaep_decrypt_with_or(
+              wrapped.value,
+              key.modulus,
+              key.private_exponent,
+              b"",
+              @crypto.rsa_hash_sha1,
+            ) {
+            Ok(value) => Some(value)
+            Err(_) => None
+          }
+      }
+      match unwrapped {
+        Some(data_key) if data_key.length() == 32 => {
           let end = payload.length() - 16
           match
             @crypto.aes_gcm_decrypt(

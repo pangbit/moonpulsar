@@ -151,3 +151,55 @@ async test "message key readers use current PEM and reject unavailable keys" {
   }
   assert_true(unavailable is Err(@moonpulsar.PulsarError::InvalidFrame(_)))
 }
+
+///|
+async test "Pulsar ECIES keys wrap, rotate, and reject tampering" {
+  let sender = @moonpulsar.MessageCrypto::new()
+  sender.load_public_key_file("ec", "testdata/encryption/ec_public.pem")
+  let receiver = @moonpulsar.MessageCrypto::new()
+  receiver.load_private_key_file("ec", "testdata/encryption/ec_private.pem")
+  let metadata = @proto.MessageMetadata::default()
+  let encrypted = sender.encrypt(metadata, b"ec payload", ["ec"])
+  assert_true(metadata.encryption_keys[0].value.length() > 32)
+  assert_eq(receiver.decrypt(metadata, encrypted), b"ec payload")
+  let damaged_key = metadata.encryption_keys[0].value.to_array()
+  damaged_key[damaged_key.length() - 1] = damaged_key[damaged_key.length() - 1] ^
+    b'\x01'
+  metadata.encryption_keys[0].value = Bytes::from_array(damaged_key)
+  let rejected : Result[Bytes, Error] = Ok(
+    receiver.decrypt(metadata, encrypted),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(rejected is Err(@moonpulsar.PulsarError::InvalidFrame(_)))
+  sender.load_public_key_file("ec", "testdata/encryption/ec_rotated_public.pem")
+  let rotated_metadata = @proto.MessageMetadata::default()
+  let rotated = sender.encrypt(rotated_metadata, b"new EC key", ["ec"])
+  let stale : Result[Bytes, Error] = Ok(
+    receiver.decrypt(rotated_metadata, rotated),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(stale is Err(@moonpulsar.PulsarError::InvalidFrame(_)))
+  receiver.load_private_key_file(
+    "ec", "testdata/encryption/ec_rotated_private.pem",
+  )
+  assert_eq(receiver.decrypt(rotated_metadata, rotated), b"new EC key")
+}
+
+///|
+async test "Pulsar encryption can mix RSA and EC recipients" {
+  let sender = @moonpulsar.MessageCrypto::new()
+  sender.load_public_key_file("rsa", "testdata/encryption/rsa_public.pem")
+  sender.load_public_key_file("ec", "testdata/encryption/ec_public.pem")
+  let metadata = @proto.MessageMetadata::default()
+  let encrypted = sender.encrypt(metadata, b"mixed recipients", ["rsa", "ec"])
+  let rsa_receiver = @moonpulsar.MessageCrypto::new()
+  rsa_receiver.load_private_key_file(
+    "rsa", "testdata/encryption/rsa_private.pem",
+  )
+  let ec_receiver = @moonpulsar.MessageCrypto::new()
+  ec_receiver.load_private_key_file("ec", "testdata/encryption/ec_private.pem")
+  assert_eq(rsa_receiver.decrypt(metadata, encrypted), b"mixed recipients")
+  assert_eq(ec_receiver.decrypt(metadata, encrypted), b"mixed recipients")
+}
