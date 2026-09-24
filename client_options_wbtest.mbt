@@ -15,6 +15,16 @@ test "client options reject invalid timeouts and competing authentication" {
     e => Err(e)
   }
   assert_true(competing is Err(InvalidFrame(_)))
+  let conflicting_tls : Result[ClientOptions, Error] = Ok(
+    ClientOptions::new(
+      "pulsar+ssl://localhost:6651",
+      ca_pem_file="testdata/tls/server.crt",
+      tls_insecure=true,
+    ),
+  ) catch {
+    e => Err(e)
+  }
+  assert_true(conflicting_tls is Err(InvalidFrame(_)))
   let invalid_backoff : Result[ClientOptions, Error] = Ok(
     ClientOptions::new("pulsar://localhost:6650", reconnect_policy={
       max_retries: -2,

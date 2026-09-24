@@ -170,12 +170,15 @@ Run one with:
 moon run examples/producer --target native
 ```
 
-For a TLS broker, set `PULSAR_TLS_URL` and `PULSAR_TLS_CA_FILE`; set
+For a TLS broker, set `PULSAR_TLS_URL`; the example verifies against system
+roots unless `PULSAR_TLS_CA_FILE` supplies a private CA. Set
 `PULSAR_TOKEN` if the broker requires token authentication. Set
 `PULSAR_TOPIC` and `PULSAR_SUBSCRIPTION` to isolate the run. To verify an
 existing client across a broker restart, also set
 `PULSAR_TLS_RECONNECT_CHECK=1` and restart the broker after the first
 roundtrip message appears; the example waits 30 seconds before sending again.
+`PULSAR_TLS_INSECURE=1` explicitly disables certificate verification for a
+disposable local broker.
 
 `examples/token_rotation` reads valid initial and next tokens from
 `PULSAR_TOKEN_INITIAL_FILE` and `PULSAR_TOKEN_NEXT_FILE`. It copies them into

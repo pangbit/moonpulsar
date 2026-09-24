@@ -163,11 +163,12 @@ async fn main {
 moon run examples/producer --target native
 ```
 
-连接 TLS broker 时设置 `PULSAR_TLS_URL` 和 `PULSAR_TLS_CA_FILE`；需要 Token
-认证时设置 `PULSAR_TOKEN`。可通过
+连接 TLS broker 时设置 `PULSAR_TLS_URL`；示例默认使用系统信任根校验证书，私有
+CA 可通过 `PULSAR_TLS_CA_FILE` 指定。需要 Token 认证时设置 `PULSAR_TOKEN`。可通过
 `PULSAR_TOPIC`、`PULSAR_SUBSCRIPTION` 隔离测试资源。设置
 `PULSAR_TLS_RECONNECT_CHECK=1` 后，在首次收发完成的提示出现时重启 broker；
-示例等待 30 秒，再用同一客户端发送和接收。
+示例等待 30 秒，再用同一客户端发送和接收。仅在一次性本地 broker 上通过
+`PULSAR_TLS_INSECURE=1` 显式关闭证书校验。
 
 `examples/token_rotation` 从 `PULSAR_TOKEN_INITIAL_FILE` 和
 `PULSAR_TOKEN_NEXT_FILE` 读取两个有效 Token，并复制到一次性工作文件。它先验证
