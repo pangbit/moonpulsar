@@ -155,6 +155,7 @@ async fn main {
 | `examples/memory_budget` | 真实 Broker 上的生产、接收、分块和 Reader 共享预算往返测试 |
 | `examples/tls` | 验证 TLS 收发、可选客户端证书/私钥及 broker 重启检查 |
 | `examples/token_rotation` | 同一客户端下验证无效 Token 拒绝和文件 Token 轮换 |
+| `examples/token_reconnect` | 文件 Token 与 Broker 签名密钥轮换后，原有生产者和消费者恢复 |
 | `examples/producer_compression` | Zstd 压缩负载 |
 | `examples/reader` | 从头回放 Topic |
 | `examples/encryption_interop` | Go/MoonBit 加密互通、Reader 回放及重试/死信转发 |
@@ -185,6 +186,16 @@ CA 可通过 `PULSAR_TLS_CA_FILE` 指定。双向 TLS 同时设置
 broker 拒绝轮换后的无效 Token，再让同一客户端用第二个有效 Token 建立新连接并收发。
 可设置 `PULSAR_URL`、`PULSAR_TOPIC` 和 `PULSAR_SUBSCRIPTION` 隔离测试资源；
 示例不会修改传入的 Token 文件。
+
+`examples/token_reconnect` 还使用 `PULSAR_RECONNECT_READY_FILE` 和
+`PULSAR_RECONNECT_DONE_FILE`。首次消息收发并确认后，它将第二个 Token 复制到私有
+工作文件并创建 ready 文件。在隔离 Broker 上把签名密钥切换为第二个 Token 对应的密钥，
+重启并确认健康后创建 done 文件。示例验证旧 Token 的新连接被拒绝，以及原有生产者
+和消费者重连后继续收发与确认。该场景在隔离的 4.2.4 和 3.3.9 Broker 上通过；
+测试期间需保留两个输入 Token 文件，示例只修改自己的工作文件。
+在独立 Linux 测试机上，以 root 运行 `scripts/test-token-reconnect-live.sh 4.2.4`
+或 `scripts/test-token-reconnect-live.sh 3.3.9` 可自动执行该场景；脚本使用 7665、
+8086 端口，生成一次性签名密钥和 Token，并在结束时清理容器与密钥。
 
 扩展集成场景接受 `PULSAR_URL`、`PULSAR_TOKEN` 或 `PULSAR_TOKEN_FILE`、`PULSAR_TEST_PREFIX` 和可选的 `PULSAR_ADMIN_URL`：
 
