@@ -879,7 +879,8 @@ pub async fn SingleProducer::send_txn(
 
 ///|
 /// Encode messages as a batch payload: repeated
-/// [meta_size u32][SingleMessageMetadata][payload_size u32][payload].
+/// [meta_size u32][SingleMessageMetadata][payload]. The metadata carries
+/// `payload_size` for the following bytes.
 fn encode_batch_payload(messages : Array[ProducerMessage]) -> Bytes raise {
   let buf = @buffer.Buffer()
   for msg in messages {
@@ -903,7 +904,6 @@ fn encode_batch_payload(messages : Array[ProducerMessage]) -> Bytes raise {
     let meta_bytes = meta_buf.to_bytes()
     write_be32(buf, meta_bytes.length().reinterpret_as_uint())
     buf.write_bytes(meta_bytes)
-    write_be32(buf, msg.payload.length().reinterpret_as_uint())
     buf.write_bytes(msg.payload)
   }
   buf.to_bytes()

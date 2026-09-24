@@ -368,10 +368,10 @@ fn SingleReader::dispatch_message(
   }
   let redelivery_count = message.redelivery_count.unwrap_or(0)
   let batch_size = metadata.num_messages_in_batch.unwrap_or(0)
-  if chunk.is_chunk && batch_size > 1 {
+  if chunk.is_chunk && batch_size > 0 {
     raise InvalidFrame("chunked and batched message")
   }
-  if batch_size > 1 {
+  if batch_size > 0 {
     let singles = split_batch_payload(payload, batch_size)
     for i, single in singles {
       let (meta, body) = single

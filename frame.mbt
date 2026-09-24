@@ -11,7 +11,7 @@
 //   [MessageMetadata][PAYLOAD]
 //
 // A batched payload consists of `num_messages_in_batch` entries of:
-//   [SINGLE_META_SIZE u32][SingleMessageMetadata][SINGLE_PAYLOAD_SIZE u32][payload]
+//   [SINGLE_META_SIZE u32][SingleMessageMetadata][payload]
 
 ///|
 /// Magic number preceding the CRC32-C checksum on message frames.
@@ -116,6 +116,21 @@ pub(all) struct IncomingFrame {
 } derive(Debug)
 
 ///|
+// The generated proto2 reader applies the declared default of 1 even when
+// field 11 is absent. Keep the wire presence so a one-message batch differs
+// from an ordinary unbatched message.
+fn metadata_has_batch_count(data : Bytes) -> Bool raise {
+  let reader = @lib.LimitedReader(@lib.BytesReader::from_bytes(data))
+  while (reader |> @lib.read_next_message_field()) is Some((field, wire)) {
+    if field == 11 {
+      return true
+    }
+    reader |> @lib.skip_message_field_by_number(field, wire)
+  }
+  false
+}
+
+///|
 /// Decode a frame body (without the leading total size field).
 pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
   let cmd_size = read_be32(body, 0).reinterpret_as_int()
@@ -146,10 +161,17 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
   if offset + 4 + metadata_size > rest.length() {
     raise InvalidFrame("message metadata exceeds frame length")
   }
-  let metadata : @proto.MessageMetadata = read_proto(
-    rest[offset + 4:offset + 4 + metadata_size].to_owned(),
-  ) catch {
+  let meta_bytes = rest[offset + 4:offset + 4 + metadata_size].to_owned()
+  let metadata : @proto.MessageMetadata = read_proto(meta_bytes) catch {
     _ => raise InvalidFrame("malformed MessageMetadata")
+  }
+  let has_batch_count = metadata_has_batch_count(meta_bytes) catch {
+    _ => raise InvalidFrame("malformed MessageMetadata")
+  }
+  if !has_batch_count {
+    metadata.num_messages_in_batch = None
+  } else if metadata.num_messages_in_batch.unwrap_or(0) <= 0 {
+    raise InvalidFrame("message batch count must be positive")
   }
   {
     cmd,

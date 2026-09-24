@@ -611,12 +611,11 @@ fn SingleConsumer::dispatch_message(
     None => assembled
   }
   let redelivery_count = message.redelivery_count.unwrap_or(0)
-  // proto2 default for num_messages_in_batch is Some(1): only >1 is a batch
   let batch_size = metadata.num_messages_in_batch.unwrap_or(0)
-  if chunk.is_chunk && batch_size > 1 {
+  if chunk.is_chunk && batch_size > 0 {
     raise InvalidFrame("chunked and batched message")
   }
-  if batch_size > 1 {
+  if batch_size > 0 {
     self.batch_acks.register(base_id, batch_size, message.ack_set)
     let singles = split_batch_payload(payload, batch_size)
     for i, single in singles {
@@ -882,9 +881,8 @@ fn split_batch_payload(
       payload[offset:offset + meta_size].to_owned(),
     )
     offset += meta_size
-    let payload_size = read_be32(payload, offset).reinterpret_as_int()
-    offset += 4
-    if offset + payload_size > payload.length() {
+    let payload_size = meta.payload_size
+    if payload_size < 0 || offset + payload_size > payload.length() {
       raise InvalidFrame("single message payload exceeds payload")
     }
     let body = payload[offset:offset + payload_size].to_owned()

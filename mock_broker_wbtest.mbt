@@ -28,6 +28,11 @@ async fn MockPeer::send_message(
   metadata : @proto.MessageMetadata,
   payload : Bytes,
 ) -> Unit {
+  // Most mocks send ordinary frames; the generated proto2 constructor sets
+  // the batch-count default to Some(1) even for those frames.
+  if metadata.num_messages_in_batch is Some(1) {
+    metadata.num_messages_in_batch = None
+  }
   self.tcp.write(encode_send_frame(cmd, metadata, payload))
 }
 
