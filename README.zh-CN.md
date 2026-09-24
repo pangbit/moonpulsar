@@ -82,6 +82,7 @@
 - 4.2.4 与 3.3.9 上的批次消息 flush 前超时与后续消息成功投递
 - 4.2.4 与 3.3.9 上两个生产者共享客户端待发送负载字节预算
 - 独立 4.2.4 和 3.3.9 容器及专用命名空间中，`examples/memory_budget` 在 1 MiB 共享预算下通过顺序收发、分块接收和 Reader 回放。`scripts/test-chunk-live.sh` 还在两个版本上验证了消费者与 Reader 未完成分块过期 ACK、共享预算耗尽与释放、普通接收队列超额，以及新客户端回放恢复。
+- `scripts/test-time-seek-live.sh` 在独立命名空间与隔离的 4.2.4、3.3.9 Broker 上验证消费者和 Reader 按发布时间向前、向后定位及回放。
 - `scripts/test-chunk-interop-live.sh` 在隔离的 4.2.4 和 3.3.9 Broker 上，以 256 KiB 随机负载与固定版本官方 Go 客户端双向交换 LZ4、Zlib、Zstd、原始 Snappy 压缩分块，也与官方 Java 客户端双向交换 LZ4、Zlib、Zstd 压缩分块。Java 的 Zlib 同步刷新流由 native 系统 zlib 适配层解码。
 - 4.2.4 与 3.3.9 上自动扩容接收队列的收发与确认；精确 FLOW 扩容由 mock broker 验证
 - 4.2.4 与 3.3.9 上生产者拦截器修改负载和观察回执
@@ -166,6 +167,7 @@ async fn main {
 | `examples/avro_evolution_interop` | Java v1/MoonBit v2 和 MoonBit v1/Java v2 的 Avro 演进互通 |
 | `examples/transaction_participants` | 在事务中注册生产者及订阅参与者 |
 | `examples/transactional_batch_ack` | 验证整批或逐索引事务 ACK 的回滚重投和提交（`PULSAR_BATCH_INDEX_ACK=true`） |
+| `examples/time_seek` | 在真实 Broker 上验证消费者与 Reader 按时间 seek |
 | `examples/live_capabilities` | 多 Topic、模式订阅、ACK 超时、seek、分块、事务和可选 Admin REST 的真实 broker 回归场景 |
 | `examples/pattern_removal` | 删除模式订阅中的非分区和分区 Topic，重建后再次接收 |
 

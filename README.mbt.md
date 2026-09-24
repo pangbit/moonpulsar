@@ -87,6 +87,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - a buffered batch message expires before flush while the next message is delivered on 4.2.4 and 3.3.9
 - two producers sharing a client-wide pending payload-byte budget on 4.2.4 and 3.3.9
 - `examples/memory_budget` passed a 1 MiB shared budget across sequential send/receive, chunked delivery and Reader replay in isolated 4.2.4 and 3.3.9 containers with a dedicated namespace. `scripts/test-chunk-live.sh` also verifies consumer and Reader incomplete-chunk expiry ACK, shared-budget failure and release, retained receive-queue overflow, and recovery by replay on both versions.
+- `scripts/test-time-seek-live.sh` checks Consumer and Reader timestamp seeks forward and backward in a dedicated namespace on isolated 4.2.4 and 3.3.9 Brokers.
 - `scripts/test-chunk-interop-live.sh` exchanges forced 32 KiB compressed chunks with the pinned official Go client (LZ4, Zlib, Zstd, raw Snappy) and official Java client (LZ4, Zlib, Zstd). Both directions passed with a 256 KiB random payload on isolated 4.2.4 and 3.3.9 Brokers. Java's Zlib sync-flushed stream is decoded through the native system zlib fallback.
 - an auto-scaled receive queue sending and acknowledging messages on 4.2.4 and 3.3.9; exact FLOW growth is covered by the mock broker
 - producer interceptor payload transformation and receipt callback on 4.2.4 and 3.3.9
@@ -173,6 +174,7 @@ The `examples/` workspace module contains runnable programs (each needs a local 
 | `examples/avro_evolution_interop` | Java v1 writer to MoonBit v2 reader, and MoonBit v1 writer to Java v2 reader |
 | `examples/transaction_participants` | register producer and subscription participants in a transaction |
 | `examples/transactional_batch_ack` | verify rollback redelivery and commit for whole-batch or per-index transactional ACK (`PULSAR_BATCH_INDEX_ACK=true`) |
+| `examples/time_seek` | Consumer and Reader timestamp seek on a real broker |
 | `examples/live_capabilities` | real-broker regression for multi-topic, pattern, ack timeout, seek, chunking, transactions, and optional Admin REST |
 | `examples/pattern_removal` | delete and recreate active non-partitioned and partitioned pattern sources, then receive again |
 
