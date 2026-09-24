@@ -7,15 +7,15 @@
 // a CRC32-C checksum:
 //
 //   [TOTAL_SIZE u32][CMD_SIZE u32][BaseCommand]
-//   [MAGIC 0x0e01 u16][CHECKSUM u32][BROKER_META_SIZE u32][BrokerEntryMetadata]
-//   [METADATA_SIZE u32][MessageMetadata][PAYLOAD]
+//   [MAGIC 0x0e01 u16][CHECKSUM u32][METADATA_SIZE u32]
+//   [MessageMetadata][PAYLOAD]
 //
 // A batched payload consists of `num_messages_in_batch` entries of:
 //   [SINGLE_META_SIZE u32][SingleMessageMetadata][SINGLE_PAYLOAD_SIZE u32][payload]
 
 ///|
-/// Magic number preceding the broker entry metadata checksum.
-const BROKER_ENTRY_METADATA_MAGIC : Int = 0x0e01
+/// Magic number preceding the CRC32-C checksum on message frames.
+const MESSAGE_CHECKSUM_MAGIC : Int = 0x0e01
 
 ///|
 fn write_be32(buf : @buffer.Buffer, v : UInt) -> Unit {
@@ -74,18 +74,21 @@ pub fn encode_send_frame(
   let meta_body = @buffer.Buffer()
   write_proto(meta_body, metadata)
   let meta_bytes = meta_body.to_bytes()
-  let total = 4 +
-    cmd_bytes.length() +
-    4 +
-    meta_bytes.length() +
-    payload.length()
+  let tail = @buffer.Buffer()
+  write_be32(tail, meta_bytes.length().reinterpret_as_uint())
+  tail.write_bytes(meta_bytes)
+  tail.write_bytes(payload)
+  let tail_bytes = tail.to_bytes()
+  let checksum = crc32c(tail_bytes)
+  let total = 4 + cmd_bytes.length() + 6 + tail_bytes.length()
   let frame = @buffer.Buffer()
   write_be32(frame, total.reinterpret_as_uint())
   write_be32(frame, cmd_bytes.length().reinterpret_as_uint())
   frame.write_bytes(cmd_bytes)
-  write_be32(frame, meta_bytes.length().reinterpret_as_uint())
-  frame.write_bytes(meta_bytes)
-  frame.write_bytes(payload)
+  frame.write_byte((MESSAGE_CHECKSUM_MAGIC >> 8).to_byte())
+  frame.write_byte(MESSAGE_CHECKSUM_MAGIC.to_byte())
+  write_be32(frame, checksum)
+  frame.write_bytes(tail_bytes)
   frame.to_bytes()
 }
 
@@ -128,11 +131,11 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
   }
   let mut offset = 0
   // Payload frames carry a CRC32-C checksum guarded by a magic number.
-  // Broker entry metadata only appears when the client advertises
-  // `supports_broker_entry_metadata` in CONNECT, which we never do.
+  // Broker entry metadata uses a separate header, which we never request
+  // with `supports_broker_entry_metadata` in CONNECT.
   if rest.length() >= 2 &&
-    rest[0].to_int() == BROKER_ENTRY_METADATA_MAGIC >> 8 &&
-    rest[1].to_int() == (BROKER_ENTRY_METADATA_MAGIC & 0xff) {
+    rest[0].to_int() == MESSAGE_CHECKSUM_MAGIC >> 8 &&
+    rest[1].to_int() == (MESSAGE_CHECKSUM_MAGIC & 0xff) {
     let checksum = read_be32(rest, 2)
     if crc32c(rest[6:]) != checksum {
       raise ChecksumMismatch

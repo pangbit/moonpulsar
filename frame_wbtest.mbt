@@ -46,6 +46,11 @@ test "send frame roundtrip with payload" {
   metadata.publish_time = 1234567890
   let payload = b"hello"
   let frame = encode_send_frame(cmd, metadata, payload)
+  let command_size = read_be32(frame, 4).reinterpret_as_int()
+  let checksum_at = 8 + command_size
+  assert_eq(frame[checksum_at], b'\x0e')
+  assert_eq(frame[checksum_at + 1], b'\x01')
+  assert_eq(read_be32(frame, checksum_at + 2), crc32c(frame[checksum_at + 6:]))
   let decoded = decode_frame_body(frame[4:].to_owned())
   assert_eq(decoded.cmd.type_, @proto.BaseCommand_Type::SEND)
   guard decoded.cmd.send is Some(send2) else { fail("missing send command") }
