@@ -10,6 +10,42 @@ permissions:
   contents: read
 
 jobs:
+  broker-regression:
+    name: broker regression (${{ matrix.pulsar }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        pulsar: ["4.2.4", "3.3.9"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Update MoonBit dependencies
+        run: moon update
+
+      - name: Verify chunk and receive-queue memory behavior
+        shell: bash
+        run: bash scripts/test-chunk-live.sh "${{ matrix.pulsar }}" 2>&1 | tee broker-chunk.log
+
+      - name: Verify Consumer and Reader timestamp seek
+        shell: bash
+        run: bash scripts/test-time-seek-live.sh "${{ matrix.pulsar }}" 2>&1 | tee broker-seek.log
+
+      - name: Upload broker failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: broker-logs-${{ matrix.pulsar }}
+          path: broker-*.log
+          if-no-files-found: ignore
+
   test:
     name: native library checks
     runs-on: ubuntu-24.04

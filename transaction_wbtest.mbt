@@ -1,6 +1,110 @@
 // Transaction tests: coordinator channel and transactional produce.
 
 ///|
+async test "coordinator leases survive idle eviction and release on close or rejection" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      for index in 0..<3 {
+        let frame = peer.next()
+        guard frame.cmd.tc_client_connect_request is Some(req) else {
+          fail("expected coordinator attach")
+        }
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_RESPONSE
+        let resp = @proto.CommandTcClientConnectResponse::default()
+        resp.request_id = req.request_id
+        if index == 2 {
+          resp.error = Some(@proto.ServerError::InvalidTxnStatus)
+        }
+        reply.tc_client_connect_response = Some(resp)
+        peer.send_command(reply)
+      }
+      ignore(peer.next() catch { _ => return })
+    })
+    let manager = ConnectionManager::new(
+      group,
+      connection_idle_timeout_ms=60000,
+    )
+    let conn = manager.get(addr)
+    let first = TransactionCoordinator::attach(conn, 0UL, owns_connection=false)
+    let second = TransactionCoordinator::attach(
+      conn,
+      0UL,
+      owns_connection=false,
+    )
+    let rejected : Result[TransactionCoordinator, Error] = Ok(
+      TransactionCoordinator::attach(conn, 0UL, owns_connection=false),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(rejected is Err(ServerError(..)))
+    let key = "false|\{addr}"
+    let expired = @async.now() + 120000L
+    ignore(manager.prune_pool(key, expired))
+    assert_false(conn.is_closed())
+    first.close()
+    first.close()
+    ignore(manager.prune_pool(key, expired))
+    assert_false(conn.is_closed())
+    let closed : Result[Transaction, Error] = Ok(first.new_transaction()) catch {
+      e => Err(e)
+    }
+    assert_true(closed is Err(ConnectionClosed))
+    second.close()
+    ignore(manager.prune_pool(key, expired))
+    assert_true(conn.is_closed())
+    manager.close()
+  })
+}
+
+///|
+async test "transaction begin rejects missing ID halves but accepts explicit zeros" {
+  @async.with_task_group(async fn(group) {
+    let addr = start_mock_broker(group, async fn(_addr, peer) {
+      let frame = peer.next()
+      guard frame.cmd.tc_client_connect_request is Some(req) else {
+        fail("expected coordinator attach")
+      }
+      let reply = @proto.BaseCommand::default()
+      reply.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_RESPONSE
+      let resp = @proto.CommandTcClientConnectResponse::default()
+      resp.request_id = req.request_id
+      reply.tc_client_connect_response = Some(resp)
+      peer.send_command(reply)
+      for index in 0..<4 {
+        let frame = peer.next()
+        guard frame.cmd.new_txn is Some(req) else { fail("expected NEW_TXN") }
+        let reply = @proto.BaseCommand::default()
+        reply.type_ = @proto.BaseCommand_Type::NEW_TXN_RESPONSE
+        let resp = @proto.CommandNewTxnResponse::default()
+        resp.request_id = req.request_id
+        resp.txnid_least_bits = if index == 1 || index == 3 {
+          Some(0UL)
+        } else {
+          None
+        }
+        resp.txnid_most_bits = if index == 2 || index == 3 {
+          Some(0UL)
+        } else {
+          None
+        }
+        reply.new_txn_response = Some(resp)
+        peer.send_command(reply)
+      }
+    })
+    let coord = TransactionCoordinator::connect(group, addr, 0UL)
+    for _ in 0..<3 {
+      let result : Result[Transaction, Error] = Ok(coord.new_transaction()) catch {
+        e => Err(e)
+      }
+      assert_true(result is Err(UnexpectedResponse(_)))
+    }
+    assert_eq(coord.new_transaction().id(), (0UL, 0UL))
+    coord.close()
+  })
+}
+
+///|
 async test "transaction lifecycle over one connection" {
   @async.with_task_group(async fn(group) {
     let addr = start_mock_broker(group, async fn(_addr, peer) {

@@ -13,6 +13,7 @@ pub struct TransactionCoordinator {
   priv conn : Connection
   priv tc_id : UInt64
   priv owns_connection : Bool
+  priv mut closed : Bool
 }
 
 ///|
@@ -35,7 +36,16 @@ async fn TransactionCoordinator::attach(
   tc_id : UInt64,
   owns_connection~ : Bool,
 ) -> TransactionCoordinator {
-  let coord : TransactionCoordinator = { conn, tc_id, owns_connection, }
+  conn.coordinator_leases += 1
+  errdefer {
+    conn.coordinator_leases -= 1
+  }
+  let coord : TransactionCoordinator = {
+    conn,
+    tc_id,
+    owns_connection,
+    closed: false,
+  }
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::TC_CLIENT_CONNECT_REQUEST
   let req = @proto.CommandTcClientConnectRequest::default()
@@ -56,8 +66,14 @@ async fn TransactionCoordinator::attach(
 }
 
 ///|
-/// Close the coordinator's connection.
+/// Release this coordinator. A dedicated connection is closed; a pooled
+/// connection becomes eligible for idle eviction when its last user releases it.
 pub fn TransactionCoordinator::close(self : TransactionCoordinator) -> Unit {
+  if self.closed {
+    return
+  }
+  self.closed = true
+  self.conn.coordinator_leases -= 1
   if self.owns_connection {
     self.conn.close()
   }
@@ -84,6 +100,9 @@ pub async fn TransactionCoordinator::new_transaction(
   self : TransactionCoordinator,
   ttl_ms? : UInt64 = 60000,
 ) -> Transaction {
+  if self.closed {
+    raise ConnectionClosed
+  }
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::NEW_TXN
   let req = @proto.CommandNewTxn::default()
@@ -101,11 +120,11 @@ pub async fn TransactionCoordinator::new_transaction(
       message=resp.message.unwrap_or("NEW_TXN failed"),
     )
   }
-  {
-    coord: self,
-    least: resp.txnid_least_bits.unwrap_or(0),
-    most: resp.txnid_most_bits.unwrap_or(0),
+  guard resp.txnid_least_bits is Some(least) &&
+    resp.txnid_most_bits is Some(most) else {
+    raise UnexpectedResponse("NEW_TXN_RESPONSE missing transaction ID")
   }
+  { coord: self, least, most, }
 }
 
 ///|
@@ -113,6 +132,9 @@ async fn Transaction::end(
   self : Transaction,
   action : @proto.TxnAction,
 ) -> Unit {
+  if self.coord.closed {
+    raise ConnectionClosed
+  }
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::END_TXN
   let req = @proto.CommandEndTxn::default()
@@ -151,6 +173,9 @@ pub async fn Transaction::add_partition(
   self : Transaction,
   topic : String,
 ) -> Unit {
+  if self.coord.closed {
+    raise ConnectionClosed
+  }
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::ADD_PARTITION_TO_TXN
   let req = @proto.CommandAddPartitionToTxn::default()
@@ -178,6 +203,9 @@ pub async fn Transaction::add_subscription(
   topic : String,
   subscription : String,
 ) -> Unit {
+  if self.coord.closed {
+    raise ConnectionClosed
+  }
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::ADD_SUBSCRIPTION_TO_TXN
   let req = @proto.CommandAddSubscriptionToTxn::default()

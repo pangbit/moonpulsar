@@ -33,6 +33,8 @@ pub struct Connection {
   priv message_handlers : Map[UInt64, (IncomingFrame) -> Unit]
   /// producer_id -> handler for SEND_RECEIPT / SEND_ERROR / CLOSE_PRODUCER
   priv producer_handlers : Map[UInt64, (@proto.BaseCommand) -> Unit]
+  /// Coordinator handles keep pooled connections alive between requests.
+  priv mut coordinator_leases : Int
   /// notified once when the connection breaks
   priv close_handlers : Array[(Error?) -> Unit]
   priv mut closed : Bool
@@ -221,6 +223,7 @@ async fn Connection::connect_with_memory(
     pending: {},
     message_handlers: {},
     producer_handlers: {},
+    coordinator_leases: 0,
     close_handlers: [],
     closed: false,
     stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),

@@ -164,8 +164,14 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
   if cmd_size <= 0 || cmd_size > body.length() - 4 {
     raise InvalidFrame("command size exceeds frame length")
   }
-  let cmd : @proto.BaseCommand = read_proto(body[4:4 + cmd_size].to_owned()) catch {
+  let cmd_bytes = body[4:4 + cmd_size].to_owned()
+  let cmd : @proto.BaseCommand = read_proto(cmd_bytes) catch {
     _ => raise InvalidFrame("malformed BaseCommand")
+  }
+  if cmd.new_txn_response is Some(response) {
+    restore_transaction_id_presence(cmd_bytes, response) catch {
+      _ => raise InvalidFrame("malformed NEW_TXN_RESPONSE")
+    }
   }
   let rest = body[4 + cmd_size:]
   if rest.length() == 0 {
@@ -205,5 +211,44 @@ pub fn decode_frame_body(body : Bytes) -> IncomingFrame raise PulsarError {
     metadata: Some(metadata),
     payload: Some(rest[offset + 4 + metadata_size:].to_owned()),
     wire_size: body.length() + 4,
+  }
+}
+
+///|
+// Generated proto2 decoding defaults absent transaction IDs to Some(0).
+// Preserve wire presence so the coordinator can reject incomplete responses.
+fn restore_transaction_id_presence(
+  data : Bytes,
+  response : @proto.CommandNewTxnResponse,
+) -> Unit raise {
+  let reader = @lib.LimitedReader(@lib.BytesReader::from_bytes(data))
+  let mut has_least = false
+  let mut has_most = false
+  while (reader |> @lib.read_next_message_field()) is Some((field, wire)) {
+    if field == 51 && wire == @lib.WIRE_TYPE_LENGTH_DELIMITED {
+      let nested = @lib.LimitedReader(
+        @lib.BytesReader::from_bytes(@lib.read_bytes(reader)),
+      )
+      // Match the generated reader's last occurrence semantics.
+      has_least = false
+      has_most = false
+      while (nested |> @lib.read_next_message_field()) is Some((number, kind)) {
+        if number == 2 {
+          has_least = true
+        }
+        if number == 3 {
+          has_most = true
+        }
+        nested |> @lib.skip_message_field_by_number(number, kind)
+      }
+    } else {
+      reader |> @lib.skip_message_field_by_number(field, wire)
+    }
+  }
+  if !has_least {
+    response.txnid_least_bits = None
+  }
+  if !has_most {
+    response.txnid_most_bits = None
   }
 }

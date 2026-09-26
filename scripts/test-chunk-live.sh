@@ -11,7 +11,12 @@ case "$version" in
 esac
 name="moonpulsar-chunk-live-${version//./-}-$$"
 cleanup() {
+  local status=$?
+  if (( status != 0 )); then
+    docker logs "$name" >&2 || true
+  fi
   docker rm -f "$name" >/dev/null 2>&1 || true
+  exit "$status"
 }
 trap cleanup EXIT
 

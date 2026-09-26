@@ -123,6 +123,7 @@ fn ConnectionManager::prune_pool(
       now - entry.last_used_ms >= timeout.to_int64() &&
       entry.conn.pending.is_empty() &&
       entry.conn.producer_handlers.is_empty() &&
+      entry.conn.coordinator_leases == 0 &&
       entry.conn.message_handlers.is_empty() {
       entry.conn.close()
       continue

@@ -47,3 +47,9 @@ The mock suite does not yet reach full library line coverage. The current
 `moon coverage analyze` output still flags connection and Reader branches;
 live examples are not included in that report. Malformed frame lengths and
 missing handshake metadata have executable regression tests.
+
+The CI broker matrix runs the isolated chunk/receive-queue memory and timestamp
+seek scripts against 4.2.4 and 3.3.9. The six optional live tests return early
+without their `PULSAR_LIVE_*` inputs; a passing default `moon test` run is not
+evidence that those broker scenarios ran. CI supplies those inputs through the
+scripts. Other live examples and Go/Java interoperability remain separate checks.
