@@ -221,6 +221,8 @@ docker run -p 6650:6650 -p 8080:8080 apachepulsar/pulsar:latest bin/pulsar stand
 
 ## 开发与验证
 
+性能测试入口见 [Performance testing](PERFORMANCE.md)：包含本地压缩、路由与批量编码基准，以及显式运行的真实 Broker 生产者/消费者压测；功能测试通过不代表性能达标。
+
 ```sh
 moon test        # 单元测试和 mock broker 测试
 moon info        # 重新生成 .mbti 接口文件

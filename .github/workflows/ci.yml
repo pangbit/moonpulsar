@@ -72,6 +72,9 @@ jobs:
       - name: Run release tests
         run: moon test --release --target native
 
+      - name: Build performance benchmarks
+        run: moon bench --release --target native --build-only -p pangbit/moonpulsar -f performance_wbtest.mbt
+
       - name: Check formatting
         run: moon fmt --check
 

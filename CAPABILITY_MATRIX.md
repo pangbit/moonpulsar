@@ -1,5 +1,10 @@
 # Pulsar client capability and test matrix
 
+Performance coverage is tracked separately in [PERFORMANCE.md](PERFORMANCE.md):
+local codec/routing/batch microbenchmarks and an explicit Broker throughput and
+send-receipt latency harness. Functional/live compatibility results below are
+not performance baselines; no performance regression threshold is enforced.
+
 Compared with the public APIs of [pulsar-rs](https://github.com/streamnative/pulsar-rs)
 and [pulsar-client-go](https://github.com/apache/pulsar-client-go). This is a
 functional comparison, not an API-by-API claim of parity. Status reflects the

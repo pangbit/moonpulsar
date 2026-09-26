@@ -240,6 +240,9 @@ docker run -p 6650:6650 -p 8080:8080 apachepulsar/pulsar:latest bin/pulsar stand
 
 ## Development
 
+See [Performance testing](PERFORMANCE.md) for local compression/routing/batch
+benchmarks and explicit real-Broker producer/consumer measurements.
+
 ```sh
 moon test        # unit + mock-broker tests
 moon info        # regenerate .mbti interfaces
