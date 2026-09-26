@@ -1,0 +1,11 @@
+[package]
+name = "pulsar-reference-perf"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+pulsar = { git = "https://github.com/streamnative/pulsar-rs", rev = "929bc549b2130d1e49e16bac0a652be59d483c7d", default-features = false, features = ["tokio-rustls-runtime-ring"] }
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
+futures = "0.3"
+serde_json = "1"

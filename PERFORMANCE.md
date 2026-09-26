@@ -5,6 +5,10 @@ The suite has two independent layers, following the structure of
 and its compression/routing benchmarks. These measurements are not a throughput
 guarantee or a performance regression threshold.
 
+Real-Broker results: [three-client comparison (2026-09-26)](performance-results/2026-09-26-comparison/README.md).
+The [reference adapters](interop/PERFORMANCE_COMPARISON.md) reproduce the matched
+workload using the Go and Rust clients. Reports contain sanitized measurements only.
+
 ## Local microbenchmarks
 
 From the repository root:

@@ -1,0 +1,21 @@
+{
+  "status": "partial_broker_failure",
+  "completed_matched_scenarios": 4,
+  "planned_matched_scenarios": 5,
+  "included_formal_pairs": 36,
+  "included_smoke_pairs": 6,
+  "included_process_exits_zero": 84,
+  "included_stderr_empty": true,
+  "included_histogram_overflow": 0,
+  "included_topic_cleanup_confirmed": true,
+  "excluded_scenario": {
+    "case": "64k-c32-batched",
+    "status": "incomplete",
+    "completed_pairs_excluded_from_comparison": 1,
+    "failed_pairs": 1,
+    "not_run_pairs": 7,
+    "failure": "broker_direct_memory_exhausted",
+    "broker_direct_memory_limit_gib": 4,
+    "pending_topic_cleanup_count": 1
+  }
+}
