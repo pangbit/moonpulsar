@@ -193,7 +193,7 @@ async test "closing a memory budget wakes blocked senders" {
     assert_true(result.try_get() is None)
     limiter.close()
     assert_true(@async.with_timeout(1000, async fn() { result.get() }))
-    limiter.release(1)
+    limiter.release_now(1)
     assert_eq(limiter.used, 0)
   })
 }

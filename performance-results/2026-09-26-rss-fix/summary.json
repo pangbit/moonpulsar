@@ -1,0 +1,428 @@
+[
+  {
+    "case": "unbatched-1s",
+    "version": "before",
+    "messages": 100000,
+    "elapsed_ms": 10000.936532,
+    "msg_s": 9999.063555701006,
+    "peak_rss_mib": 20.84765625,
+    "start_rss_mib": 6.796875,
+    "receipts_complete_rss_mib": 20.9140625,
+    "deadline_drained_rss_mib": 17.9765625,
+    "samples": [
+      {
+        "phase": "start",
+        "rss_mib": 6.796875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.98828125
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.55859375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.7265625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.7265625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.7265625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.7265625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.7265625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.8515625
+      },
+      {
+        "phase": "receipts-complete",
+        "rss_mib": 20.9140625
+      },
+      {
+        "phase": "deadline-drained",
+        "rss_mib": 17.9765625
+      }
+    ],
+    "exit_code": 0,
+    "assertions_passed": true
+  },
+  {
+    "case": "unbatched-1s",
+    "version": "after",
+    "messages": 100000,
+    "elapsed_ms": 10000.206013,
+    "msg_s": 9999.793991244049,
+    "peak_rss_mib": 7.15234375,
+    "start_rss_mib": 6.97265625,
+    "receipts_complete_rss_mib": 7.24609375,
+    "deadline_drained_rss_mib": 7.24609375,
+    "samples": [
+      {
+        "phase": "start",
+        "rss_mib": 6.97265625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.23828125
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "receipts-complete",
+        "rss_mib": 7.24609375
+      },
+      {
+        "phase": "deadline-drained",
+        "rss_mib": 7.24609375
+      }
+    ],
+    "exit_code": 0,
+    "assertions_passed": true
+  },
+  {
+    "case": "unbatched-10s",
+    "version": "before",
+    "messages": 100000,
+    "elapsed_ms": 10001.280049,
+    "msg_s": 9998.720114831573,
+    "peak_rss_mib": 142.2109375,
+    "start_rss_mib": 6.58984375,
+    "receipts_complete_rss_mib": 142.2578125,
+    "deadline_drained_rss_mib": 10.40625,
+    "samples": [
+      {
+        "phase": "start",
+        "rss_mib": 6.58984375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.9765625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 20.5546875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 34.109375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 47.92578125
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 61.2265625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 74.5390625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 88.84765625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 102.15625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 115.453125
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 128.75390625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 142.0703125
+      },
+      {
+        "phase": "receipts-complete",
+        "rss_mib": 142.2578125
+      },
+      {
+        "phase": "deadline-drained",
+        "rss_mib": 10.40625
+      }
+    ],
+    "exit_code": 0,
+    "assertions_passed": true
+  },
+  {
+    "case": "unbatched-10s",
+    "version": "after",
+    "messages": 100000,
+    "elapsed_ms": 10000.379069,
+    "msg_s": 9999.620945368786,
+    "peak_rss_mib": 6.69140625,
+    "start_rss_mib": 6.50390625,
+    "receipts_complete_rss_mib": 6.9140625,
+    "deadline_drained_rss_mib": 6.9140625,
+    "samples": [
+      {
+        "phase": "start",
+        "rss_mib": 6.50390625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.83984375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.84765625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.84765625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 6.8515625
+      },
+      {
+        "phase": "receipts-complete",
+        "rss_mib": 6.9140625
+      },
+      {
+        "phase": "deadline-drained",
+        "rss_mib": 6.9140625
+      }
+    ],
+    "exit_code": 0,
+    "assertions_passed": true
+  },
+  {
+    "case": "batch32-10s",
+    "version": "before",
+    "messages": 100000,
+    "elapsed_ms": 10000.512854,
+    "msg_s": 9999.487172300573,
+    "peak_rss_mib": 171.9609375,
+    "start_rss_mib": 6.98046875,
+    "receipts_complete_rss_mib": 172.171875,
+    "deadline_drained_rss_mib": 14.046875,
+    "samples": [
+      {
+        "phase": "start",
+        "rss_mib": 6.98046875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.546875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 24.65234375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 41.0703125
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 57.734375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 73.9375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 90.07421875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 107.44140625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 123.44140625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 139.609375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 155.7734375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 171.9453125
+      },
+      {
+        "phase": "receipts-complete",
+        "rss_mib": 172.171875
+      },
+      {
+        "phase": "deadline-drained",
+        "rss_mib": 14.046875
+      }
+    ],
+    "exit_code": 0,
+    "assertions_passed": true
+  },
+  {
+    "case": "batch32-10s",
+    "version": "after",
+    "messages": 100000,
+    "elapsed_ms": 10000.934781,
+    "msg_s": 9999.065306373384,
+    "peak_rss_mib": 7.859375,
+    "start_rss_mib": 6.85546875,
+    "receipts_complete_rss_mib": 7.86328125,
+    "deadline_drained_rss_mib": 7.86328125,
+    "samples": [
+      {
+        "phase": "start",
+        "rss_mib": 6.85546875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.4375
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.8515625
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.85546875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.85546875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.85546875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.85546875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.85546875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.85546875
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.86328125
+      },
+      {
+        "phase": "sending",
+        "rss_mib": 7.86328125
+      },
+      {
+        "phase": "receipts-complete",
+        "rss_mib": 7.86328125
+      },
+      {
+        "phase": "deadline-drained",
+        "rss_mib": 7.86328125
+      }
+    ],
+    "exit_code": 0,
+    "assertions_passed": true
+  }
+]

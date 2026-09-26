@@ -17,6 +17,7 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
   "moonbitlang/core/debug",
+  "moonbitlang/core/bench",
   "moonbitlang/core/encoding/base64",
   "moonbit-community/flate/zlib",
   "Milky2018/zstd",
@@ -27,5 +28,4 @@ import {
 
 import {
   "moonbitlang/core/env",
-  "moonbitlang/core/bench",
 } for "wbtest"

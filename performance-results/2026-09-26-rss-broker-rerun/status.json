@@ -1,0 +1,24 @@
+{
+  "overall_status": "partial",
+  "microbenchmarks": { "cases": 21, "test_blocks": 3, "exit_code": 0 },
+  "included": {
+    "payload_bytes": 1024,
+    "formal_pairs": 36,
+    "smoke_pairs": 6,
+    "successful_process_exits": 84,
+    "histogram_overflows": 0,
+    "dedicated_topic_cleanup": "complete"
+  },
+  "excluded_attempts": [
+    { "phase": "initial_smoke", "client": "moon", "producer_exit": 0, "consumer_exit": 1, "reason": "zero_measured_consumer_messages" },
+    { "phase": "continuous_64k", "client": "moon", "producer_exit": 0, "consumer_exit": 0, "reason": "comparison_incomplete" },
+    { "phase": "continuous_64k", "client": "go", "producer_exit": 1, "consumer_exit": 1, "reason": "broker_direct_memory_exhaustion" },
+    { "phase": "restart_per_pair_64k", "client": "go", "producer_exit": 0, "consumer_exit": 1, "reason": "zero_measured_consumer_messages" },
+    { "phase": "restart_and_prime_64k", "client": "go", "producer_exit": 0, "consumer_exit": 0, "reason": "comparison_incomplete" },
+    { "phase": "restart_and_prime_64k", "client": "rust", "producer_exit": 0, "consumer_exit": 0, "reason": "comparison_incomplete" },
+    { "phase": "restart_and_prime_64k", "client": "moon", "producer_exit": 0, "consumer_exit": 1, "reason": "zero_measured_consumer_messages_with_broker_transaction_snapshot_recovery_failure" }
+  ],
+  "broker_direct_memory_limit_bytes": 4294967296,
+  "large_message_comparison": "incomplete",
+  "failed_test_topic_cleanup": "complete"
+}

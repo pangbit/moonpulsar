@@ -139,18 +139,3 @@ async fn ClientMemoryLimiter::remove_waiter(
     }
   }
 }
-
-///|
-async fn ClientMemoryLimiter::release(
-  self : ClientMemoryLimiter,
-  size : Int,
-) -> Unit {
-  self.mu.acquire()
-  self.used -= size
-  let waiters = self.waiters
-  self.waiters = []
-  self.mu.release()
-  for waiter in waiters {
-    ignore(waiter.ready.try_put(()))
-  }
-}

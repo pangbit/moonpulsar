@@ -65,11 +65,22 @@ pub async fn ReceiptFuture::wait(self : ReceiptFuture) -> SendReceipt {
 }
 
 ///|
-priv struct BufferedMessage {
-  message : ProducerMessage
+priv struct PendingSend {
+  mut message : ProducerMessage?
   waiter : @aqueue.Queue[SendReceipt]
   token : UInt64
-  done : Ref[Bool]
+  size : Int
+  deadline : Int64?
+  mut done : Bool
+  mut frame : UInt64?
+  mut worker : @async.Task[Unit]?
+}
+
+///|
+priv struct PendingFrame {
+  entries : Array[(PendingSend, Int)]
+  mut remaining : Int
+  chunk_waiter : @aqueue.Queue[SendReceipt]?
 }
 
 ///|
@@ -87,9 +98,11 @@ pub struct SingleProducer {
   priv mut name : String
   priv mut sequence_id : UInt64
   priv mut last_confirmed_sequence_id : UInt64?
-  priv pending : Map[UInt64, @aqueue.Queue[SendReceipt]]
-  priv timeout_generation : Map[UInt64, UInt64]
-  priv mut next_timeout_generation : UInt64
+  priv pending : Map[UInt64, PendingFrame]
+  priv sends : Map[UInt64, PendingSend]
+  priv deadlines : SendDeadlines
+  priv deadline_changed : @aqueue.Queue[Unit]
+  priv mut deadline_worker : @async.Task[Unit]?
   /// encoded SEND frames awaiting a receipt, for replay after reconnect
   priv payloads : Map[UInt64, Bytes]
   priv frame_charges : Map[UInt64, Int]
@@ -112,11 +125,12 @@ pub struct SingleProducer {
   priv mut schema_version : Bytes?
   priv batching : BatchingConfig?
   priv batch_mu : @async.Mutex
-  priv mut batch_entries : Array[BufferedMessage]
+  priv mut batch_entries : Array[PendingSend]
   priv mut batch_bytes : Int
   priv mut batch_timer_running : Bool
+  priv mut batch_timer : @async.Task[Unit]?
   priv mut batch_timer_generation : UInt64
-  priv mut next_batch_token : UInt64
+  priv mut next_send_token : UInt64
   priv mut closed : Bool
 }
 
@@ -240,8 +254,10 @@ async fn SingleProducer::create_with_memory(
     sequence_id: 0,
     last_confirmed_sequence_id: None,
     pending: {},
-    timeout_generation: {},
-    next_timeout_generation: 0UL,
+    sends: {},
+    deadlines: SendDeadlines::new(),
+    deadline_changed: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
+    deadline_worker: None,
     payloads: {},
     frame_charges: {},
     reconnect_with,
@@ -266,8 +282,9 @@ async fn SingleProducer::create_with_memory(
     batch_entries: [],
     batch_bytes: 0,
     batch_timer_running: false,
+    batch_timer: None,
     batch_timer_generation: 0UL,
-    next_batch_token: 0UL,
+    next_send_token: 0UL,
     closed: false,
   }
   producer.attach(conn)
@@ -282,6 +299,15 @@ async fn SingleProducer::create_with_memory(
   if success.last_sequence_id is Some(last) && last >= 0 {
     producer.sequence_id = (last + 1).reinterpret_as_uint64()
     producer.last_confirmed_sequence_id = Some(last.reinterpret_as_uint64())
+  }
+  if send_timeout_ms is Some(_) {
+    producer.deadline_worker = Some(
+      group.spawn(
+        async fn() { producer.run_deadlines() },
+        no_wait=true,
+        allow_failure=true,
+      ),
+    )
   }
   producer
 }
@@ -317,11 +343,7 @@ fn SingleProducer::producer_command(
 ///|
 /// Wire dispatch handlers and the close hook onto a connection.
 fn SingleProducer::attach(self : SingleProducer, conn : Connection) -> Unit {
-  conn.producer_handlers[self.producer_id] = fn(cmd) {
-    self.on_command(cmd) catch {
-      _ => ()
-    }
-  }
+  conn.producer_handlers[self.producer_id] = fn(cmd) { self.on_command(cmd) }
   conn.on_close(fn(e) { self.on_connection_closed(e) })
 }
 
@@ -329,43 +351,36 @@ fn SingleProducer::attach(self : SingleProducer, conn : Connection) -> Unit {
 fn SingleProducer::on_command(
   self : SingleProducer,
   cmd : @proto.BaseCommand,
-) -> Unit raise {
+) -> Unit {
   if cmd.send_receipt is Some(receipt) {
-    if self.pending.get(receipt.sequence_id) is Some(waiter) {
+    if self.pending.contains(receipt.sequence_id) {
       if self.last_confirmed_sequence_id is None ||
         self.last_confirmed_sequence_id.unwrap() < receipt.sequence_id {
         self.last_confirmed_sequence_id = Some(receipt.sequence_id)
       }
-      self.pending.remove(receipt.sequence_id)
-      self.timeout_generation.remove(receipt.sequence_id)
-      self.payloads.remove(receipt.sequence_id)
-      self.release_frame_charge(receipt.sequence_id)
-      let message_id = match receipt.message_id {
-        Some(data) => MessageId::from_proto(data)
-        None => MessageId::latest()
-      }
-      let result : SendReceipt = {
-        message_id,
-        sequence_id: receipt.sequence_id,
-        producer_id: receipt.producer_id,
-        producer_name: self.name,
-      }
-      ignore(waiter.try_put(result))
+      self.finish_frame(
+        receipt.sequence_id,
+        Ok({
+          message_id: match receipt.message_id {
+            Some(data) => MessageId::from_proto(data)
+            None => MessageId::latest()
+          },
+          sequence_id: receipt.sequence_id,
+          producer_id: receipt.producer_id,
+          producer_name: self.name,
+        }),
+      )
     }
   } else if cmd.send_error is Some(err) {
-    if self.pending.get(err.sequence_id) is Some(waiter) {
-      self.pending.remove(err.sequence_id)
-      self.timeout_generation.remove(err.sequence_id)
-      self.payloads.remove(err.sequence_id)
-      self.release_frame_charge(err.sequence_id)
-      waiter.close(
-        error=ServerError(
+    self.finish_frame(
+      err.sequence_id,
+      Err(
+        ServerError(
           code=err.error.to_enum().0.reinterpret_as_int(),
           message=err.message,
         ),
-        clear=true,
-      )
-    }
+      ),
+    )
   } else if cmd.close_producer is Some(_) {
     self.fail_all(ConnectionClosed)
   }
@@ -482,24 +497,23 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
 
 ///|
 fn SingleProducer::fail_all(self : SingleProducer, error : PulsarError) -> Unit {
+  self.closed = true
+  self.conn.producer_handlers.remove(self.producer_id)
   if self.pending_slots is Some(slots) {
     slots.close(error~, clear=true)
   }
-  for _, waiter in self.pending {
-    waiter.close(error~, clear=true)
-  }
-  self.pending.clear()
-  self.timeout_generation.clear()
-  self.payloads.clear()
-  for seq in self.frame_charges.keys().collect() {
-    self.release_frame_charge(seq)
-  }
-  for entry in self.batch_entries {
-    entry.done.val = true
-    entry.waiter.close(error~, clear=true)
+  for send in self.sends.values().collect() {
+    self.finish_send(send, Err(error))
   }
   self.batch_entries.clear()
   self.batch_bytes = 0
+  self.stop_batch_timer()
+  if self.closed {
+    if self.deadline_worker is Some(task) {
+      task.cancel()
+    }
+    self.deadline_worker = None
+  }
 }
 
 ///|
@@ -570,110 +584,45 @@ pub async fn SingleProducer::send_async(
   self : SingleProducer,
   msg : ProducerMessage,
 ) -> ReceiptFuture {
-  if self.closed {
-    raise ProducerClosed
-  }
-  let slots = self.pending_slots
-  if slots is Some(queue) {
-    if self.block_if_queue_full {
-      queue.get() catch {
-        _ => raise ProducerClosed
-      }
-    } else if queue.try_get() is None {
-      raise ProducerQueueFull
-    }
-  }
-  let size = msg.retained_bytes()
-  if self.memory_limiter is Some(limiter) {
-    errdefer (if slots is Some(queue) {
-      ignore(queue.try_put(()) catch { _ => false })
-    })
-    limiter.acquire(size, self.block_if_queue_full)
-  }
-  if self.closed {
-    if self.memory_limiter is Some(limiter) {
-      limiter.release(size)
-    }
-    if slots is Some(queue) {
-      ignore(queue.try_put(()) catch { _ => false })
-    }
-    raise ProducerClosed
-  }
-  let inner = {
-    errdefer {
-      if self.memory_limiter is Some(limiter) {
-        limiter.release(size)
-      }
-      if slots is Some(queue) {
-        ignore(queue.try_put(()) catch { _ => false })
-      }
-    }
-    self.send_async_unbounded(msg)
-  }
-  if slots is None && self.memory_limiter is None {
-    return inner
-  }
-  let reply : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
-    kind=@aqueue.Kind::Blocking(1),
-  )
-  self.group.spawn_bg(
-    async fn() {
-      let result : Result[SendReceipt, Error] = Ok(inner.wait()) catch {
-        e => Err(e)
-      }
-      if self.memory_limiter is Some(limiter) {
-        limiter.release(size)
-      }
-      if slots is Some(queue) {
-        ignore(queue.try_put(()) catch { _ => false })
-      }
-      match result {
-        Ok(receipt) => ignore(reply.try_put(receipt))
-        Err(e) => reply.close(error=e, clear=true)
-      }
-    },
-    no_wait=true,
-    allow_failure=true,
-  )
-  { reply, }
-}
-
-///|
-async fn SingleProducer::send_async_unbounded(
-  self : SingleProducer,
-  msg : ProducerMessage,
-) -> ReceiptFuture {
-  if self.closed {
-    raise ProducerClosed
-  }
+  let entry = self.admit_send(msg)
+  errdefer self.finish_send(entry, Err(ConnectionClosed))
   if self.chunk_size is Some(_) || self.automatic_chunking {
-    let reply : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
-      kind=@aqueue.Kind::Blocking(1),
-    )
-    self.group.spawn_bg(
+    let task = self.group.spawn(
       async fn() {
-        let receipt = self.send_chunked(msg) catch {
-          e => {
-            reply.close(error=e, clear=true)
-            return
-          }
+        let result : Result[SendReceipt, Error] = Ok(
+          self.send_chunked(msg, entry),
+        ) catch {
+          e => Err(e)
         }
-        ignore(reply.try_put(receipt))
+        self.finish_send(entry, result)
       },
       no_wait=true,
       allow_failure=true,
     )
-    return { reply, }
+    if entry.done {
+      task.cancel()
+    } else {
+      entry.worker = Some(task)
+    }
+  } else {
+    let result : Result[Unit, Error] = Ok(
+      if msg.deliver_at is Some(_) || msg.deliver_after is Some(_) {
+        self.flush()
+        self.send_messages([entry])
+      } else if self.batching is Some(_) {
+        self.enqueue_batch(entry)
+      } else {
+        self.send_messages([entry])
+      },
+    ) catch {
+      e => Err(e)
+    }
+    if result is Err(e) {
+      self.finish_send(entry, Err(e))
+      raise e
+    }
   }
-  if msg.deliver_at is Some(_) || msg.deliver_after is Some(_) {
-    self.flush()
-    return { reply: self.send_messages([msg]), }
-  }
-  if self.batching is Some(_) {
-    return self.enqueue_batch(msg)
-  }
-  let waiter = self.send_messages([msg])
-  { reply: waiter, }
+  { reply: entry.waiter, }
 }
 
 ///|
@@ -681,12 +630,16 @@ async fn SingleProducer::send_async_unbounded(
 async fn SingleProducer::send_chunked(
   self : SingleProducer,
   msg : ProducerMessage,
+  entry : PendingSend,
   txn? : Transaction,
 ) -> SendReceipt {
   self.chunk_mu.acquire()
   defer self.chunk_mu.release()
   if self.closed {
     raise ProducerClosed
+  }
+  if entry.done {
+    raise RequestTimeout
   }
   let sequence_id = self.next_sequence_id()
   let metadata = self.build_metadata(msg, sequence_id)
@@ -728,7 +681,11 @@ async fn SingleProducer::send_chunked(
   let whole = encode_send_frame(cmd, metadata, payload)
   if (self.chunk_size is None || payload.length() <= self.chunk_size.unwrap()) &&
     (limit is None || whole.length() <= limit.unwrap()) {
-    return self.send_encoded(sequence_id, whole).get()
+    let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    self.send_encoded(sequence_id, whole, [(entry, -1)], chunk_waiter=waiter)
+    return waiter.get()
   }
   guard self.chunk_size is Some(_) || limit is Some(_) else {
     raise InvalidFrame("broker did not advertise a max message size")
@@ -766,6 +723,9 @@ async fn SingleProducer::send_chunked(
     if self.closed {
       raise ProducerClosed
     }
+    if entry.done {
+      raise RequestTimeout
+    }
     metadata.chunk_id = Some(index)
     let start = index * size
     let end = if start + size < payload.length() {
@@ -777,7 +737,11 @@ async fn SingleProducer::send_chunked(
     if limit is Some(max_size) && frame.length() > max_size {
       raise InvalidFrame("chunk exceeds the broker max size")
     }
-    last = Some(self.send_encoded(sequence_id, frame).get())
+    let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Blocking(1),
+    )
+    self.send_encoded(sequence_id, frame, [(entry, -1)], chunk_waiter=waiter)
+    last = Some(waiter.get())
   }
   last.unwrap()
 }
@@ -787,48 +751,33 @@ async fn SingleProducer::send_encoded(
   self : SingleProducer,
   sequence_id : UInt64,
   frame : Bytes,
-) -> @aqueue.Queue[SendReceipt] {
+  entries : Array[(PendingSend, Int)],
+  chunk_waiter? : @aqueue.Queue[SendReceipt],
+) -> Unit {
+  let live = entries.filter(pair => !pair.0.done)
+  if live.is_empty() {
+    if chunk_waiter is Some(waiter) {
+      waiter.close(error=RequestTimeout, clear=true)
+    }
+    return
+  }
   if self.memory_limiter is Some(limiter) {
-    // The original message is still charged while this encoded replay frame
-    // is retained. Fail immediately if both copies cannot fit; waiting while
-    // holding the original reservation could deadlock two producers.
     limiter.reserve_now(frame.length())
     self.frame_charges[sequence_id] = frame.length()
   }
-  errdefer {
-    self.pending.remove(sequence_id)
-    self.payloads.remove(sequence_id)
-    self.timeout_generation.remove(sequence_id)
-    self.release_frame_charge(sequence_id)
+  self.pending[sequence_id] = {
+    entries: live,
+    remaining: live.length(),
+    chunk_waiter,
   }
-  let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
-    kind=@aqueue.Kind::Blocking(1),
-  )
-  self.pending[sequence_id] = waiter
+  for (entry, _) in live {
+    entry.frame = Some(sequence_id)
+  }
   self.payloads[sequence_id] = frame
-  if self.send_timeout_ms is Some(timeout) {
-    self.next_timeout_generation += 1UL
-    let generation = self.next_timeout_generation
-    self.timeout_generation[sequence_id] = generation
-    self.group.spawn_bg(
-      async fn() {
-        @async.sleep(timeout)
-        if self.timeout_generation.get(sequence_id) == Some(generation) {
-          self.pending.remove(sequence_id)
-          self.payloads.remove(sequence_id)
-          self.release_frame_charge(sequence_id)
-          self.timeout_generation.remove(sequence_id)
-          waiter.close(error=RequestTimeout, clear=true)
-        }
-      },
-      no_wait=true,
-      allow_failure=true,
-    )
-  }
+  errdefer self.finish_frame(sequence_id, Err(ConnectionClosed))
   if !self.reconnecting.val {
     self.conn.send_bytes(frame)
   }
-  waiter
 }
 
 ///|
@@ -846,12 +795,17 @@ fn SingleProducer::release_frame_charge(
 
 ///|
 /// Send one or more messages as a single (optionally batched) SEND command.
-/// Returns the waiter queue for the whole batch.
+/// Logical messages keep their original deadline while sharing the encoded frame.
 async fn SingleProducer::send_messages(
   self : SingleProducer,
-  messages : Array[ProducerMessage],
+  entries : Array[PendingSend],
   txn? : Transaction,
-) -> @aqueue.Queue[SendReceipt] {
+) -> Unit {
+  let entries = entries.filter(entry => !entry.done)
+  if entries.is_empty() {
+    return
+  }
+  let messages = entries.map(entry => entry.message.unwrap())
   let sequence_id = self.next_sequence_id()
   let metadata = self.build_metadata(messages[0], sequence_id)
   let payload = if messages.length() > 1 {
@@ -898,7 +852,10 @@ async fn SingleProducer::send_messages(
   if self.conn.max_message_size() is Some(max_size) && frame.length() > max_size {
     raise InvalidFrame("message exceeds broker max size; enable chunking")
   }
-  self.send_encoded(sequence_id, frame)
+  let members = entries.mapi((index, entry) => {
+    (entry, if entries.length() > 1 { index } else { -1 })
+  })
+  self.send_encoded(sequence_id, frame, members)
 }
 
 ///|
@@ -908,54 +865,23 @@ pub async fn SingleProducer::send_txn(
   txn : Transaction,
   msg : ProducerMessage,
 ) -> SendReceipt {
-  if self.closed {
-    raise ProducerClosed
-  }
-  let slots = self.pending_slots
-  if slots is Some(slots) {
-    if self.block_if_queue_full {
-      slots.get() catch {
-        _ => raise ProducerClosed
-      }
-    } else if slots.try_get() is None {
-      raise ProducerQueueFull
-    }
-  }
-  let size = msg.retained_bytes()
-  if self.memory_limiter is Some(limiter) {
-    errdefer (if slots is Some(queue) {
-      ignore(queue.try_put(()) catch { _ => false })
-    })
-    limiter.acquire(size, self.block_if_queue_full)
-  }
-  if self.closed {
-    if self.memory_limiter is Some(limiter) {
-      limiter.release(size)
-    }
-    if slots is Some(queue) {
-      ignore(queue.try_put(()) catch { _ => false })
-    }
-    raise ProducerClosed
-  }
-  let result : Result[SendReceipt, Error] = Ok(
+  let entry = self.admit_send(msg)
+  errdefer self.finish_send(entry, Err(ConnectionClosed))
+  let result : Result[Unit, Error] = Ok(
     if self.chunk_size is Some(_) || self.automatic_chunking {
-      self.send_chunked(msg, txn~)
+      let receipt = self.send_chunked(msg, entry, txn~)
+      self.finish_send(entry, Ok(receipt))
     } else {
-      self.send_messages([msg], txn~).get()
+      self.send_messages([entry], txn~)
     },
   ) catch {
     e => Err(e)
   }
-  if self.memory_limiter is Some(limiter) {
-    limiter.release(size)
+  if result is Err(e) {
+    self.finish_send(entry, Err(e))
+    raise e
   }
-  if slots is Some(queue) {
-    ignore(queue.try_put(()) catch { _ => false })
-  }
-  match result {
-    Ok(receipt) => receipt
-    Err(e) => raise e
-  }
+  entry.waiter.get()
 }
 
 ///|
@@ -993,82 +919,37 @@ fn encode_batch_payload(messages : Array[ProducerMessage]) -> Bytes raise {
 ///|
 async fn SingleProducer::enqueue_batch(
   self : SingleProducer,
-  msg : ProducerMessage,
-) -> ReceiptFuture {
-  let waiter : @aqueue.Queue[SendReceipt] = @aqueue.Queue::Queue(
-    kind=@aqueue.Kind::Blocking(1),
-  )
-  let done : Ref[Bool] = { val: false, }
+  entry : PendingSend,
+) -> Unit {
   self.batch_mu.acquire()
-  if self.closed {
+  if self.closed || entry.done {
     self.batch_mu.release()
-    raise ProducerClosed
-  }
-  self.next_batch_token += 1UL
-  let entry : BufferedMessage = {
-    message: msg,
-    waiter,
-    token: self.next_batch_token,
-    done,
+    if self.closed {
+      raise ProducerClosed
+    }
+    return
   }
   self.batch_entries.push(entry)
-  self.batch_bytes += msg.payload.length()
-  guard self.batching is Some(config) else {
-    self.batch_mu.release()
-    raise ProducerClosed
-  }
+  self.batch_bytes += entry.message.unwrap().payload.length()
+  let config = self.batching.unwrap()
   let full = self.batch_entries.length() >= config.max_messages ||
     self.batch_bytes >= config.max_bytes
   if !full && !self.batch_timer_running {
     self.batch_timer_running = true
     self.batch_timer_generation += 1UL
     let generation = self.batch_timer_generation
-    let delay = config.max_delay_ms
-    self.group.spawn_bg(
-      async fn() { self.flush_after(delay, generation) },
-      no_wait=true,
-      allow_failure=true,
+    self.batch_timer = Some(
+      self.group.spawn(
+        async fn() { self.flush_after(config.max_delay_ms, generation) },
+        no_wait=true,
+        allow_failure=true,
+      ),
     )
   }
   self.batch_mu.release()
-  if self.send_timeout_ms is Some(timeout) {
-    self.group.spawn_bg(
-      async fn() { self.expire_buffered(entry, timeout) },
-      no_wait=true,
-      allow_failure=true,
-    )
-  }
   if full {
     self.flush()
   }
-  { reply: waiter, }
-}
-
-///|
-async fn SingleProducer::expire_buffered(
-  self : SingleProducer,
-  entry : BufferedMessage,
-  timeout_ms : Int,
-) -> Unit {
-  @async.sleep(timeout_ms)
-  self.batch_mu.acquire()
-  defer self.batch_mu.release()
-  if entry.done.val {
-    return
-  }
-  for index in 0..<self.batch_entries.length() {
-    if self.batch_entries[index].token == entry.token {
-      ignore(self.batch_entries.remove(index))
-      self.batch_bytes -= entry.message.payload.length()
-      if self.batch_entries.is_empty() {
-        self.batch_timer_running = false
-        self.batch_timer_generation += 1UL
-      }
-      break
-    }
-  }
-  entry.done.val = true
-  entry.waiter.close(error=RequestTimeout, clear=true)
 }
 
 ///|
@@ -1078,6 +959,11 @@ async fn SingleProducer::flush_after(
   generation : UInt64,
 ) -> Unit {
   @async.sleep(delay_ms)
+  if generation != self.batch_timer_generation {
+    return
+  }
+  // This is the timer task itself; avoid cancelling it from flush.
+  self.batch_timer = None
   self.flush_with_generation(expected_generation=generation) catch {
     _ => ()
   }
@@ -1100,54 +986,25 @@ async fn SingleProducer::flush_with_generation(
     generation != self.batch_timer_generation {
     return
   }
-  self.batch_timer_running = false
-  self.batch_timer_generation += 1UL
+  self.stop_batch_timer()
   if self.batch_entries.is_empty() {
     return
   }
   let entries = self.batch_entries
-  let messages = entries.map(fn(entry) { entry.message })
   self.batch_entries = []
   self.batch_bytes = 0
   errdefer (for entry in entries {
-    entry.done.val = true
-    entry.waiter.close(error=ConnectionClosed, clear=true)
+    self.finish_send(entry, Err(ConnectionClosed))
   })
-  let batch_waiter = self.send_messages(messages)
-  // forward the batch receipt to every message waiter
-  let n = messages.length()
-  self.group.spawn_bg(
-    async fn() {
-      let receipt : SendReceipt = batch_waiter.get() catch {
-        e => {
-          for entry in entries {
-            if !entry.done.val {
-              entry.done.val = true
-              entry.waiter.close(error=e, clear=true)
-            }
-          }
-          return
-        }
-      }
-      for i, entry in entries {
-        if entry.done.val {
-          continue
-        }
-        entry.done.val = true
-        let message_id : MessageId = {
-          ..receipt.message_id,
-          batch_index: if n > 1 {
-            i
-          } else {
-            receipt.message_id.batch_index
-          },
-        }
-        ignore(entry.waiter.try_put({ ..receipt, message_id, }))
-      }
-    },
-    no_wait=true,
-    allow_failure=true,
-  )
+  let result : Result[Unit, Error] = Ok(self.send_messages(entries)) catch {
+    e => Err(e)
+  }
+  if result is Err(e) {
+    for entry in entries {
+      self.finish_send(entry, Err(e))
+    }
+    raise e
+  }
 }
 
 ///|

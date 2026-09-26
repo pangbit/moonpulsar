@@ -50,3 +50,4 @@ measurements and public software versions. Keep raw logs, connection metadata,
 credentials and machine identifiers outside the report directory.
 
 Results: [2026-09-26 comparison](../performance-results/2026-09-26-comparison/README.md).
+Updated results: [RSS-fix rerun](../performance-results/2026-09-26-rss-broker-rerun/README.md).

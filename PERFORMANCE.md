@@ -6,8 +6,14 @@ and its compression/routing benchmarks. These measurements are not a throughput
 guarantee or a performance regression threshold.
 
 Real-Broker results: [three-client comparison (2026-09-26)](performance-results/2026-09-26-comparison/README.md).
+The [RSS-fix rerun](performance-results/2026-09-26-rss-broker-rerun/README.md)
+records the updated three-client measurements and Broker resource limitations.
 The [reference adapters](interop/PERFORMANCE_COMPARISON.md) reproduce the matched
 workload using the Go and Rust clients. Reports contain sanitized measurements only.
+
+[Producer RSS fix validation](performance-results/2026-09-26-rss-fix/README.md)
+uses an isolated mock to compare timeout-state retention before and after the fix;
+it is not a replacement for real-Broker throughput measurements.
 
 ## Local microbenchmarks
 
