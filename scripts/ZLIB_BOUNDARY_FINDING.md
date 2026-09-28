@@ -1,6 +1,10 @@
 # P1: flate 0.8.3 sync-flush boundary gate
 
-Status: blocked. `native_zlib` has deliberately been retained.
+Historical finding: the direct status-query approach is blocked. The
+counterexample below remains valid. The replacement now uses an independent
+structural scanner and the released inflate API; see
+[the boundary proof](ZLIB_BOUNDARY_PROOF.md). `native_zlib` is removed from the
+product and retained only as an excluded maintainer test reference.
 
 Reproduce from the repository root:
 

@@ -1,4 +1,0 @@
-options(
-  "native-stub": [ "native_zlib.c" ],
-  targets: { "native_zlib.mbt": [ "native" ] },
-)

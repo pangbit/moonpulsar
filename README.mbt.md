@@ -88,7 +88,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 - two producers sharing a client-wide pending payload-byte budget on 4.2.4 and 3.3.9
 - `examples/memory_budget` passed a 1 MiB shared budget across sequential send/receive, chunked delivery and Reader replay in isolated 4.2.4 and 3.3.9 containers with a dedicated namespace. `scripts/test-chunk-live.sh` also verifies consumer and Reader incomplete-chunk expiry ACK, shared-budget failure and release, retained receive-queue overflow, and recovery by replay on both versions.
 - `scripts/test-time-seek-live.sh` checks Consumer and Reader timestamp seeks forward and backward in a dedicated namespace on isolated 4.2.4 and 3.3.9 Brokers.
-- `scripts/test-chunk-interop-live.sh` exchanges forced 32 KiB compressed chunks with the pinned official Go client (LZ4, Zlib, Zstd, raw Snappy) and official Java client (LZ4, Zlib, Zstd). Both directions passed with a 256 KiB random payload on isolated 4.2.4 and 3.3.9 Brokers. Java's Zlib sync-flushed stream is decoded through the native system zlib fallback.
+- `scripts/test-chunk-interop-live.sh` exchanges forced 32 KiB compressed chunks with the pinned official Go client (LZ4, Zlib, Zstd, raw Snappy) and official Java client (LZ4, Zlib, Zstd). Both directions passed with a 256 KiB random payload on isolated 4.2.4 and 3.3.9 Brokers. Java's Zlib sync-flushed stream is decoded in pure MoonBit after validating the actual DEFLATE block boundary.
 - an auto-scaled receive queue sending and acknowledging messages on 4.2.4 and 3.3.9; exact FLOW growth is covered by the mock broker
 - producer interceptor payload transformation and receipt callback on 4.2.4 and 3.3.9
 - consumer interceptor delivery and ACK callback on 4.2.4 and 3.3.9
@@ -99,7 +99,7 @@ The examples and integration scenarios have been exercised against Pulsar standa
 ## Requirements
 
 - MoonBit toolchain with the **native** backend (TCP sockets)
-- A C compiler and system SDK, including zlib headers (`zlib1g-dev` on Debian/Ubuntu; supplied by the macOS SDK). The Java sync-flush compatibility adapter still requires these headers.
+- A C compiler and system SDK/libc. OpenSSL and zlib development headers are not required. Zlib, including Java sync-flush compatibility, uses pure MoonBit and needs no system zlib runtime.
 - OpenSSL development headers are not required. Client-certificate / TLS-policy options and ECIES message encryption require OpenSSL **3** shared libraries at runtime. On macOS these adapters look in the standard Homebrew `openssl@3` locations; on Linux they use the system library loader. Missing libraries or symbols produce errors when those features are used. RSA message encryption does not load this ECIES dependency. Ordinary TLS keeps the platform requirements of `moonbitlang/async/tls`.
 - A Pulsar broker for the examples; the test suite uses an in-process mock broker and needs no external services
 

@@ -66,18 +66,24 @@ pub fn decompress(
         Some(size) => lz4_decompress_block_to(payload, size)
         None => raise InvalidFrame("lz4 payload without uncompressed_size")
       }
-    Zlib =>
-      @zlib.zlib_decompress(payload) catch {
-        _ =>
-          match uncompressed_size {
-            Some(size) if size > 0 && size <= MAX_CHUNKED_MESSAGE_BYTES =>
-              match @native_zlib.decompress_exact(payload, size) {
-                Some(decoded) => decoded
-                None => raise InvalidFrame("zlib decompress failed")
-              }
-            _ => raise InvalidFrame("zlib decompress failed")
-          }
+    Zlib => {
+      // A sync flush always ends in LEN=0/NLEN=65535. This is only a fast
+      // dispatch hint: the scanner proves the boundary before accepting it.
+      if uncompressed_size is Some(size) &&
+        size > 0 &&
+        size <= MAX_CHUNKED_MESSAGE_BYTES &&
+        payload.length() >= 4 &&
+        payload[payload.length() - 4:] == b"\x00\x00\xff\xff" {
+        try {
+          return zlib_sync_flush(payload, size)
+        } catch {
+          _ => () // It may instead be a complete stream with this checksum.
+        }
       }
+      @zlib.zlib_decompress(payload) catch {
+        _ => raise InvalidFrame("zlib decompress failed")
+      }
+    }
     Zstd =>
       @zstd.decompress(payload) catch {
         _ => raise InvalidFrame("zstd decompress failed")

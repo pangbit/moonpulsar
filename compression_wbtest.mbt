@@ -1,6 +1,13 @@
 // Compression codec tests: roundtrips and format sanity.
 
 ///|
+fn zlib_decode_for_test(bytes : Bytes, size : Int) -> Bytes? {
+  Some(decompress(Zlib, bytes, uncompressed_size=size)) catch {
+    _ => None
+  }
+}
+
+///|
 fn sample_data() -> Bytes {
   let buf = @buffer.Buffer()
   for i in 0..<2000 {
@@ -88,38 +95,55 @@ test "zlib rejects truncated stored header with forged sync flush suffix" {
 }
 
 ///|
-test "native zlib requires a decoded empty stored block boundary" {
+test "zlib requires a decoded empty stored block boundary" {
   let valid = b"\x78\x9c\x00\x05\x00\xfa\xffhello\x00\x00\x00\xff\xff"
   let fixed = b"\x78\x9c\xca\x48\xcd\xc9\xc9\x07\x00\x00\x00\xff\xff"
   let multiple = b"\x78\x9c\x00\x02\x00\xfd\xffhe\x00\x00\x00\xff\xff\x00\x03\x00\xfc\xffllo\x00\x00\x00\xff\xff"
   for bytes in [valid, fixed, multiple] {
-    assert_eq(@native_zlib.decompress_exact(bytes, 5), Some(b"hello"))
+    assert_eq(zlib_decode_for_test(bytes, 5), Some(b"hello"))
     for size in [0, -1, 4, 6] {
-      assert_eq(@native_zlib.decompress_exact(bytes, size), None)
+      assert_eq(zlib_decode_for_test(bytes, size), None)
     }
   }
   for bytes in [valid, fixed] {
     for end in 0..<bytes.length() {
-      assert_eq(@native_zlib.decompress_exact(bytes[:end].to_owned(), 5), None)
+      assert_eq(zlib_decode_for_test(bytes[:end].to_owned(), 5), None)
     }
   }
   // A complete nonempty stored block with marker-looking payload is not a flush.
   let forged = b"\x78\x9c\x00\x05\x00\xfa\xffx\x00\x00\xff\xff"
-  assert_eq(@native_zlib.decompress_exact(forged, 5), None)
+  assert_eq(zlib_decode_for_test(forged, 5), None)
   // A final stored block requires its Adler trailer even when it is empty.
   let final_without_checksum = b"\x78\x9c\x00\x05\x00\xfa\xffhello\x01\x00\x00\xff\xff"
-  assert_eq(@native_zlib.decompress_exact(final_without_checksum, 5), None)
+  assert_eq(zlib_decode_for_test(final_without_checksum, 5), None)
   let garbage = @buffer.Buffer()
   garbage.write_bytes(valid)
   garbage.write_byte(b'\x00')
-  assert_eq(@native_zlib.decompress_exact(garbage.to_bytes(), 5), None)
+  assert_eq(zlib_decode_for_test(garbage.to_bytes(), 5), None)
   let complete = compress(Zlib, b"hello")
-  assert_eq(@native_zlib.decompress_exact(complete, 5), Some(b"hello"))
+  assert_eq(zlib_decode_for_test(complete, 5), Some(b"hello"))
   // Rebuild with a corrupt checksum without relying on mutable Bytes.
   let bad_checksum = @buffer.Buffer()
   bad_checksum.write_bytes(complete[:complete.length() - 1])
   bad_checksum.write_byte(complete[complete.length() - 1] ^ b'\x01')
-  assert_eq(@native_zlib.decompress_exact(bad_checksum.to_bytes(), 5), None)
+  assert_eq(zlib_decode_for_test(bad_checksum.to_bytes(), 5), None)
+}
+
+///|
+test "pure zlib fallback preserves wrapper checksum and empty policies" {
+  assert_eq(decompress(Zlib, compress(Zlib, b""), uncompressed_size=0), b"")
+  for
+    bytes in [
+      b"\x78\x9c\x00\x00\x00\xff\xff", // Empty sync flush still needs a positive declared size.
+       b"\x78\x9d\x00\x05\x00\xfa\xffhello\x00\x00\x00\xff\xff", // Bad FCHECK.
+       b"\x78\xbb\x00\x00\x00\x01\x00\x05\x00\xfa\xffhello\x00\x00\x00\xff\xff", // Preset dictionary.
+       b"\x78\x9c\x01\x05\x00\xfa\xffhello\x00\x00\xff\xff", // Final block, forged checksum suffix.
+       b"\x78\x9c\x06\x00\x00\xff\xff", // Reserved BTYPE.
+    ] {
+    for size in [0, 5, MAX_CHUNKED_MESSAGE_BYTES + 1] {
+      assert_eq(zlib_decode_for_test(bytes, size), None)
+    }
+  }
 }
 
 ///|

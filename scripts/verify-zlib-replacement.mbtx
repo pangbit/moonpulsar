@@ -1,0 +1,149 @@
+///|
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn checked(name : String, command : @shell.Cmd, report : String) -> Unit {
+  let out = command.output(timeout_ms=600000, max_output_bytes=16000000)
+  @fs.write_file("\{report}/\{name}.log", out.stdout() + out.stderr())
+  out.check()
+  if name == "differential" {
+    assert_true(
+      out.stdout().contains("PASS 1000 sync-flush and 1000 complete streams"),
+    )
+    assert_true(out.stdout().contains("Total tests: 1, passed: 1, failed: 0."))
+  }
+  println("PASS \{name}")
+}
+
+///|
+async fn main {
+  let report = @env.get_env_var("MOONPULSAR_ZLIB_REPORT").unwrap_or(
+    @fs.tmpdir(prefix="moonpulsar-zlib-replacement-"),
+  )
+  @fs.mkdir(report, recursive=true)
+  println("Report: \{report}")
+  let home = @env.get_env_var("MOON_HOME").unwrap_or(
+    @env.get_env_var("HOME").unwrap() + "/.moon",
+  )
+  let compiler = @env.get_env_var("CC").unwrap_or("cc")
+  checked(
+    "compile-generator",
+    @shell.Cmd(compiler, [
+      "-std=c11",
+      "-O2",
+      "-I\{home}/include",
+      "scripts/native-deps/zlib_boundary_check.c",
+      "-lz",
+      "-o",
+      "\{report}/generator",
+    ]),
+    report,
+  )
+  checked(
+    "generate",
+    @shell.Cmd("\{report}/generator", ["\{report}/corpus.bin"]),
+    report,
+  )
+  checked("package", @shell.Cmd("moon", ["package", "--list"]), report)
+  checked(
+    "unzip",
+    @shell.Cmd("unzip", [
+      "-q",
+      "_build/publish/pangbit-moonpulsar-0.1.0.zip",
+      "-d",
+      "\{report}/library",
+    ]),
+    report,
+  )
+  let library = "\{report}/library"
+  @fs.mkdir("\{library}/native_reference", recursive=true)
+  for file in ["native_zlib.c", "native_zlib.mbt"] {
+    @fs.write_file(
+      "\{library}/native_reference/\{file}",
+      @fs.read_file("scripts/native-deps/reference-zlib/\{file}"),
+    )
+  }
+  @fs.write_file(
+    "\{library}/native_reference/moon.pkg",
+    "options(\"native-stub\": [\"native_zlib.c\"])\n",
+  )
+  let pkg = @fs.read_file("\{library}/moon.pkg").text()
+  @fs.write_file(
+    "\{library}/moon.pkg",
+    pkg.replace(
+      old="\"moonbitlang/core/env\",",
+      new="\"moonbitlang/core/env\",\n\"pangbit/moonpulsar/native_reference\" @reference,",
+    ),
+  )
+  @fs.write_file(
+    "\{library}/corpus_wbtest.mbt",
+    @fs.read_file("scripts/native-deps/zlib_corpus_test.mbt"),
+  )
+  checked(
+    "differential",
+    @shell.Cmd(
+      "moon",
+      [
+        "test", "--release", "--target", "native", "corpus_wbtest.mbt", "--filter",
+        "*differential*",
+      ],
+      cwd=library,
+      env={ "MOONPULSAR_ZLIB_CORPUS": "\{report}/corpus.bin" },
+    ),
+    report,
+  )
+  let corpus = @fs.read_file("\{report}/corpus.bin").binary()
+  let platform = @shell.Cmd("uname", ["-s"]).output()
+  platform.check()
+  let time_flag = if platform.stdout().contains("Darwin") { "-l" } else { "-v" }
+  let executable = "\{library}/_build/native/release/test/moonpulsar.whitebox_test.exe"
+  let mut pos = 0
+  for record in 0..<12 {
+    let length = corpus[pos].to_int() |
+      (corpus[pos + 1].to_int() << 8) |
+      (corpus[pos + 2].to_int() << 16) |
+      (corpus[pos + 3].to_int() << 24)
+    let size = corpus[pos + 4].to_int() |
+      (corpus[pos + 5].to_int() << 8) |
+      (corpus[pos + 6].to_int() << 16) |
+      (corpus[pos + 7].to_int() << 24)
+    pos += 8
+    if record % 2 == 0 {
+      let path = "\{report}/case-\{record / 2}.bin"
+      @fs.write_file(path, corpus[pos:pos + length])
+      for mode in ["old", "new"] {
+        for round in 0..<5 {
+          let label = "memory-\{record / 2}-\{mode}-\{round}"
+          checked(
+            label,
+            @shell.Cmd(
+              "/usr/bin/time",
+              [time_flag, executable, "corpus_wbtest.mbt:1-2"],
+              cwd=library,
+              env={
+                "MOONPULSAR_ZLIB_CASE": path,
+                "MOONPULSAR_ZLIB_SIZE": size.to_string(),
+                "MOONPULSAR_ZLIB_MODE": mode,
+              },
+            ),
+            report,
+          )
+          assert_true(
+            @fs.read_file("\{report}/\{label}.log")
+            .text()
+            .contains("PASS bounded allocation workload"),
+          )
+        }
+      }
+    }
+    pos += length + size
+  }
+  println(
+    "PASS pure MoonBit differential gate; native reference exists only in this test copy",
+  )
+}

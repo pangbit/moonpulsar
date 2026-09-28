@@ -83,7 +83,7 @@
 - 4.2.4 与 3.3.9 上两个生产者共享客户端待发送负载字节预算
 - 独立 4.2.4 和 3.3.9 容器及专用命名空间中，`examples/memory_budget` 在 1 MiB 共享预算下通过顺序收发、分块接收和 Reader 回放。`scripts/test-chunk-live.sh` 还在两个版本上验证了消费者与 Reader 未完成分块过期 ACK、共享预算耗尽与释放、普通接收队列超额，以及新客户端回放恢复。
 - `scripts/test-time-seek-live.sh` 在独立命名空间与隔离的 4.2.4、3.3.9 Broker 上验证消费者和 Reader 按发布时间向前、向后定位及回放。
-- `scripts/test-chunk-interop-live.sh` 在隔离的 4.2.4 和 3.3.9 Broker 上，以 256 KiB 随机负载与固定版本官方 Go 客户端双向交换 LZ4、Zlib、Zstd、原始 Snappy 压缩分块，也与官方 Java 客户端双向交换 LZ4、Zlib、Zstd 压缩分块。Java 的 Zlib 同步刷新流由 native 系统 zlib 适配层解码。
+- `scripts/test-chunk-interop-live.sh` 在隔离的 4.2.4 和 3.3.9 Broker 上，以 256 KiB 随机负载与固定版本官方 Go 客户端双向交换 LZ4、Zlib、Zstd、原始 Snappy 压缩分块，也与官方 Java 客户端双向交换 LZ4、Zlib、Zstd 压缩分块。Java 的 Zlib 同步刷新流在验证真实 DEFLATE 块边界后，由纯 MoonBit 路径解码。
 - 4.2.4 与 3.3.9 上自动扩容接收队列的收发与确认；精确 FLOW 扩容由 mock broker 验证
 - 4.2.4 与 3.3.9 上生产者拦截器修改负载和观察回执
 - 4.2.4 与 3.3.9 上消费者拦截器观察交付与 ACK
@@ -94,7 +94,7 @@
 ## 环境要求
 
 - 支持 **native** 后端的 MoonBit 工具链；网络连接依赖 TCP socket
-- C 编译器与系统 SDK，包括 zlib 头文件（Debian/Ubuntu 为 `zlib1g-dev`，macOS SDK 已提供）。Java 同步刷新兼容适配层仍需要这些头文件。
+- C 编译器与系统 SDK/libc。不需要 OpenSSL、zlib 开发头文件；Zlib（包括 Java 同步刷新兼容路径）使用纯 MoonBit，不需要系统 zlib 动态库。
 - 构建不需要 OpenSSL 开发头文件。客户端证书、TLS 版本/密码套件配置以及 ECIES 消息加密在运行时需要 OpenSSL **3** 动态库；macOS 使用 Homebrew `openssl@3` 标准路径，Linux 使用系统动态库加载器。缺库或缺符号在使用相关功能时明确报错。RSA 消息加密不加载这项 ECIES 依赖。普通 TLS 仍遵循 `moonbitlang/async/tls` 的平台运行库要求。
 - 运行示例需要 Pulsar broker；自动化测试使用进程内 mock broker，无需 Docker
 
