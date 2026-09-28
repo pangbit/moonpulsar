@@ -1,11 +1,5 @@
-#define OPENSSL_SUPPRESS_DEPRECATED
 #include <moonbit.h>
-#include <openssl/ec.h>
-#include <openssl/ecdh.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-#include <openssl/pem.h>
-#include <openssl/sha.h>
+#include "../native_support/openssl_abi.h"
 #include <dlfcn.h>
 #include <limits.h>
 #include <stdint.h>
@@ -14,38 +8,42 @@
 
 /* Pulsar Java 4.2.4 uses Bouncy Castle 1.84 ECIES: an uncompressed ephemeral
  * point, ECDH, KDF2-SHA1, a 128-bit HMAC-SHA1 key, XOR, and a 20-byte tag. */
-#define CRYPTO_FUNCTIONS(X) \
-  X(BIO_new_mem_buf) X(BIO_free) X(PEM_read_bio_PUBKEY) \
-  X(PEM_read_bio_PrivateKey) X(EVP_PKEY_free) X(EVP_PKEY_get1_EC_KEY) \
-  X(EC_KEY_free) X(EC_KEY_get0_group) X(EC_KEY_get0_public_key) \
-  X(EC_KEY_get0_private_key) \
-  X(EC_KEY_new) X(EC_KEY_set_group) X(EC_KEY_generate_key) \
-  X(EC_GROUP_get_degree) X(EC_POINT_point2oct) X(EC_POINT_new) \
-  X(EC_POINT_oct2point) X(EC_POINT_free) X(ECDH_compute_key) \
-  X(SHA1) X(HMAC) X(EVP_sha1) X(OPENSSL_cleanse)
-
-#define DECLARE_CRYPTO(name) static __typeof__(&name) dyn_##name;
-CRYPTO_FUNCTIONS(DECLARE_CRYPTO)
+#define DECLARE_CRYPTO(ret, name, args) static mp_##name##_fn dyn_##name;
+MP_CRYPTO_FUNCTIONS(DECLARE_CRYPTO)
 #undef DECLARE_CRYPTO
 
-static int crypto_loaded(void) {
+static int crypto_status(void) {
   static int status = 0;
-  if (status) return status == 1;
+  if (status) return status;
 #ifdef __APPLE__
   void *lib = dlopen("/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib", RTLD_NOW);
   if (!lib) lib = dlopen("/usr/local/opt/openssl@3/lib/libcrypto.3.dylib", RTLD_NOW);
 #else
   void *lib = dlopen("libcrypto.so.3", RTLD_NOW);
 #endif
-  if (!lib) { status = -1; return 0; }
-#define LOAD_CRYPTO(name) do { \
-  dyn_##name = (__typeof__(dyn_##name))dlsym(lib, #name); \
-  if (!dyn_##name) { status = -1; return 0; } \
+  if (!lib) return status = -1;
+#define LOAD_CRYPTO(ret, name, args) do { \
+  dyn_##name = (mp_##name##_fn)dlsym(lib, #name); \
+  if (!dyn_##name) { status = -2; goto failure; } \
 } while (0);
-  CRYPTO_FUNCTIONS(LOAD_CRYPTO)
+  MP_CRYPTO_FUNCTIONS(LOAD_CRYPTO)
 #undef LOAD_CRYPTO
-  status = 1;
-  return 1;
+  if ((dyn_OpenSSL_version_num() >> 28) != 3) { status = -3; goto failure; }
+  return status = 1;
+failure:
+#define CLEAR_CRYPTO(ret, name, args) dyn_##name = NULL;
+  MP_CRYPTO_FUNCTIONS(CLEAR_CRYPTO)
+#undef CLEAR_CRYPTO
+  dlclose(lib);
+  return status;
+}
+
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t moonpulsar_ecies_load_error(void) {
+  const char *message = mp_openssl_load_error(crypto_status());
+  moonbit_bytes_t result = moonbit_make_bytes((int)strlen(message), 0);
+  memcpy(result, message, strlen(message));
+  return result;
 }
 
 #define BIO_new_mem_buf dyn_BIO_new_mem_buf
@@ -73,7 +71,7 @@ static int crypto_loaded(void) {
 #define OPENSSL_cleanse dyn_OPENSSL_cleanse
 
 static EC_KEY *read_ec_key(const unsigned char *pem, int len, int private_key) {
-  if (!crypto_loaded() || len <= 0) return NULL;
+  if (crypto_status() != 1 || len <= 0) return NULL;
   BIO *bio = BIO_new_mem_buf(pem, len);
   if (!bio) return NULL;
   EVP_PKEY *pkey = private_key
@@ -122,10 +120,10 @@ static int derive_stream(const unsigned char *point, int point_len,
     material[base + 1] = 0;
     material[base + 2] = 0;
     material[base + 3] = (unsigned char)counter;
-    unsigned char digest[SHA_DIGEST_LENGTH];
+    unsigned char digest[MP_SHA_DIGEST_LENGTH];
     if (!SHA1(material, (size_t)base + 4, digest)) return 0;
-    int offset = (counter - 1) * SHA_DIGEST_LENGTH;
-    int copy = offset + SHA_DIGEST_LENGTH <= 48 ? SHA_DIGEST_LENGTH : 48 - offset;
+    int offset = (counter - 1) * MP_SHA_DIGEST_LENGTH;
+    int copy = offset + MP_SHA_DIGEST_LENGTH <= 48 ? MP_SHA_DIGEST_LENGTH : 48 - offset;
     memcpy(stream + offset, digest, (size_t)copy);
     OPENSSL_cleanse(digest, sizeof(digest));
   }
@@ -161,11 +159,11 @@ moonbit_bytes_t moonpulsar_ecies_wrap(const unsigned char *pem, int pem_len,
     if (!ephemeral || EC_KEY_set_group(ephemeral, group) != 1 ||
         EC_KEY_generate_key(ephemeral) != 1) break;
     size_t point_len = EC_POINT_point2oct(group, EC_KEY_get0_public_key(ephemeral),
-                                         POINT_CONVERSION_UNCOMPRESSED, NULL, 0, NULL);
+                                         MP_POINT_CONVERSION_UNCOMPRESSED, NULL, 0, NULL);
     if (!point_len || point_len > 1024) break;
     result = moonbit_make_bytes((int)point_len + 32 + 20, 0);
     if (EC_POINT_point2oct(group, EC_KEY_get0_public_key(ephemeral),
-                           POINT_CONVERSION_UNCOMPRESSED, result, point_len, NULL) != point_len) break;
+                           MP_POINT_CONVERSION_UNCOMPRESSED, result, point_len, NULL) != point_len) break;
     int secret_len = ECDH_compute_key(secret, (size_t)field_len,
                                       EC_KEY_get0_public_key(recipient), ephemeral, NULL);
     if (secret_len != field_len || !derive_stream(result, (int)point_len, secret, secret_len, stream)) break;

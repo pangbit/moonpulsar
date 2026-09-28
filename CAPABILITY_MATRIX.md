@@ -10,6 +10,17 @@ and [pulsar-client-go](https://github.com/apache/pulsar-client-go). This is a
 functional comparison, not an API-by-API claim of parity. Status reflects the
 repository on 2026-09-25.
 
+Native dependency update (2026-09-28, local validation): the enhanced TLS and
+ECIES adapters no longer require OpenSSL development headers; they still load
+OpenSSL 3 at feature use. RSA PEM parsing selects its algorithm before probing
+ECIES. The ABI table is checked against official headers with a failing negative
+control, and loader failures have isolated sanitizer checks. The root public
+API is unchanged; the `native_ecies` helper package adds `availability_error`.
+These changes require fresh Linux/Broker validation; historical live results
+below are not evidence for this new adapter build. System zlib headers/runtime
+remain required by the Java sync-flush fallback: the flate replacement boundary
+gate is unresolved. See the source repository's `scripts/ZLIB_BOUNDARY_FINDING.md`.
+
 | Capability | Status | Verification |
 | --- | --- | --- |
 | TCP handshake, lookup, pooling, keepalive, reconnection | Implemented | Mock broker, connection refusal, handshake timeout, malformed handshake and response, explicit broker CONNECT rejection, challenge limit, pending-request failure and release; real-broker restart and token-rotation recovery scenarios |

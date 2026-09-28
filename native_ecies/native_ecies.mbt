@@ -1,6 +1,20 @@
 // Bouncy Castle ECIES key wrapping for Pulsar message encryption.
 
 ///|
+extern "C" fn load_error() -> Bytes = "moonpulsar_ecies_load_error"
+
+///|
+/// Load the optional OpenSSL 3 runtime and report a dependency failure.
+pub fn availability_error() -> String? {
+  let message = load_error()
+  if message.is_empty() {
+    None
+  } else {
+    Some(@utf8.decode_lossy(message))
+  }
+}
+
+///|
 #borrow(pem)
 extern "C" fn public_valid(pem : Bytes, length : Int) -> Bool = "moonpulsar_ecies_public_valid"
 

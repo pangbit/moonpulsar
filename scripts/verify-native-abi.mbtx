@@ -1,0 +1,150 @@
+///|
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn checked(label : String, cmd : @shell.Cmd, report : String) -> Unit {
+  let output = cmd.output(timeout_ms=60000)
+  @fs.write_file("\{report}/\{label}.log", output.stdout() + output.stderr())
+  output.check()
+  println("PASS \{label}")
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  let mut report = ""
+  let mut include_dir = ""
+  let mut i = 1
+  while i < args.length() {
+    match args[i] {
+      "--" => i += 1
+      "--report-dir" if i + 1 < args.length() => {
+        report = args[i + 1]
+        i += 2
+      }
+      "--openssl-include" if i + 1 < args.length() => {
+        include_dir = args[i + 1]
+        i += 2
+      }
+      _ => fail("unknown or incomplete argument: \{args[i]}")
+    }
+  }
+  if report.is_empty() {
+    report = @fs.tmpdir(prefix="moonpulsar-abi-")
+  } else {
+    @fs.mkdir(report, recursive=true)
+  }
+  let platform = @shell.Cmd("uname", ["-s"]).output()
+  platform.check()
+  let mac = platform.stdout().contains("Darwin")
+  if include_dir.is_empty() {
+    include_dir = if mac {
+      if @fs.exists("/opt/homebrew/opt/openssl@3/include/openssl/ssl.h") {
+        "/opt/homebrew/opt/openssl@3/include"
+      } else {
+        "/usr/local/opt/openssl@3/include"
+      }
+    } else {
+      "/usr/include"
+    }
+  }
+  let home = @env.get_env_var("MOON_HOME").unwrap_or(
+    @env.get_env_var("HOME").unwrap() + "/.moon",
+  )
+  let compiler = @env.get_env_var("CC").unwrap_or("cc")
+  checked("compiler", @shell.Cmd(compiler, ["--version"]), report)
+  checked(
+    "abi",
+    @shell.Cmd(compiler, [
+      "-std=c11",
+      "-Werror",
+      "-fsyntax-only",
+      "-I\{include_dir}",
+      "scripts/native-deps/openssl_abi_check.c",
+    ]),
+    report,
+  )
+  // Prove the assertion consumes the production constant definition.
+  let header = @fs.read_file("native_support/openssl_abi.h").text()
+  assert_true(header.contains("X(SSL_VERIFY_PEER, 1)"))
+  let bad_header = header.replace(
+    old="X(SSL_VERIFY_PEER, 1)",
+    new="X(SSL_VERIFY_PEER, 99)",
+  )
+  @fs.write_file("\{report}/bad_abi.h", bad_header)
+  let checker = @fs.read_file("scripts/native-deps/openssl_abi_check.c").text()
+  @fs.write_file(
+    "\{report}/bad_check.c",
+    checker.replace(old="../../native_support/openssl_abi.h", new="bad_abi.h"),
+  )
+  let negative = @shell.Cmd(compiler, [
+    "-std=c11",
+    "-Werror",
+    "-fsyntax-only",
+    "-I\{include_dir}",
+    "\{report}/bad_check.c",
+  ]).output(timeout_ms=60000)
+  @fs.write_file("\{report}/abi-negative.log", negative.stderr())
+  assert_true(negative.exit_code() != 0)
+  assert_true(negative.stderr().contains("SSL_VERIFY_PEER value mismatch"))
+  println("PASS abi-negative-control")
+  // Poison system-header names: the product must not include them even when
+  // they are installed on this maintainer's machine.
+  @fs.mkdir("\{report}/poison/openssl", recursive=true)
+  for name in ["ssl", "err", "ec", "ecdh", "evp", "hmac", "pem", "sha"] {
+    @fs.write_file(
+      "\{report}/poison/openssl/\{name}.h",
+      "#error forbidden OpenSSL development header\n",
+    )
+  }
+  for kind in ["tls", "ecies"] {
+    checked(
+      "header-free-\{kind}",
+      @shell.Cmd(compiler, [
+        "-std=c11",
+        "-Werror",
+        "-fsyntax-only",
+        "-I\{report}/poison",
+        "-I\{home}/include",
+        "native_\{kind}/native_\{kind}.c",
+      ]),
+      report,
+    )
+    let flags = [
+      "-std=c11",
+      "-g",
+      "-fsanitize=address",
+      "-ffunction-sections",
+      "-fdata-sections",
+      "-I\{home}/include",
+      "scripts/native-deps/openssl_loader_check.c",
+      "-o",
+      "\{report}/\{kind}-loader",
+    ]
+    if kind == "tls" {
+      flags.push("-DMP_TEST_TLS")
+    }
+    flags.push(if mac { "-Wl,-dead_strip" } else { "-Wl,--gc-sections" })
+    if !mac {
+      flags.push("-ldl")
+    }
+    checked("build-loader-\{kind}", @shell.Cmd(compiler, flags), report)
+    for scenario in ["1", "2", "3"] {
+      checked(
+        "loader-\{kind}-\{scenario}",
+        @shell.Cmd("\{report}/\{kind}-loader", [scenario], env={
+          "ASAN_OPTIONS": "detect_leaks=0",
+        }),
+        report,
+      )
+    }
+  }
+  println(
+    "PASS OpenSSL ABI, header isolation and injected loader failures; report: \{report}",
+  )
+}

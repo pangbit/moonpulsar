@@ -1,0 +1,53 @@
+///|
+import {
+  "moonbit-community/flate@0.8.3",
+}
+
+///|
+fn observe(input : Bytes) -> (String, Int, Int, Bool) raise {
+  let decoder = @flate.Inflater()
+  let output = FixedArray::make(6, b'\x00')
+  let status = decoder.step_into(input[:], output)
+  let label = match status {
+    Done => "Done"
+    NeedMoreInput => "NeedMoreInput"
+    NeedMoreOutput => "NeedMoreOutput"
+  }
+  assert_eq(output[:5].to_owned(), [b'h', b'e', b'l', b'l', b'o'])
+  (
+    label,
+    decoder.last_consumed(),
+    decoder.last_produced(),
+    decoder.is_finished(),
+  )
+}
+
+///|
+fn main raise {
+  // Non-final stored block "hello", followed by a complete empty stored block.
+  let valid = b"\x00\x05\x00\xfa\xffhello\x00\x00\x00\xff\xff"
+  // Same data, but the following stored-block header is truncated by one byte.
+  let truncated = b"\x00\x05\x00\xfa\xffhello\x00\x00\xff\xff"
+  let (valid_status, valid_consumed, valid_produced, valid_done) = observe(
+    valid,
+  )
+  let (bad_status, bad_consumed, bad_produced, bad_done) = observe(truncated)
+  assert_eq(valid_status, "NeedMoreInput")
+  assert_eq(bad_status, valid_status)
+  assert_eq(valid_consumed, valid.length())
+  assert_eq(bad_consumed, truncated.length())
+  assert_eq(valid_produced, 5)
+  assert_eq(bad_produced, 5)
+  assert_eq(valid_done, false)
+  assert_eq(bad_done, false)
+  assert_eq(valid[valid.length() - 4:], truncated[truncated.length() - 4:])
+  println(
+    "valid: NeedMoreInput, all input accepted, 5 bytes produced, not finished, suffix 0000ffff",
+  )
+  println(
+    "truncated: identical public boundary indicators; accepted input includes staged incomplete header",
+  )
+  println(
+    "P1 BLOCKED: these public indicators do not establish a sync-flush boundary",
+  )
+}

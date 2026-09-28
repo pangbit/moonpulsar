@@ -1,9 +1,8 @@
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
 options(
   "native-stub": [ "native_ecies.c" ],
   targets: { "native_ecies.mbt": [ "native" ] },
-  link: {
-    "native": {
-      "stub-cc-flags": "-I/opt/homebrew/opt/openssl@3/include -I/usr/local/opt/openssl@3/include",
-    },
-  },
 )

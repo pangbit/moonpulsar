@@ -2,6 +2,8 @@
 package "pangbit/moonpulsar/native_ecies"
 
 // Values
+pub fn availability_error() -> String?
+
 pub fn decrypt_key(Bytes, Bytes) -> Bytes?
 
 pub fn encrypt_key(Bytes, Bytes) -> Bytes?

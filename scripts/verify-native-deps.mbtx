@@ -1,0 +1,159 @@
+///|
+// Deliberately limited to P2 while the P1 Zlib gate is blocked.
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn run_check(name : String, cmd : @shell.Cmd, report : String) -> Unit {
+  let output = cmd.output(timeout_ms=600000, max_output_bytes=16000000)
+  @fs.write_file("\{report}/\{name}.log", output.stdout() + output.stderr())
+  output.check()
+  if name.has_prefix("injected-") {
+    assert_true(
+      (output.stdout() + output.stderr()).contains(
+        "Total tests: 1, passed: 1, failed: 0.",
+      ),
+    )
+  }
+  println("PASS \{name}")
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  let mut report = ""
+  let mut openssl_only = false
+  let mut i = 1
+  while i < args.length() {
+    match args[i] {
+      "--" => i += 1
+      "--openssl-only" => {
+        openssl_only = true
+        i += 1
+      }
+      "--report-dir" if i + 1 < args.length() => {
+        report = args[i + 1]
+        i += 2
+      }
+      _ => fail("unknown argument: \{args[i]}")
+    }
+  }
+  guard openssl_only else {
+    fail(
+      "Full P4 blocked: native_zlib remains. Use --openssl-only for the explicitly partial P2 checks.",
+    )
+  }
+  if report.is_empty() {
+    report = @fs.tmpdir(prefix="moonpulsar-deps-")
+  } else {
+    @fs.mkdir(report, recursive=true)
+  }
+  let scratch = @fs.tmpdir(prefix="moonpulsar-consumer-")
+  @fs.write_file("\{report}/workspace.txt", scratch + "\n")
+  run_check("package", @shell.Cmd("moon", ["package", "--list"]), report)
+  let archive = "_build/publish/pangbit-moonpulsar-0.1.0.zip"
+  let listing = @shell.Cmd("unzip", ["-Z1", archive]).output()
+  listing.check()
+  assert_true(listing.stdout().contains("native_support/openssl_abi.h"))
+  assert_false(listing.stdout().contains("openssl_abi_check.c"))
+  assert_false(listing.stdout().contains("missing_openssl.h"))
+  run_check(
+    "archive-sha256",
+    @shell.Cmd("shasum", ["-a", "256", archive]),
+    report,
+  )
+  run_check(
+    "unzip",
+    @shell.Cmd("unzip", ["-q", archive, "-d", "\{scratch}/library"]),
+    report,
+  )
+  @fs.mkdir("\{scratch}/consumer", recursive=true)
+  @fs.write_file(
+    "\{scratch}/moon.work",
+    "members = [\"./library\", \"./consumer\"]\n",
+  )
+  let consumer_module =
+    #|name = "audit/consumer"
+    #|version = "0.0.1"
+    #|preferred_target = "native"
+    #|import { "pangbit/moonpulsar@0.1.0", "moonbitlang/async@0.22.1" }
+  @fs.write_file("\{scratch}/consumer/moon.mod", consumer_module)
+  let consumer_package =
+    #|import { "pangbit/moonpulsar" @pulsar, "moonbitlang/async" }
+    #|supported_targets = "native"
+    #|pkgtype(kind: "executable")
+  @fs.write_file("\{scratch}/consumer/moon.pkg", consumer_package)
+  @fs.write_file(
+    "\{scratch}/consumer/main.mbt",
+    @fs.read_file("scripts/native-deps/consumer.mbt"),
+  )
+  // No fixtures or source tests added before the real external-consumer build.
+  for mode in ["--debug", "--release"] {
+    run_check(
+      "consumer-\{mode}",
+      @shell.Cmd("moon", ["build", "--target", "native", mode], cwd=scratch),
+      report,
+    )
+  }
+  // Test-only overlay: force only our two OpenSSL loaders to fail. This is
+  // injection, not a claim that the host physically lacks OpenSSL libraries.
+  run_check(
+    "copy-fixtures",
+    @shell.Cmd("cp", ["-R", "testdata", "\{scratch}/library/testdata"]),
+    report,
+  )
+  @fs.write_file(
+    "\{scratch}/library/missing_openssl_wbtest.mbt",
+    @fs.read_file("scripts/native-deps/missing_openssl_test.mbt"),
+  )
+  @fs.write_file(
+    "\{scratch}/missing_openssl.h",
+    @fs.read_file("scripts/native-deps/missing_openssl.h"),
+  )
+  for kind in ["tls", "ecies"] {
+    let path = "\{scratch}/library/native_\{kind}/moon.pkg"
+    let pkg = @fs.read_file(path).text()
+    let replacement = "options(link: { \"native\": { \"stub-cc-flags\": \"-include \{scratch}/missing_openssl.h\" } },\n"
+    assert_true(pkg.contains("options("))
+    @fs.write_file(path, pkg.replace(old="options(", new=replacement))
+  }
+  // Separate process/build directory for each mode: loader failures are cached.
+  for mode in ["--debug", "--release"] {
+    for scenario in ["RSA", "TLS"] {
+      run_check(
+        "injected-\{mode}-\{scenario}",
+        @shell.Cmd(
+          "moon",
+          [
+            "test",
+            "--target",
+            "native",
+            mode,
+            "--no-parallelize",
+            "--target-dir",
+            "\{scratch}/injected-\{mode}",
+            "library/missing_openssl_wbtest.mbt",
+            "--filter",
+            "*\{scenario}*",
+          ],
+          cwd=scratch,
+          env={
+            "MOONPULSAR_TEST_LOADER_MARKER": "\{scratch}/attempted-\{mode}-\{scenario}",
+          },
+        ),
+        report,
+      )
+    }
+  }
+  @fs.write_file(
+    "\{report}/status.txt",
+    "P2 local external ZIP build and injected missing OpenSSL: passed\nP1/P3 Zlib: blocked\nP4 Linux A/B/C: not executed\nP5 live interop: not executed\n",
+  )
+  println(
+    "PASS partial OpenSSL checks only; full plan remains blocked. Report: \{report}",
+  )
+}

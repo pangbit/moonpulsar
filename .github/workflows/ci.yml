@@ -10,6 +10,35 @@ permissions:
   contents: read
 
 jobs:
+  openssl-abi:
+    name: OpenSSL ABI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Install ABI reference headers (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev
+      - name: Install ABI reference headers (macOS)
+        if: runner.os == 'macOS'
+        run: brew install openssl@3
+      - name: Compare ABI and test loader failures
+        run: moon run scripts/verify-native-abi.mbtx -- --report-dir /tmp/moonpulsar-abi
+      - name: Preserve ABI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-abi-${{ matrix.os }}
+          path: /tmp/moonpulsar-abi/*.log
+
   broker-regression:
     name: broker regression (${{ matrix.pulsar }})
     runs-on: ubuntu-24.04
@@ -88,3 +117,14 @@ jobs:
 
       - name: Create release archive
         run: moon package --list
+
+      - name: Verify published OpenSSL boundary (partial native-dependency scope)
+        run: moon run scripts/verify-native-deps.mbtx -- --openssl-only --report-dir /tmp/moonpulsar-openssl-deps
+
+      - name: Preserve external package diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-package-checks
+          path: /tmp/moonpulsar-openssl-deps/
+          if-no-files-found: ignore

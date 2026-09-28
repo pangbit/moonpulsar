@@ -94,6 +94,8 @@
 ## 环境要求
 
 - 支持 **native** 后端的 MoonBit 工具链；网络连接依赖 TCP socket
+- C 编译器与系统 SDK，包括 zlib 头文件（Debian/Ubuntu 为 `zlib1g-dev`，macOS SDK 已提供）。Java 同步刷新兼容适配层仍需要这些头文件。
+- 构建不需要 OpenSSL 开发头文件。客户端证书、TLS 版本/密码套件配置以及 ECIES 消息加密在运行时需要 OpenSSL **3** 动态库；macOS 使用 Homebrew `openssl@3` 标准路径，Linux 使用系统动态库加载器。缺库或缺符号在使用相关功能时明确报错。RSA 消息加密不加载这项 ECIES 依赖。普通 TLS 仍遵循 `moonbitlang/async/tls` 的平台运行库要求。
 - 运行示例需要 Pulsar broker；自动化测试使用进程内 mock broker，无需 Docker
 
 ## 安装

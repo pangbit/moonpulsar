@@ -99,6 +99,8 @@ The examples and integration scenarios have been exercised against Pulsar standa
 ## Requirements
 
 - MoonBit toolchain with the **native** backend (TCP sockets)
+- A C compiler and system SDK, including zlib headers (`zlib1g-dev` on Debian/Ubuntu; supplied by the macOS SDK). The Java sync-flush compatibility adapter still requires these headers.
+- OpenSSL development headers are not required. Client-certificate / TLS-policy options and ECIES message encryption require OpenSSL **3** shared libraries at runtime. On macOS these adapters look in the standard Homebrew `openssl@3` locations; on Linux they use the system library loader. Missing libraries or symbols produce errors when those features are used. RSA message encryption does not load this ECIES dependency. Ordinary TLS keeps the platform requirements of `moonbitlang/async/tls`.
 - A Pulsar broker for the examples; the test suite uses an in-process mock broker and needs no external services
 
 ## Installation

@@ -128,13 +128,10 @@ fn parse_pkcs1_public(der : Bytes) -> EncryptionPublicKey raise PulsarError {
 }
 
 ///|
-/// Parse an RSA public key in SubjectPublicKeyInfo or PKCS#1 PEM format.
+/// Parse an RSA or EC public key in SubjectPublicKeyInfo or PKCS#1 PEM format.
 pub fn EncryptionPublicKey::from_pem(
   pem : Bytes,
 ) -> EncryptionPublicKey raise PulsarError {
-  if @native_ecies.is_public_key(pem) {
-    return { modulus: b"", exponent: b"", ec_pem: Some(pem), }
-  }
   let text = @utf8.decode(pem) catch {
     _ => raise InvalidFrame("invalid UTF-8 RSA PEM")
   }
@@ -143,7 +140,15 @@ pub fn EncryptionPublicKey::from_pem(
   }
   let body = der_sequence(pem_body(pem, "PUBLIC KEY"))
   let offset = Ref(0)
-  der_rsa_algorithm(der_read(body, offset, 0x30))
+  let algorithm = der_read(body, offset, 0x30)
+  if der_read(algorithm, Ref(0), 0x06) == b"\x2a\x86\x48\xce\x3d\x02\x01" {
+    require_ecies()
+    guard @native_ecies.is_public_key(pem) else {
+      raise InvalidFrame("invalid EC public key")
+    }
+    return { modulus: b"", exponent: b"", ec_pem: Some(pem), }
+  }
+  der_rsa_algorithm(algorithm)
   let bits = der_read(body, offset, 0x03)
   guard offset.val == body.length() && bits.length() > 1 && bits[0] == b'\x00' else {
     raise InvalidFrame("invalid RSA public key bit string")
@@ -174,18 +179,18 @@ fn parse_pkcs1_private(der : Bytes) -> EncryptionPrivateKey raise PulsarError {
 }
 
 ///|
-/// Parse an unencrypted RSA private key in PKCS#1 or PKCS#8 PEM format.
+/// Parse an unencrypted RSA or EC private key in PKCS#1, SEC1 or PKCS#8 PEM format.
 pub fn EncryptionPrivateKey::from_pem(
   pem : Bytes,
 ) -> EncryptionPrivateKey raise PulsarError {
-  if @native_ecies.is_private_key(pem) {
-    return { modulus: b"", private_exponent: b"", ec_pem: Some(pem), }
-  }
   let text = @utf8.decode(pem) catch {
     _ => raise InvalidFrame("invalid UTF-8 RSA PEM")
   }
   if text.contains("BEGIN RSA PRIVATE KEY") {
     return parse_pkcs1_private(pem_body(pem, "RSA PRIVATE KEY"))
+  }
+  if text.contains("BEGIN EC PRIVATE KEY") {
+    return parse_ec_private(pem)
   }
   let body = der_sequence(pem_body(pem, "PRIVATE KEY"))
   let offset = Ref(0)
@@ -193,12 +198,32 @@ pub fn EncryptionPrivateKey::from_pem(
   guard version == b"\x00" else {
     raise InvalidFrame("unsupported PKCS#8 key version")
   }
-  der_rsa_algorithm(der_read(body, offset, 0x30))
+  let algorithm = der_read(body, offset, 0x30)
+  if der_read(algorithm, Ref(0), 0x06) == b"\x2a\x86\x48\xce\x3d\x02\x01" {
+    return parse_ec_private(pem)
+  }
+  der_rsa_algorithm(algorithm)
   let private_der = der_read(body, offset, 0x04)
   guard offset.val == body.length() else {
     raise InvalidFrame("trailing PKCS#8 key data")
   }
   parse_pkcs1_private(private_der)
+}
+
+///|
+fn require_ecies() -> Unit raise PulsarError {
+  if @native_ecies.availability_error() is Some(message) {
+    raise InvalidFrame("ECIES unavailable: \{message}")
+  }
+}
+
+///|
+fn parse_ec_private(pem : Bytes) -> EncryptionPrivateKey raise PulsarError {
+  require_ecies()
+  guard @native_ecies.is_private_key(pem) else {
+    raise InvalidFrame("invalid EC private key")
+  }
+  { modulus: b"", private_exponent: b"", ec_pem: Some(pem), }
 }
 
 ///|

@@ -1,23 +1,11 @@
 #include <moonbit.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
+#include "../native_support/openssl_abi.h"
 #include <limits.h>
 #include <string.h>
 #include <dlfcn.h>
 
-#define OPENSSL_FUNCTIONS(X) \
-  X(SSL_CTX_new) X(SSL_CTX_free) X(TLS_client_method) X(SSL_CTX_ctrl) \
-  X(SSL_CTX_set_cipher_list) X(SSL_CTX_set_ciphersuites) X(SSL_CTX_set_verify) \
-  X(SSL_CTX_load_verify_locations) X(SSL_CTX_set_default_verify_paths) \
-  X(SSL_CTX_use_certificate_chain_file) X(SSL_CTX_use_PrivateKey_file) \
-  X(SSL_CTX_check_private_key) X(SSL_new) X(SSL_free) X(SSL_set1_host) \
-  X(SSL_ctrl) X(SSL_set_bio) X(SSL_set_connect_state) X(SSL_do_handshake) \
-  X(SSL_get_verify_result) X(SSL_get_error) X(SSL_read) X(SSL_write) \
-  X(BIO_new) X(BIO_s_mem) X(BIO_free) X(BIO_write) X(BIO_read) X(BIO_ctrl) \
-  X(ERR_clear_error) X(ERR_error_string_n) X(ERR_get_error)
-
-#define DECLARE_OPENSSL(name) static __typeof__(&name) dyn_##name;
-OPENSSL_FUNCTIONS(DECLARE_OPENSSL)
+#define DECLARE_OPENSSL(ret, name, args) static mp_##name##_fn dyn_##name;
+MP_TLS_FUNCTIONS(DECLARE_OPENSSL)
 #undef DECLARE_OPENSSL
 
 static int moonpulsar_tls_load(void) {
@@ -36,15 +24,23 @@ static int moonpulsar_tls_load(void) {
   crypto = dlopen("libcrypto.so.3", RTLD_NOW);
   if (crypto == NULL) crypto = dlopen("libcrypto.so", RTLD_NOW);
 #endif
-  if (ssl == NULL || crypto == NULL) return status = -1;
-#define LOAD_OPENSSL(name) do { \
-  dyn_##name = (__typeof__(dyn_##name))dlsym(ssl, #name); \
-  if (dyn_##name == NULL) dyn_##name = (__typeof__(dyn_##name))dlsym(crypto, #name); \
-  if (dyn_##name == NULL) return status = -2; \
+  if (ssl == NULL || crypto == NULL) { status = -1; goto failure; }
+#define LOAD_OPENSSL(ret, name, args) do { \
+  dyn_##name = (mp_##name##_fn)dlsym(ssl, #name); \
+  if (dyn_##name == NULL) dyn_##name = (mp_##name##_fn)dlsym(crypto, #name); \
+  if (dyn_##name == NULL) { status = -2; goto failure; } \
 } while (0);
-  OPENSSL_FUNCTIONS(LOAD_OPENSSL)
+  MP_TLS_FUNCTIONS(LOAD_OPENSSL)
 #undef LOAD_OPENSSL
+  if ((dyn_OpenSSL_version_num() >> 28) != 3) { status = -3; goto failure; }
   return status = 1;
+failure:
+#define CLEAR_OPENSSL(ret, name, args) dyn_##name = NULL;
+  MP_TLS_FUNCTIONS(CLEAR_OPENSSL)
+#undef CLEAR_OPENSSL
+  if (ssl != NULL) dlclose(ssl);
+  if (crypto != NULL) dlclose(crypto);
+  return status;
 }
 
 #define SSL_CTX_new dyn_SSL_CTX_new
@@ -113,33 +109,33 @@ moonpulsar_tls_handle *moonpulsar_tls_new(
   memset(handle, 0, sizeof(*handle));
   handle->ctx = SSL_CTX_new(TLS_client_method());
   if (handle->ctx == NULL) goto failure;
-  if (min_version != 0 && SSL_CTX_set_min_proto_version(handle->ctx, min_version) != 1) goto failure;
-  if (max_version != 0 && SSL_CTX_set_max_proto_version(handle->ctx, max_version) != 1) goto failure;
+  if (min_version != 0 && SSL_CTX_ctrl(handle->ctx, MP_SSL_CTRL_SET_MIN_PROTO_VERSION, min_version, NULL) != 1) goto failure;
+  if (max_version != 0 && SSL_CTX_ctrl(handle->ctx, MP_SSL_CTRL_SET_MAX_PROTO_VERSION, max_version, NULL) != 1) goto failure;
   if (cipher_list[0] != '\0' && SSL_CTX_set_cipher_list(handle->ctx, cipher_list) != 1) goto failure;
   if (tls13_ciphersuites[0] != '\0' && SSL_CTX_set_ciphersuites(handle->ctx, tls13_ciphersuites) != 1) goto failure;
   if (insecure) {
-    SSL_CTX_set_verify(handle->ctx, SSL_VERIFY_NONE, NULL);
+    SSL_CTX_set_verify(handle->ctx, MP_SSL_VERIFY_NONE, NULL);
   } else {
-    SSL_CTX_set_verify(handle->ctx, SSL_VERIFY_PEER, NULL);
+    SSL_CTX_set_verify(handle->ctx, MP_SSL_VERIFY_PEER, NULL);
     if (ca_file[0] != '\0') {
       if (SSL_CTX_load_verify_locations(handle->ctx, ca_file, NULL) != 1) goto failure;
     } else if (SSL_CTX_set_default_verify_paths(handle->ctx) != 1) goto failure;
   }
   if (cert_file[0] != '\0') {
     if (SSL_CTX_use_certificate_chain_file(handle->ctx, cert_file) != 1) goto failure;
-    if (SSL_CTX_use_PrivateKey_file(handle->ctx, key_file, SSL_FILETYPE_PEM) != 1) goto failure;
+    if (SSL_CTX_use_PrivateKey_file(handle->ctx, key_file, MP_SSL_FILETYPE_PEM) != 1) goto failure;
     if (SSL_CTX_check_private_key(handle->ctx) != 1) goto failure;
   }
   handle->ssl = SSL_new(handle->ctx);
   if (handle->ssl == NULL) goto failure;
   if (host[0] != '\0') {
     if (!insecure && SSL_set1_host(handle->ssl, host) != 1) goto failure;
-    if (SSL_set_tlsext_host_name(handle->ssl, host) != 1) goto failure;
+    if (SSL_ctrl(handle->ssl, MP_SSL_CTRL_SET_TLSEXT_HOSTNAME, MP_TLSEXT_NAMETYPE_host_name, (void *)host) != 1) goto failure;
   }
   handle->incoming = BIO_new(BIO_s_mem());
   handle->outgoing = BIO_new(BIO_s_mem());
   if (handle->incoming == NULL || handle->outgoing == NULL) goto failure;
-  BIO_set_mem_eof_return(handle->incoming, -1);
+  BIO_ctrl(handle->incoming, MP_BIO_C_SET_BUF_MEM_EOF_RETURN, -1, NULL);
   SSL_set_bio(handle->ssl, handle->incoming, handle->outgoing);
   SSL_set_connect_state(handle->ssl);
   return handle;
@@ -163,8 +159,8 @@ int moonpulsar_tls_is_null(moonpulsar_tls_handle *handle) {
 static int moonpulsar_tls_status(moonpulsar_tls_handle *handle, int result) {
   int err = SSL_get_error(handle->ssl, result);
   handle->last_error = err;
-  if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) return 0;
-  if (err == SSL_ERROR_ZERO_RETURN) return -2;
+  if (err == MP_SSL_ERROR_WANT_READ || err == MP_SSL_ERROR_WANT_WRITE) return 0;
+  if (err == MP_SSL_ERROR_ZERO_RETURN) return -2;
   return -1;
 }
 
@@ -178,7 +174,7 @@ int moonpulsar_tls_handshake(moonpulsar_tls_handle *handle) {
 
 MOONBIT_FFI_EXPORT
 int moonpulsar_tls_verified(moonpulsar_tls_handle *handle) {
-  return SSL_get_verify_result(handle->ssl) == X509_V_OK;
+  return SSL_get_verify_result(handle->ssl) == MP_X509_V_OK;
 }
 
 MOONBIT_FFI_EXPORT
@@ -193,7 +189,7 @@ int moonpulsar_tls_feed(moonpulsar_tls_handle *handle, const unsigned char *data
 
 MOONBIT_FFI_EXPORT
 moonbit_bytes_t moonpulsar_tls_drain(moonpulsar_tls_handle *handle) {
-  size_t pending = (size_t)BIO_ctrl(handle->outgoing, BIO_CTRL_PENDING, 0, NULL);
+  size_t pending = (size_t)BIO_ctrl(handle->outgoing, MP_BIO_CTRL_PENDING, 0, NULL);
   if (pending > INT_MAX) pending = INT_MAX;
   moonbit_bytes_t result = moonbit_make_bytes((int)pending, 0);
   if (pending != 0) BIO_read(handle->outgoing, result, (int)pending);
@@ -221,7 +217,7 @@ int moonpulsar_tls_write(moonpulsar_tls_handle *handle, const unsigned char *buf
 MOONBIT_FFI_EXPORT
 moonbit_bytes_t moonpulsar_tls_error(void) {
   if (moonpulsar_tls_load() != 1) {
-    const char *message = "OpenSSL 3 is unavailable";
+    const char *message = mp_openssl_load_error(moonpulsar_tls_load());
     moonbit_bytes_t unavailable = moonbit_make_bytes((int)strlen(message), 0);
     memcpy(unavailable, message, strlen(message));
     return unavailable;
