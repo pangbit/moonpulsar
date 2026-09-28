@@ -1,0 +1,356 @@
+///|
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn checked(
+  name : String,
+  cmd : @shell.Cmd,
+  report : String,
+  expect? : String,
+) -> Unit {
+  let out = cmd.output(timeout_ms=600000, max_output_bytes=16000000)
+  @fs.write_file("\{report}/\{name}.log", out.stdout() + out.stderr())
+  out.check()
+  if expect is Some(marker) {
+    assert_true(out.stdout().contains(marker))
+  }
+  println("PASS \{name}")
+}
+
+///|
+fn tls_env(certs : String, topic : String) -> Map[String, String] {
+  {
+    "PULSAR_URL": "pulsar+ssl://127.0.0.1:27666",
+    "PULSAR_TOPIC": topic,
+    "PULSAR_TLS_CA_FILE": "\{certs}/ca.crt",
+    "PULSAR_TLS_CLIENT_CERT_FILE": "\{certs}/client.crt",
+    "PULSAR_TLS_CLIENT_KEY_FILE": "\{certs}/client.key",
+  }
+}
+
+///|
+async fn run(version : String, report : String) -> Unit {
+  if !@fs.exists(report) {
+    @fs.mkdir(report, recursive=true)
+  }
+  let cwd_result = @shell.Cmd("pwd", []).output()
+  cwd_result.check()
+  let cwd = cwd_result.stdout().trim().to_owned()
+  let stamp = @async.now().to_string()
+  let name = "moonpulsar-native-interop-\{version}-\{stamp}"
+  let certs = "\{report}/certs"
+  @fs.mkdir(certs, recursive=true)
+  checked("go-version", @shell.Cmd("go", ["version"]), report)
+  checked("moon-version", @shell.Cmd("moon", ["version", "--all"]), report)
+  let image = match version {
+    "4.2.4" =>
+      "apachepulsar/pulsar@sha256:cd5d4a64a32c0770d5d2dbb526169a70081605bbec4b59b73471b68d0a451fb4"
+    "3.3.9" =>
+      "apachepulsar/pulsar@sha256:edb08c608371bc69a92a0edda255e869cef404577b9ca995cbe98e0c0de10e0e"
+    _ => fail("unsupported Pulsar version")
+  }
+  let available = @shell.Cmd("docker", ["image", "inspect", image]).output()
+  if available.exit_code() != 0 {
+    checked("image-pull", @shell.Cmd("docker", ["pull", image]), report)
+  }
+  checked("image", @shell.Cmd("docker", ["image", "inspect", image]), report)
+  checked(
+    "ca",
+    @shell.Cmd("openssl", [
+      "req",
+      "-x509",
+      "-newkey",
+      "rsa:2048",
+      "-nodes",
+      "-days",
+      "2",
+      "-subj",
+      "/CN=MoonPulsar audit CA",
+      "-keyout",
+      "\{certs}/ca.key",
+      "-out",
+      "\{certs}/ca.crt",
+    ]),
+    report,
+  )
+  for role in ["server", "client"] {
+    checked(
+      "key-\{role}",
+      @shell.Cmd("openssl", [
+        "req",
+        "-newkey",
+        "rsa:2048",
+        "-nodes",
+        "-subj",
+        "/CN=\{role}",
+        "-keyout",
+        "\{certs}/\{role}.key",
+        "-out",
+        "\{certs}/\{role}.csr",
+      ]),
+      report,
+    )
+    @fs.write_file(
+      "\{certs}/\{role}.ext",
+      if role == "server" {
+        "subjectAltName=DNS:localhost,IP:127.0.0.1\nextendedKeyUsage=serverAuth\n"
+      } else {
+        "extendedKeyUsage=clientAuth\n"
+      },
+    )
+    checked(
+      "cert-\{role}",
+      @shell.Cmd("openssl", [
+        "x509",
+        "-req",
+        "-days",
+        "2",
+        "-in",
+        "\{certs}/\{role}.csr",
+        "-CA",
+        "\{certs}/ca.crt",
+        "-CAkey",
+        "\{certs}/ca.key",
+        "-CAcreateserial",
+        "-extfile",
+        "\{certs}/\{role}.ext",
+        "-out",
+        "\{certs}/\{role}.crt",
+      ]),
+      report,
+    )
+  }
+  for curve in ["ec", "ec_p256", "ec_p384"] {
+    for kind in ["public", "private"] {
+      @fs.write_file(
+        "\{certs}/\{curve}_\{kind}.pem",
+        @fs.read_file("testdata/encryption/\{curve}_\{kind}.pem"),
+      )
+    }
+  }
+  // Disposable fixture keys must be readable by the image's unprivileged uid.
+  checked(
+    "cert-permissions",
+    @shell.Cmd("chmod", ["-R", "a+rX", certs]),
+    report,
+  )
+  let probe = "\{report}/probe"
+  @fs.mkdir(probe, recursive=true)
+  @fs.write_file("\{report}/moon.work", "members = [\"\{cwd}\", \"./probe\"]\n")
+  @fs.write_file(
+    "\{probe}/moon.mod",
+    "name = \"audit/tls_probe\"\nversion = \"0.0.1\"\npreferred_target = \"native\"\nimport { \"pangbit/moonpulsar@0.1.0\", \"moonbitlang/async@0.22.1\" }\n",
+  )
+  @fs.write_file(
+    "\{probe}/moon.pkg",
+    "import { \"pangbit/moonpulsar\" @pulsar, \"moonbitlang/async\", \"moonbitlang/async/socket\", \"moonbitlang/core/env\" }\npkgtype(kind: \"executable\")\n",
+  )
+  @fs.write_file(
+    "\{probe}/main.mbt",
+    @fs.read_file("scripts/native-deps/tls_probe.mbt"),
+  )
+  checked(
+    "probe-build",
+    @shell.Cmd("moon", ["build", "--target", "native"], cwd=report),
+    report,
+  )
+  defer {
+    let logs = @shell.Cmd("docker", ["logs", name]).output()
+    @fs.write_file("\{report}/broker.log", logs.stdout() + logs.stderr())
+    ignore(@shell.Cmd("docker", ["rm", "-f", name]).output())
+  }
+  checked(
+    "start-broker",
+    @shell.Cmd("docker", [
+      "run",
+      "-d",
+      "--name",
+      name,
+      "--network",
+      "host",
+      "--memory",
+      "3g",
+      "-v",
+      "\{certs}:/certs:ro",
+      "-e",
+      "PULSAR_MEM=-Xms256m -Xmx768m -XX:MaxDirectMemorySize=768m",
+      "-e",
+      "PULSAR_PREFIX_brokerServicePort=27665",
+      "-e",
+      "PULSAR_PREFIX_brokerServicePortTls=27666",
+      "-e",
+      "PULSAR_PREFIX_webServicePort=28086",
+      "-e",
+      "PULSAR_PREFIX_advertisedAddress=127.0.0.1",
+      "-e",
+      "PULSAR_PREFIX_tlsCertificateFilePath=/certs/server.crt",
+      "-e",
+      "PULSAR_PREFIX_tlsKeyFilePath=/certs/server.key",
+      "-e",
+      "PULSAR_PREFIX_tlsTrustCertsFilePath=/certs/ca.crt",
+      "-e",
+      "PULSAR_PREFIX_tlsRequireTrustedClientCertOnConnect=true",
+      "-e",
+      "PULSAR_PREFIX_tlsAllowInsecureConnection=false",
+      image,
+      "sh",
+      "-c",
+      "bin/apply-config-from-env.py conf/standalone.conf && bin/pulsar standalone --no-functions-worker",
+    ]),
+    report,
+  )
+  let mut ready = false
+  for _ in 0..<120 {
+    let health = @shell.Cmd("curl", [
+      "--max-time", "1", "-fsS", "http://127.0.0.1:28086/admin/v2/namespaces/public/default",
+    ]).output(timeout_ms=3000)
+    if health.exit_code() == 0 {
+      ready = true
+      break
+    }
+    @async.sleep(1000)
+  }
+  assert_true(ready)
+  let topic = "persistent://public/default/\{name}"
+  checked(
+    "mTLS-roundtrip",
+    @shell.Cmd(
+      "moon",
+      ["run", "probe", "--target", "native"],
+      cwd=report,
+      env=tls_env(certs, topic),
+    ),
+    report,
+    expect="PASS mTLS full topic roundtrip",
+  )
+  for negative in ["no-cert", "wrong-ca", "wrong-host"] {
+    let env = tls_env(certs, topic)
+    env["EXPECT_TLS_FAILURE"] = "true"
+    match negative {
+      "no-cert" => {
+        env["PULSAR_TLS_CLIENT_CERT_FILE"] = ""
+        env["PULSAR_TLS_CLIENT_KEY_FILE"] = ""
+      }
+      "wrong-ca" => env["PULSAR_TLS_CA_FILE"] = "\{cwd}/testdata/tls/server.crt"
+      _ => env["PULSAR_URL"] = "pulsar+ssl://127.0.0.2:27666"
+    }
+    checked(
+      "reject-\{negative}",
+      @shell.Cmd(
+        "moon",
+        ["run", "probe", "--target", "native"],
+        cwd=report,
+        env~,
+      ),
+      report,
+      expect="PASS TLS certificate rejection",
+    )
+  }
+  checked(
+    "java-source",
+    @shell.Cmd("docker", [
+      "cp",
+      "interop/java/EncryptionInterop.java",
+      "\{name}:/tmp/EncryptionInterop.java",
+    ]),
+    report,
+  )
+  checked(
+    "java-compile",
+    @shell.Cmd("docker", [
+      "exec", name, "javac", "-proc:none", "-cp", "/pulsar/lib/*", "/tmp/EncryptionInterop.java",
+    ]),
+    report,
+  )
+  for curve in ["ec_p256", "ec_p384", "ec"] {
+    let env = tls_env(certs, "\{topic}-\{curve}")
+    env["EC_PUBLIC_KEY"] = "\{certs}/\{curve}_public.pem"
+    env["EC_PRIVATE_KEY"] = "\{certs}/\{curve}_private.pem"
+    for action in ["send", "moonbit", "receive"] {
+      if action == "moonbit" {
+        checked(
+          "\{curve}-moonbit",
+          @shell.Cmd(
+            "moon",
+            ["run", "examples/ec_encryption_interop", "--target", "native"],
+            env~,
+          ),
+          report,
+          expect="MoonBit ECIES receive/send OK",
+        )
+      } else {
+        let java_env = tls_env("/certs", "\{topic}-\{curve}")
+        java_env["EC_PUBLIC_KEY"] = "/certs/\{curve}_public.pem"
+        java_env["EC_PRIVATE_KEY"] = "/certs/\{curve}_private.pem"
+        let flags = ["exec"]
+        for key, value in java_env {
+          flags.append(["-e", "\{key}=\{value}"])
+        }
+        flags.append([
+          name, "java", "-cp", "/pulsar/lib/*:/tmp", "EncryptionInterop", action,
+        ])
+        checked("\{curve}-java-\{action}", @shell.Cmd("docker", flags), report)
+      }
+    }
+  }
+  let env = tls_env(certs, "\{topic}-rsa")
+  checked(
+    "rsa-go-send",
+    @shell.Cmd("go", ["run", "./encryption", "send"], cwd="interop/go", env~),
+    report,
+    expect="Go encrypted send and empty payload OK",
+  )
+  checked(
+    "rsa-moonbit",
+    @shell.Cmd(
+      "moon",
+      ["run", "examples/encryption_interop", "--target", "native"],
+      env~,
+    ),
+    report,
+  )
+  for mode in ["receive", "receive-empty"] {
+    checked(
+      "rsa-go-\{mode}",
+      @shell.Cmd("go", ["run", "./encryption", mode], cwd="interop/go", env~),
+      report,
+    )
+  }
+  @fs.write_file(
+    "\{report}/status.txt",
+    "PASS \{version}: mTLS roundtrip and certificate rejection; ECIES P-256/P-384/P-521 bidirectional; RSA compressed/batched/empty boundary interop\n",
+  )
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  let mut version = ""
+  let mut report = ""
+  let mut i = 1
+  while i < args.length() {
+    match args[i] {
+      "--" => i += 1
+      "--pulsar-version" if i + 1 < args.length() => {
+        version = args[i + 1]
+        i += 2
+      }
+      "--report-dir" if i + 1 < args.length() => {
+        report = args[i + 1]
+        i += 2
+      }
+      _ => fail("unknown argument: \{args[i]}")
+    }
+  }
+  assert_true(version == "4.2.4" || version == "3.3.9")
+  if report == "" {
+    report = @fs.tmpdir(prefix="moonpulsar-native-interop-")
+  }
+  @async.with_timeout(1800000, async fn() { run(version, report) })
+  println("PASS native interop \{version}; report: \{report}")
+}

@@ -1,5 +1,6 @@
 ///|
-// Deliberately limited to P2 while the P1 Zlib gate is blocked.
+// Full Linux matrix by default; --openssl-only selects the macOS-compatible
+// external build and injected OpenSSL loader checks.
 import {
   "moonbitlang/async@0.22.1",
   "moonbitlang/async@0.22.1/fs",
@@ -9,7 +10,10 @@ import {
 
 ///|
 async fn run_check(name : String, cmd : @shell.Cmd, report : String) -> Unit {
-  let output = cmd.output(timeout_ms=600000, max_output_bytes=16000000)
+  let output = cmd.output(
+    timeout_ms=if name == "linux-matrix" { 1800000 } else { 600000 },
+    max_output_bytes=16000000,
+  )
   @fs.write_file("\{report}/\{name}.log", output.stdout() + output.stderr())
   output.check()
   if name.has_prefix("injected-") {
@@ -27,6 +31,7 @@ async fn main {
   let args = @env.args()
   let mut report = ""
   let mut openssl_only = false
+  let mut archive = ""
   let mut i = 1
   while i < args.length() {
     match args[i] {
@@ -39,28 +44,45 @@ async fn main {
         report = args[i + 1]
         i += 2
       }
+      "--archive" if i + 1 < args.length() => {
+        archive = args[i + 1]
+        i += 2
+      }
       _ => fail("unknown argument: \{args[i]}")
     }
-  }
-  guard openssl_only else {
-    fail(
-      "Full P4 blocked: native_zlib remains. Use --openssl-only for the explicitly partial P2 checks.",
-    )
   }
   if report.is_empty() {
     report = @fs.tmpdir(prefix="moonpulsar-deps-")
   } else {
     @fs.mkdir(report, recursive=true)
   }
+  if !openssl_only {
+    assert_true(
+      archive == "",
+      msg="--archive currently selects the external OpenSSL check; the full Linux matrix packages its source snapshot",
+    )
+    run_check(
+      "linux-matrix",
+      @shell.Cmd("moon", [
+        "run", "scripts/verify-native-linux.mbtx", "--", "--report-dir", report,
+      ]),
+      report,
+    )
+    println("PASS Linux dependency matrix; report: \{report}")
+    return
+  }
   let scratch = @fs.tmpdir(prefix="moonpulsar-consumer-")
   @fs.write_file("\{report}/workspace.txt", scratch + "\n")
-  run_check("package", @shell.Cmd("moon", ["package", "--list"]), report)
-  let archive = "_build/publish/pangbit-moonpulsar-0.1.0.zip"
+  if archive == "" {
+    run_check("package", @shell.Cmd("moon", ["package", "--list"]), report)
+    archive = "_build/publish/pangbit-moonpulsar-0.1.0.zip"
+  }
   let listing = @shell.Cmd("unzip", ["-Z1", archive]).output()
   listing.check()
   assert_true(listing.stdout().contains("native_support/openssl_abi.h"))
   assert_false(listing.stdout().contains("openssl_abi_check.c"))
   assert_false(listing.stdout().contains("missing_openssl.h"))
+  assert_false(listing.stdout().contains("native_zlib/"))
   run_check(
     "archive-sha256",
     @shell.Cmd("shasum", ["-a", "256", archive]),
@@ -151,9 +173,7 @@ async fn main {
   }
   @fs.write_file(
     "\{report}/status.txt",
-    "P2 local external ZIP build and injected missing OpenSSL: passed\nP1/P3 Zlib: blocked\nP4 Linux A/B/C: not executed\nP5 live interop: not executed\n",
+    "PASS external ZIP builds and injected missing OpenSSL checks\nScope: local OpenSSL check only; Linux A/B/C and live interop have separate reports\n",
   )
-  println(
-    "PASS partial OpenSSL checks only; full plan remains blocked. Report: \{report}",
-  )
+  println("PASS external OpenSSL checks; report: \{report}")
 }

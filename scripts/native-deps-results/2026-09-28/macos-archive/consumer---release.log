@@ -1,0 +1,7 @@
+libtool: warning: 'watch_windows.o' has no symbols
+libtool: warning: 'stub.o' has no symbols
+libtool: warning: 'schannel.o' has no symbols
+libtool: warning: 'epoll.o' has no symbols
+libtool: warning: 'iocp.o' has no symbols
+libtool: warning: 'io_windows.o' has no symbols
+Finished. moon: ran 84 tasks, now up to date

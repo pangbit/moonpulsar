@@ -1,0 +1,61 @@
+[
+    {
+        "Id": "sha256:cd5d4a64a32c0770d5d2dbb526169a70081605bbec4b59b73471b68d0a451fb4",
+        "RepoTags": [
+            "apachepulsar/pulsar:4.2.4",
+            "apachepulsar/pulsar:latest"
+        ],
+        "RepoDigests": [
+            "apachepulsar/pulsar@sha256:cd5d4a64a32c0770d5d2dbb526169a70081605bbec4b59b73471b68d0a451fb4"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-07-26T20:59:03.130722619Z",
+        "Config": {
+            "User": "10000",
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/jvm/bin:/pulsar/bin",
+                "LANG=C.UTF-8",
+                "JAVA_HOME=/opt/jvm",
+                "PULSAR_PID_DIR=/pulsar/logs",
+                "ROCKSDB_MUSL_LIBC=true",
+                "LD_PRELOAD=/lib/libgcompat.so.0"
+            ],
+            "Cmd": [
+                "/bin/sh"
+            ],
+            "WorkingDir": "/pulsar"
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 325612653,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:34884abbe92863fce933ed7c39c0e045631af0ed86d5cc0dfbdf9fdca426ce3c",
+                "sha256:cc84798984e3fea011f3b64b43689b1d2236e8f64fb690736014dfba86d81c9f",
+                "sha256:aa84c480c1144a14dad78b24da9ae66c108c93278cdc94c5b55021a031fcfd20",
+                "sha256:5be06f81bdcb1003d00908c5e360741cb6742bf51b6cf57ef8c1b14346acd0c4",
+                "sha256:cba12ad4cf686005d7b6688e48b28398e15b02c766e7918fd1443e95d926a148",
+                "sha256:8b7e262db1b9b428f00ebfdaa871acf5fc77fad61eacc91dc0c0ce5b0b88e8e7",
+                "sha256:e009f7e2d19061985b7987935b91381b169a752b63e88cbe5f366c92734421d0",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:81c605b2bcc09f5a5f3d9e4d154f58c9b482d34f19dc99834d7e7cc53b14cd2a"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-09-24T16:16:51.622411376Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:cd5d4a64a32c0770d5d2dbb526169a70081605bbec4b59b73471b68d0a451fb4",
+            "size": 1609
+        },
+        "Identity": {
+            "Pull": [
+                {
+                    "Repository": "docker.io/apachepulsar/pulsar"
+                }
+            ]
+        }
+    }
+]

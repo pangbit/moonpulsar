@@ -1,0 +1,86 @@
+[
+    {
+        "Id": "sha256:0fcbc69f73ccc8cdd3ed689888a530bfd7765bfd0e011189a10e6460461db5a0",
+        "RepoTags": [
+            "moonpulsar-native-b:1790581712213"
+        ],
+        "RepoDigests": [
+            "moonpulsar-native-b@sha256:0fcbc69f73ccc8cdd3ed689888a530bfd7765bfd0e011189a10e6460461db5a0"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-09-28T15:48:32.852112007+08:00",
+        "Config": {
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "WorkingDir": "/"
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 7152151,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:919823b3121799f7f20d8044caf957c155376004f5de8c268ff199f775c5ddff"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-09-28T07:48:34.444659074Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:0fcbc69f73ccc8cdd3ed689888a530bfd7765bfd0e011189a10e6460461db5a0",
+            "size": 855
+        },
+        "Identity": {
+            "Build": [
+                {
+                    "Ref": "ipxrsh997j0927dh2sfzwl4v6",
+                    "CreatedAt": "2026-09-28T15:48:34.647455093+08:00"
+                }
+            ]
+        }
+    },
+    {
+        "Id": "sha256:1aac8879eb18eaddff52424d7b0494a0f950dfecb43f22521f29b68ab6b9966d",
+        "RepoTags": [
+            "moonpulsar-native-c:1790581712213"
+        ],
+        "RepoDigests": [
+            "moonpulsar-native-c@sha256:1aac8879eb18eaddff52424d7b0494a0f950dfecb43f22521f29b68ab6b9966d"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-09-28T15:48:38.466709491+08:00",
+        "Config": {
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "WorkingDir": "/"
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 9437863,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:5932ee1b4402c954090ceb2a7aac8bb221d080adcd46b76881d6846068fd6a91"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-09-28T07:48:40.311240939Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:1aac8879eb18eaddff52424d7b0494a0f950dfecb43f22521f29b68ab6b9966d",
+            "size": 855
+        },
+        "Identity": {
+            "Build": [
+                {
+                    "Ref": "zc1jiruttcd93ocwaos5xlbqt",
+                    "CreatedAt": "2026-09-28T15:48:40.542782331+08:00"
+                }
+            ]
+        }
+    }
+]

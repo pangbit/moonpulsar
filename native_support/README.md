@@ -31,12 +31,15 @@ headers of [OpenSSL](https://github.com/openssl/openssl). Recorded input hashes:
 | sha.h | 7e006accd6565cc97dee672c097acc5e38482be7cd4fa1e0c316bf466425b895 |
 | err.h | 0d673984ff62d55d1fb4534d8136b7325e5264efeeb0b911cc94a4922681e080 |
 
-The checker is also intended for OpenSSL 3.0/GCC; until that job executes,
-the local Clang result alone does not establish that platform's validation.
+The same checks also passed on Linux x86_64 with GCC 13.3 and Ubuntu's
+OpenSSL 3.0.13 headers and runtime, including the negative control and loader
+failure sanitizer cases. Exact package/header hashes are retained in the
+native dependency verification report.
 `point_conversion_form_t` must be ABI-compatible with `unsigned int`, as
 verified by the checker on each supported compiler. Builds with altered
 enum ABI flags are outside this validation.
 
-This adjustment does **not** eliminate the separate zlib development-header
-requirement. `native_zlib` remains while the pure MoonBit sync-flush boundary
-gate is unresolved. See `scripts/NATIVE_DEPENDENCY_PLAN.md` in the source repo.
+The separate Java sync-flush compatibility path now uses a pure MoonBit
+structural scanner and bounded flate decoding. Product builds and that path
+no longer need zlib development headers or its runtime. The old adapter is
+retained only under the excluded `scripts/` directory as a test reference.

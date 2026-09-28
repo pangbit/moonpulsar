@@ -1,4 +1,4 @@
-/* Exercise the product stub with real zlib and ASan, replacing only the
+/* Exercise the test-only native reference with real zlib and ASan, replacing only the
  * MoonBit byte allocator so the harness does not alter the installed runtime. */
 #include <assert.h>
 #include <stdio.h>

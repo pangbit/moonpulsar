@@ -1,0 +1,6 @@
+ABSENT libssl.so
+ABSENT libssl.so.3
+ABSENT libcrypto.so
+ABSENT libcrypto.so.3
+ABSENT libz.so
+ABSENT libz.so.1

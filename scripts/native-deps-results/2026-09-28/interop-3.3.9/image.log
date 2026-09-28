@@ -1,0 +1,59 @@
+[
+    {
+        "Id": "sha256:edb08c608371bc69a92a0edda255e869cef404577b9ca995cbe98e0c0de10e0e",
+        "RepoTags": [
+            "apachepulsar/pulsar:3.3.9"
+        ],
+        "RepoDigests": [
+            "apachepulsar/pulsar@sha256:edb08c608371bc69a92a0edda255e869cef404577b9ca995cbe98e0c0de10e0e"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2025-09-23T22:48:54.690122883Z",
+        "Config": {
+            "User": "10000",
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/jvm/bin:/pulsar/bin",
+                "LANG=C.UTF-8",
+                "JAVA_HOME=/opt/jvm",
+                "PULSAR_PID_DIR=/pulsar/logs",
+                "LD_PRELOAD=/lib/libgcompat.so.0"
+            ],
+            "Cmd": [
+                "/bin/sh"
+            ],
+            "WorkingDir": "/pulsar"
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 288023133,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:7003d23cc2176ec98ba2f8b3b4b9b5f144ef370e39bfcf6275a92b5064bc9261",
+                "sha256:9267b526fedc2cb1f862b215ab06fd22585aaf94a5e86d90d7aa7eef31389d8e",
+                "sha256:81fc352e6ae710d9403357658f375b9aafbb12a5fd1f6662139cbd591a1cbd76",
+                "sha256:81a54f2d41184e69fc151ac49253bb93e3f24644803396bda2f2f044d1c57ec1",
+                "sha256:93f0b7981d28007d4113c95d62efdaaca591a6a281de7e174d570a7953dbc505",
+                "sha256:ac66f118b03b9422be8c75c8bcfa0d203436fcc523eba3daf2ad72506a0b4250",
+                "sha256:7febb96f2135a29d6fced85e2756450016a41ad38199f99687889f6e7252d618",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:42f0f700b82803d37fc4032d4c8c81f29f6ddf942dfbc25a424d3917e9c75638"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-09-23T13:59:33.875245222Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:edb08c608371bc69a92a0edda255e869cef404577b9ca995cbe98e0c0de10e0e",
+            "size": 1609
+        },
+        "Identity": {
+            "Pull": [
+                {
+                    "Repository": "docker.io/apachepulsar/pulsar"
+                }
+            ]
+        }
+    }
+]

@@ -25,7 +25,9 @@ async fn main {
   let report = @env.get_env_var("MOONPULSAR_ZLIB_REPORT").unwrap_or(
     @fs.tmpdir(prefix="moonpulsar-zlib-replacement-"),
   )
-  @fs.mkdir(report, recursive=true)
+  if !@fs.exists(report) {
+    @fs.mkdir(report, recursive=true)
+  }
   println("Report: \{report}")
   let home = @env.get_env_var("MOON_HOME").unwrap_or(
     @env.get_env_var("HOME").unwrap() + "/.moon",

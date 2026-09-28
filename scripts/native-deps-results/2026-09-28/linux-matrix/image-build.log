@@ -1,0 +1,29 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 632B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for hub.chinaddos.com/ubuntu@sha256:95fc3d15a7c1c081b6038983ce83b1bf6cfc05c6ce7fb47737223de4ce90f6eb
+#2 DONE 0.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/2] FROM hub.chinaddos.com/ubuntu@sha256:95fc3d15a7c1c081b6038983ce83b1bf6cfc05c6ce7fb47737223de4ce90f6eb
+#4 resolve hub.chinaddos.com/ubuntu@sha256:95fc3d15a7c1c081b6038983ce83b1bf6cfc05c6ce7fb47737223de4ce90f6eb 0.0s done
+#4 DONE 0.0s
+
+#5 [2/2] RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev libstdc++6 unzip ca-certificates git
+#5 CACHED
+
+#6 exporting to image
+#6 exporting layers done
+#6 exporting manifest sha256:5ef3ffedabc8782cf168899b22589499deafc10523d668c24a39201d6c04582e done
+#6 exporting config sha256:19ca4d7ef3e0f01361ac934c50b50c9ce6b7b3f3e4caa30cb76f63a14c6faac2 done
+#6 exporting attestation manifest sha256:fa248a4d3e72df7bedae346d22743a65710e6164062b2d2a9de39c3f94aef9a5 0.0s done
+#6 exporting manifest list sha256:e6942d7c0b825cec741301f20b35433ad436d97239e7ccbb80d34cb032a4dbf6 done
+#6 naming to docker.io/library/moonpulsar-native-build:20260928 done
+#6 unpacking to docker.io/library/moonpulsar-native-build:20260928 0.0s done
+#6 DONE 0.1s

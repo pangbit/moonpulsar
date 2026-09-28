@@ -1,0 +1,66 @@
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":7}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":7,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"runtime_wbtest.mbt","index":0}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":0}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":1}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":2}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":3}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":4}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":5}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":6}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":8}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"tls_wbtest.mbt","index":9}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":9,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":6,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":8,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":5,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":2,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":1,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":3,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":4,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"tls_wbtest.mbt","index":0,"message":""}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"runtime_wbtest.mbt","index":0,"message":""}
+----- END MOON TEST RESULT -----

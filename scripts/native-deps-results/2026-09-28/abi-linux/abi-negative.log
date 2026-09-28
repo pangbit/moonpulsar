@@ -1,0 +1,9 @@
+/tmp/moonpulsar-native-plan-20260928/reports/abi/bad_check.c:17:3: error: static assertion failed: "SSL_VERIFY_PEER value mismatch"
+   17 |   _Static_assert(MP_##name == name, #name " value mismatch");
+      |   ^~~~~~~~~~~~~~
+/tmp/moonpulsar-native-plan-20260928/reports/abi/bad_abi.h:94:25: note: in expansion of macro ‘CHECK_CONSTANT’
+   94 |   X(SSL_VERIFY_NONE, 0) X(SSL_VERIFY_PEER, 99) \
+      |                         ^
+/tmp/moonpulsar-native-plan-20260928/reports/abi/bad_check.c:18:1: note: in expansion of macro ‘MP_CONSTANTS’
+   18 | MP_CONSTANTS(CHECK_CONSTANT)
+      | ^~~~~~~~~~~~

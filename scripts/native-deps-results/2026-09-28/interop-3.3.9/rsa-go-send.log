@@ -1,0 +1,10 @@
+Go encrypted send and empty payload OK
+time="2026-09-28T15:48:27+08:00" level=info msg="Connecting to broker" remote_addr="pulsar+ssl://127.0.0.1:27666"
+time="2026-09-28T15:48:27+08:00" level=info msg="TCP connection established" local_addr="127.0.0.1:46748" remote_addr="pulsar+ssl://127.0.0.1:27666"
+time="2026-09-28T15:48:27+08:00" level=info msg="Connection is ready" local_addr="127.0.0.1:46748" remote_addr="pulsar+ssl://127.0.0.1:27666"
+time="2026-09-28T15:48:27+08:00" level=info msg="Changed number of partitions in topic" new_partitions=1 old_partitions=0 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-go"
+time="2026-09-28T15:48:27+08:00" level=info msg="Connected producer" cnx="127.0.0.1:46748 -> 127.0.0.1:27666" epoch=0 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-go"
+time="2026-09-28T15:48:27+08:00" level=info msg="Created producer" cnx="127.0.0.1:46748 -> 127.0.0.1:27666" producerID=1 producer_name=standalone-0-7 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-go"
+time="2026-09-28T15:48:27+08:00" level=info msg="Closing producer" producerID=1 producer_name=standalone-0-7 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-go"
+time="2026-09-28T15:48:27+08:00" level=info msg="Producer is shutting down. Close the reconnect event loop" producerID=1 producer_name=standalone-0-7 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-go"
+time="2026-09-28T15:48:27+08:00" level=info msg="Closed producer" producerID=1 producer_name=standalone-0-7 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-go"

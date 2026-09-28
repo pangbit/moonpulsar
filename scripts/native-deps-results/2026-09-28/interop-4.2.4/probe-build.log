@@ -1,0 +1,12 @@
+Using cached moonbitlang/protobuf@0.1.3
+Using cached moonbitlang/async@0.22.1
+Using cached Milky2018/zstd@0.1.3
+Using cached Milky2018/moon_yazi@0.1.3
+Using cached moonbit-community/flate@0.8.3
+Using cached yugonlian/moon-avro@0.3.0
+Using cached cc06b/mooncry@0.95.0
+/tmp/moonpulsar-native-plan-20260928/reports/interop-final-4.2.4/.mooncakes/moonbitlang/async/src/internal/event_loop/thread_pool.c: In function ‘cancellation_signal_handler’:
+/tmp/moonpulsar-native-plan-20260928/reports/interop-final-4.2.4/.mooncakes/moonbitlang/async/src/internal/event_loop/thread_pool.c:468:5: warning: ignoring return value of ‘write’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  468 |     write(pool.notify_send, &data, sizeof(data));
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Finished. moon: ran 84 tasks, now up to date

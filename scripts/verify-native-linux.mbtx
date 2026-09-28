@@ -1,0 +1,379 @@
+///|
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+}
+
+///|
+async fn check(
+  name : String,
+  cmd : @shell.Cmd,
+  report : String,
+  results? : Int,
+) -> Unit {
+  let output = cmd.output(timeout_ms=600000, max_output_bytes=16000000)
+  let log = output.stdout() + output.stderr()
+  @fs.write_file("\{report}/\{name}.log", log)
+  output.check()
+  if results is Some(expected) {
+    let mut found = 0
+    for line in log.split("\n") {
+      if line.contains("\"type\":\"result\"") {
+        let value = @json.parse(line)
+        guard value is { "type": "result", "message": "", .. } else {
+          fail("failed test: \{line}")
+        }
+        found += 1
+      }
+    }
+    assert_eq(found, expected)
+  }
+  println("PASS \{name}")
+}
+
+///|
+fn builder(
+  image : String,
+  work : String,
+  args : Array[String],
+  offline? : Bool = true,
+) -> @shell.Cmd {
+  let flags = [
+    "run",
+    "--rm",
+    "-v",
+    "\{work}:/work",
+    "-w",
+    "/work",
+    "-e",
+    "MOON_HOME=/work/toolchain",
+    "-e",
+    "HOME=/work/home",
+    "-e",
+    "PATH=/work/toolchain/bin:/usr/bin:/bin",
+  ]
+  if offline {
+    flags.push("--network=none")
+  }
+  flags.push(image)
+  flags.append(args)
+  @shell.Cmd("docker", flags)
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  let mut report = ""
+  let mut i = 1
+  while i < args.length() {
+    match args[i] {
+      "--" => i += 1
+      "--report-dir" if i + 1 < args.length() => {
+        report = args[i + 1]
+        i += 2
+      }
+      _ => fail("unknown argument: \{args[i]}")
+    }
+  }
+  if report == "" {
+    report = @fs.tmpdir(prefix="moonpulsar-linux-report-")
+  }
+  if !@fs.exists(report) {
+    @fs.mkdir(report, recursive=true)
+  }
+  let platform = @shell.Cmd("uname", ["-sm"]).output()
+  platform.check()
+  assert_true(platform.stdout().contains("Linux x86_64"))
+  @fs.write_file("\{report}/platform.log", platform.stdout())
+  let work = @fs.tmpdir(prefix="moonpulsar-linux-deps-")
+  @fs.write_file("\{report}/workspace.txt", work)
+  let home = @env.get_env_var("MOON_HOME").unwrap_or(
+    @env.get_env_var("HOME").unwrap() + "/.moon",
+  )
+  let build_image = "moonpulsar-native-build:20260928"
+  let build_flags = [
+    "build", "-t", build_image, "-f", "scripts/native-deps/Dockerfile",
+  ]
+  if @env.get_env_var("MOONPULSAR_NATIVE_BASE") is Some(base) {
+    assert_true(base.contains("@sha256:"))
+    build_flags.append(["--build-arg", "BASE_IMAGE=\{base}"])
+  }
+  build_flags.push("scripts/native-deps")
+  check("image-build", @shell.Cmd("docker", build_flags), report)
+  check(
+    "image-id",
+    @shell.Cmd("docker", ["image", "inspect", build_image]),
+    report,
+  )
+  check("package", @shell.Cmd("moon", ["package", "--list"]), report)
+  let archive = "_build/publish/pangbit-moonpulsar-0.1.0.zip"
+  check("archive-sha256", @shell.Cmd("sha256sum", [archive]), report)
+  let listing = @shell.Cmd("unzip", ["-Z1", archive]).output()
+  listing.check()
+  assert_true(listing.stdout().contains("native_support/openssl_abi.h"))
+  for excluded in ["native_zlib/", "scripts/", "testdata/"] {
+    assert_false(listing.stdout().contains(excluded))
+  }
+  check(
+    "unzip",
+    @shell.Cmd("unzip", ["-q", archive, "-d", "\{work}/library"]),
+    report,
+  )
+  @fs.mkdir("\{work}/toolchain", recursive=true)
+  @fs.mkdir("\{work}/home", recursive=true)
+  for dir in ["bin", "lib", "include"] {
+    check(
+      "toolchain-\{dir}",
+      @shell.Cmd("cp", ["-R", "\{home}/\{dir}", "\{work}/toolchain/\{dir}"]),
+      report,
+    )
+  }
+  check(
+    "dependency-cache",
+    @shell.Cmd("cp", ["-R", ".mooncakes", "\{work}/.mooncakes"]),
+    report,
+  )
+  @fs.mkdir("\{work}/consumer", recursive=true)
+  @fs.write_file(
+    "\{work}/moon.work",
+    "members = [\"./library\", \"./consumer\"]\n",
+  )
+  @fs.write_file(
+    "\{work}/consumer/moon.mod",
+    "name = \"audit/consumer\"\nversion = \"0.0.1\"\npreferred_target = \"native\"\nimport { \"pangbit/moonpulsar@0.1.0\", \"moonbitlang/async@0.22.1\" }\n",
+  )
+  @fs.write_file(
+    "\{work}/consumer/moon.pkg",
+    "import { \"pangbit/moonpulsar\" @pulsar, \"moonbitlang/async\" }\npkgtype(kind: \"executable\")\n",
+  )
+  @fs.write_file(
+    "\{work}/consumer/main.mbt",
+    @fs.read_file("scripts/native-deps/consumer.mbt"),
+  )
+  check(
+    "warm-dependencies",
+    builder(build_image, work, ["moon", "update"], offline=false),
+    report,
+  )
+  check("packages", builder(build_image, work, ["dpkg-query", "-W"]), report)
+  let packages = @fs.read_file("\{report}/packages.log").text()
+  assert_false(packages.contains("libssl-dev\t"))
+  assert_false(packages.contains("zlib1g-dev\t"))
+  for (name, header) in [("ssl", "openssl/ssl.h"), ("zlib", "zlib.h")] {
+    @fs.write_file("\{work}/\{name}.c", "#include <\{header}>\n")
+    let negative = builder(build_image, work, ["gcc", "-E", "-v", "\{name}.c"]).output()
+    @fs.write_file(
+      "\{report}/header-absent-\{name}.log",
+      negative.stdout() + negative.stderr(),
+    )
+    assert_true(
+      negative.exit_code() != 0 && negative.stderr().contains("No such file"),
+    )
+  }
+  // First build the unmodified ZIP as an external consumer, offline.
+  for mode in ["--debug", "--release"] {
+    check(
+      "A-consumer-\{mode}",
+      builder(build_image, work, [
+        "moon", "build", "--frozen", "--target", "native", mode,
+      ]),
+      report,
+    )
+  }
+  // Only test sources/fixtures are overlaid; product source and package configs
+  // remain byte-identical to the ZIP. Each executable checks the actual library.
+  for
+    file in [
+      "mock_broker_wbtest.mbt", "tls_wbtest.mbt", "message_crypto_test.mbt",
+    ] {
+    @fs.write_file("\{work}/library/\{file}", @fs.read_file(file))
+  }
+  @fs.write_file(
+    "\{work}/library/runtime_wbtest.mbt",
+    @fs.read_file("scripts/native-deps/runtime_test.mbt"),
+  )
+  check(
+    "fixtures",
+    @shell.Cmd("cp", ["-R", "testdata", "\{work}/library/testdata"]),
+    report,
+  )
+  let rootfs = "\{work}/rootfs"
+  @fs.mkdir("\{rootfs}/work", recursive=true)
+  check(
+    "rootfs-fixtures",
+    @shell.Cmd("cp", ["-R", "testdata", "\{rootfs}/testdata"]),
+    report,
+  )
+  for
+    path in [
+      "/lib64/ld-linux-x86-64.so.2", "/lib/x86_64-linux-gnu/libc.so.6", "/lib/x86_64-linux-gnu/libm.so.6",
+      "/lib/x86_64-linux-gnu/libgcc_s.so.1", "/lib/x86_64-linux-gnu/libpthread.so.0",
+      "/lib/x86_64-linux-gnu/libdl.so.2",
+    ] {
+    check(
+      "runtime-lib-\{path.split("/").last().unwrap()}",
+      @shell.Cmd("cp", ["-L", "--parents", path, rootfs]),
+      report,
+    )
+  }
+  check(
+    "build-probe",
+    @shell.Cmd("gcc", [
+      "scripts/native-deps/runtime_probe.c",
+      "-ldl",
+      "-o",
+      "\{rootfs}/probe",
+    ]),
+    report,
+  )
+  for mode in ["debug", "release"] {
+    check(
+      "A-build-tests-\{mode}",
+      builder(build_image, work, [
+        "moon",
+        "test",
+        "--build-only",
+        "--frozen",
+        "--target",
+        "native",
+        "--\{mode}",
+        "library",
+      ]),
+      report,
+    )
+    let base = "_build/native/\{mode}/test/pangbit/moonpulsar/moonpulsar"
+    for kind in ["whitebox", "blackbox"] {
+      let path = "\{base}.\{kind}_test.exe"
+      check(
+        "ldd-\{mode}-\{kind}",
+        @shell.Cmd("ldd", ["\{work}/\{path}"]),
+        report,
+      )
+      let deps = @fs.read_file("\{report}/ldd-\{mode}-\{kind}.log").text()
+      for name in ["libssl", "libcrypto", "libz.so"] {
+        assert_false(deps.contains(name))
+      }
+      check(
+        "copy-\{mode}-\{kind}",
+        @shell.Cmd("cp", ["\{work}/\{path}", "\{rootfs}/work/\{mode}-\{kind}"]),
+        report,
+      )
+    }
+    check(
+      "A-runtime-\{mode}",
+      builder(build_image, work, [
+        "sh",
+        "-c",
+        "cd library && ../\{base}.whitebox_test.exe runtime_wbtest.mbt:0-1",
+      ]),
+      report,
+      results=1,
+    )
+  }
+  @fs.write_file(
+    "\{work}/Dockerfile.runtime",
+    "FROM scratch\nCOPY rootfs/ /\nWORKDIR /\n",
+  )
+  let stamp = @async.now().to_string()
+  let b = "moonpulsar-native-b:\{stamp}"
+  let c = "moonpulsar-native-c:\{stamp}"
+  defer ignore(@shell.Cmd("docker", ["image", "rm", b, c]).output())
+  check(
+    "B-image",
+    @shell.Cmd("docker", [
+      "build",
+      "-t",
+      b,
+      "-f",
+      "\{work}/Dockerfile.runtime",
+      work,
+    ]),
+    report,
+  )
+  check(
+    "B-libraries-absent",
+    @shell.Cmd("docker", ["run", "--rm", "--network=none", b, "/probe"]),
+    report,
+  )
+  for mode in ["debug", "release"] {
+    check(
+      "B-runtime-\{mode}",
+      @shell.Cmd("docker", [
+        "run",
+        "--rm",
+        "--network=none",
+        b,
+        "/work/\{mode}-whitebox",
+        "runtime_wbtest.mbt:0-3",
+      ]),
+      report,
+      results=3,
+    )
+  }
+  for lib in ["libssl.so.3", "libcrypto.so.3"] {
+    check(
+      "C-\{lib}",
+      @shell.Cmd("cp", [
+        "-L",
+        "--parents",
+        "/lib/x86_64-linux-gnu/\{lib}",
+        rootfs,
+      ]),
+      report,
+    )
+  }
+  check(
+    "C-image",
+    @shell.Cmd("docker", [
+      "build",
+      "-t",
+      c,
+      "-f",
+      "\{work}/Dockerfile.runtime",
+      work,
+    ]),
+    report,
+  )
+  check(
+    "runtime-image-ids",
+    @shell.Cmd("docker", ["image", "inspect", b, c]),
+    report,
+  )
+  check("openssl-version", @shell.Cmd("openssl", ["version", "-a"]), report)
+  for mode in ["debug", "release"] {
+    check(
+      "C-TLS-\{mode}",
+      @shell.Cmd("docker", [
+        "run",
+        "--rm",
+        "--network=none",
+        c,
+        "/work/\{mode}-whitebox",
+        "runtime_wbtest.mbt:0-1/tls_wbtest.mbt:0-10",
+      ]),
+      report,
+      results=11,
+    )
+    check(
+      "C-crypto-\{mode}",
+      @shell.Cmd("docker", [
+        "run",
+        "--rm",
+        "--network=none",
+        c,
+        "/work/\{mode}-blackbox",
+        "message_crypto_test.mbt:0-8",
+      ]),
+      report,
+      results=8,
+    )
+  }
+  @fs.write_file(
+    "\{report}/status.txt",
+    "PASS Linux A offline header-free builds and base TCP/RSA/Zlib\nPASS Linux B real missing OpenSSL/zlib runtime\nPASS Linux C TLS/ECIES without development headers\n",
+  )
+  println("PASS Linux A/B/C; report: \{report}")
+}

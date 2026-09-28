@@ -16,15 +16,17 @@ OpenSSL 3 at feature use. RSA PEM parsing selects its algorithm before probing
 ECIES. The ABI table is checked against official headers with a failing negative
 control, and loader failures have isolated sanitizer checks. The root public
 API is unchanged; the `native_ecies` helper package adds `availability_error`.
-These changes require fresh Linux/Broker validation; historical live results
-below are not evidence for this new adapter build. System zlib headers/runtime
-remain required by the Java sync-flush fallback: the flate replacement boundary
-gate is unresolved. See the source repository's `scripts/ZLIB_BOUNDARY_FINDING.md`.
-The retained native Zlib fallback now verifies decoded empty stored-block
-boundaries instead of accepting a marker suffix alone. Local public-API tests
-reject the reproduced truncated-header case; ASan/UBSan checks passed 1000
-zlib-generated sync-flush/full-stream samples. Fresh Linux and Java/Broker
-interop validation for this boundary change remains pending.
+Java sync-flush decoding now uses a bounded pure MoonBit DEFLATE boundary
+scanner and the released flate decoder; the product has no system zlib
+dependency. Differential checks cover 1000 sync-flush and 1000 complete streams,
+18000 mutations, truncations and size mismatches. Linux isolated build/runtime
+environments verified absence of development headers and optional libraries,
+then TLS/ECIES with only OpenSSL runtime libraries restored. Fresh Pulsar
+4.2.4/3.3.9 runs passed mTLS, certificate rejection, three EC curves, RSA and
+Java/Go compressed chunk exchange. See the source repository's
+`scripts/ZLIB_BOUNDARY_PROOF.md` and `scripts/NATIVE_DEPENDENCY_COMPLETION.md`
+for acceptance details and evidence boundaries. Remote CI and registry
+publication are separate actions and have not been performed.
 
 | Capability | Status | Verification |
 | --- | --- | --- |

@@ -1,0 +1,5 @@
+/work/.mooncakes/moonbitlang/async/src/internal/event_loop/thread_pool.c: In function 'cancellation_signal_handler':
+/work/.mooncakes/moonbitlang/async/src/internal/event_loop/thread_pool.c:468:5: warning: ignoring return value of 'write' declared with attribute 'warn_unused_result' [-Wunused-result]
+  468 |     write(pool.notify_send, &data, sizeof(data));
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Finished. moon: ran 84 tasks, now up to date

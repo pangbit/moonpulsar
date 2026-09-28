@@ -1,0 +1,13 @@
+Go send compressed chunks: LZ4, Zlib, Zstd, Snappy OK
+MoonBit received lz4 chunks
+MoonBit received zlib chunks
+MoonBit received zstd chunks
+MoonBit received snappy chunks
+MoonBit exchanged compressed chunks with go
+Go receive compressed chunks: LZ4, Zlib, Zstd, Snappy OK
+Java send compressed chunks: LZ4, Zlib, Zstd OK
+MoonBit received lz4 chunks
+MoonBit received zlib chunks
+MoonBit received zstd chunks
+MoonBit exchanged compressed chunks with java
+Java receive compressed chunks: LZ4, Zlib, Zstd OK

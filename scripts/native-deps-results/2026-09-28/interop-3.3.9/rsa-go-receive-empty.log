@@ -1,0 +1,8 @@
+Pinned Go client empty-payload decryption limitation reproduced
+time="2026-09-28T15:48:29+08:00" level=info msg="Connecting to broker" remote_addr="pulsar+ssl://127.0.0.1:27666"
+time="2026-09-28T15:48:29+08:00" level=info msg="TCP connection established" local_addr="127.0.0.1:46766" remote_addr="pulsar+ssl://127.0.0.1:27666"
+time="2026-09-28T15:48:29+08:00" level=info msg="Connection is ready" local_addr="127.0.0.1:46766" remote_addr="pulsar+ssl://127.0.0.1:27666"
+time="2026-09-28T15:48:29+08:00" level=info msg="Connected consumer" consumerID=1 name=syudo subscription=moonpulsar-crypto-empty-go-1790581709055922187 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-empty"
+time="2026-09-28T15:48:29+08:00" level=info msg="Created consumer" consumerID=1 name=syudo subscription=moonpulsar-crypto-empty-go-1790581709055922187 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-empty"
+time="2026-09-28T15:48:29+08:00" level=info msg="Closing consumer=1" consumerID=1 name=syudo subscription=moonpulsar-crypto-empty-go-1790581709055922187 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-empty"
+time="2026-09-28T15:48:29+08:00" level=info msg="Closed consumer" consumerID=1 name=syudo subscription=moonpulsar-crypto-empty-go-1790581709055922187 topic="persistent://public/default/moonpulsar-native-interop-3.3.9-1790581636996-rsa-empty"

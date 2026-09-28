@@ -1,0 +1,3 @@
+PASS Linux A offline header-free builds and base TCP/RSA/Zlib
+PASS Linux B real missing OpenSSL/zlib runtime
+PASS Linux C TLS/ECIES without development headers

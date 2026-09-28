@@ -1,0 +1,14 @@
+Using cached yugonlian/moon-avro@0.3.0
+Using cached cc06b/mooncry@0.95.0
+Using cached Milky2018/moon_yazi@0.1.3
+Using cached Milky2018/zstd@0.1.3
+Using cached moonbit-community/flate@0.8.3
+Using cached moonbitlang/protobuf@0.1.3
+Using cached moonbitlang/async@0.22.1
+libtool: warning: 'watch_windows.o' has no symbols
+libtool: warning: 'epoll.o' has no symbols
+libtool: warning: 'iocp.o' has no symbols
+libtool: warning: 'io_windows.o' has no symbols
+libtool: warning: 'stub.o' has no symbols
+libtool: warning: 'schannel.o' has no symbols
+Finished. moon: ran 85 tasks, now up to date

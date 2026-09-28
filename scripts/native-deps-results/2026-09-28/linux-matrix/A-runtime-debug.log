@@ -1,0 +1,6 @@
+----- BEGIN MOON TEST RESULT -----
+{"type":"start","file":"runtime_wbtest.mbt","index":0}
+----- END MOON TEST RESULT -----
+----- BEGIN MOON TEST RESULT -----
+{"type":"result","file":"runtime_wbtest.mbt","index":0,"message":""}
+----- END MOON TEST RESULT -----

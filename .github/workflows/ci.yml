@@ -10,6 +10,28 @@ permissions:
   contents: read
 
 jobs:
+  native-dependencies:
+    name: Linux native dependency matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - run: moon update
+      - name: Verify ZIP in isolated build and runtime environments
+        run: moon run scripts/verify-native-deps.mbtx -- --report-dir /tmp/moonpulsar-native-matrix
+      - name: Preserve matrix evidence and candidate archive
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-dependency-matrix
+          path: |
+            /tmp/moonpulsar-native-matrix/
+            _build/publish/*.zip
+
   openssl-abi:
     name: OpenSSL ABI (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -34,12 +56,18 @@ jobs:
         run: moon run scripts/verify-native-abi.mbtx -- --report-dir /tmp/moonpulsar-abi
       - name: Verify native zlib boundaries with sanitizers
         run: moon run scripts/verify-zlib-boundary.mbtx
+      - name: Verify pure Zlib differential and performance gate
+        env:
+          MOONPULSAR_ZLIB_REPORT: /tmp/moonpulsar-zlib-gate
+        run: moon run scripts/verify-zlib-replacement.mbtx
       - name: Preserve ABI diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: openssl-abi-${{ matrix.os }}
-          path: /tmp/moonpulsar-abi/*.log
+          path: |
+            /tmp/moonpulsar-abi/*.log
+            /tmp/moonpulsar-zlib-gate/*.log
 
   broker-regression:
     name: broker regression (${{ matrix.pulsar }})
@@ -61,6 +89,18 @@ jobs:
       - name: Update MoonBit dependencies
         run: moon update
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: interop/go/go.mod
+          cache-dependency-path: interop/go/go.sum
+
+      - name: Verify TLS and encrypted Go/Java interoperability
+        run: moon run scripts/verify-native-interop.mbtx -- --pulsar-version "${{ matrix.pulsar }}" --report-dir /tmp/moonpulsar-native-interop
+
+      - name: Verify Go and Java compressed chunks
+        shell: bash
+        run: bash scripts/test-chunk-interop-live.sh "${{ matrix.pulsar }}" 2>&1 | tee broker-interop-chunk.log
+
       - name: Verify chunk and receive-queue memory behavior
         shell: bash
         run: bash scripts/test-chunk-live.sh "${{ matrix.pulsar }}" 2>&1 | tee broker-chunk.log
@@ -69,12 +109,14 @@ jobs:
         shell: bash
         run: bash scripts/test-time-seek-live.sh "${{ matrix.pulsar }}" 2>&1 | tee broker-seek.log
 
-      - name: Upload broker failure logs
-        if: failure()
+      - name: Upload broker verification logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: broker-logs-${{ matrix.pulsar }}
-          path: broker-*.log
+          path: |
+            broker-*.log
+            /tmp/moonpulsar-native-interop/*.log
           if-no-files-found: ignore
 
   test:

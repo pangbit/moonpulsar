@@ -1,0 +1,19 @@
+{"artifacts_path":["/work/_build/native/release/test/pangbit/moonpulsar/moonpulsar.blackbox_test.exe","/work/_build/native/release/test/pangbit/moonpulsar/moonpulsar.whitebox_test.exe"]}
+/work/.mooncakes/moonbitlang/async/src/internal/event_loop/thread_pool.c: In function 'cancellation_signal_handler':
+/work/.mooncakes/moonbitlang/async/src/internal/event_loop/thread_pool.c:468:5: warning: ignoring return value of 'write' declared with attribute 'warn_unused_result' [-Wunused-result]
+  468 |     write(pool.notify_send, &data, sizeof(data));
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Warning: [0001]
+    ╭─[ /work/library/mock_broker_wbtest.mbt:53:14 ]
+    │
+ 53 │ fn MockPeer::unread(self : MockPeer, frame : IncomingFrame) -> Unit {
+    │              ───┬──  
+    │                 ╰──── Warning (unused_value): Unused function 'unread'
+────╯
+Warning: [0029]
+    ╭─[ /work/library/moon.pkg:30:3 ]
+    │
+ 30 │   "moonbitlang/core/env",
+    │   ───────────┬──────────  
+    │              ╰──────────── Warning (unused_package): Unused package 'moonbitlang/core/env'
+────╯

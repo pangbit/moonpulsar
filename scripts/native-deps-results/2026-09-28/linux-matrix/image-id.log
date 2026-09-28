@@ -1,0 +1,58 @@
+[
+    {
+        "Id": "sha256:e6942d7c0b825cec741301f20b35433ad436d97239e7ccbb80d34cb032a4dbf6",
+        "RepoTags": [
+            "moonpulsar-native-build:20260928"
+        ],
+        "RepoDigests": [
+            "moonpulsar-native-build@sha256:e6942d7c0b825cec741301f20b35433ad436d97239e7ccbb80d34cb032a4dbf6"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-09-28T15:09:55.713364928+08:00",
+        "Config": {
+            "Env": [
+                "PATH=/toolchain/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "MOON_HOME=/toolchain"
+            ],
+            "Cmd": [
+                "/bin/bash"
+            ],
+            "Labels": {
+                "author": "dev@z.cn",
+                "description": "zcloud k8s base container",
+                "org.opencontainers.image.ref.name": "ubuntu",
+                "org.opencontainers.image.version": "24.04",
+                "version": "1.0.0"
+            },
+            "ArgsEscaped": true
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 179373118,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:a30a5965a4f7d9d5ff76a46eb8939f58e95be844de1ac4a4b452d5d31158fdea",
+                "sha256:b850ea8d28e1ee92d2ad46cd3f1edbdf368f78203a3597a344a86376abce1bdc",
+                "sha256:98dc630b7fc2add45d6731c7b50f0ae251494f844579056c189d2b3f7a185f57",
+                "sha256:98c2bb698a74eb3e3b1f173bafa4af750870a8a0a602a01708a73fb4791c4db1"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-09-28T07:45:16.922571914Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:e6942d7c0b825cec741301f20b35433ad436d97239e7ccbb80d34cb032a4dbf6",
+            "size": 856
+        },
+        "Identity": {
+            "Build": [
+                {
+                    "Ref": "z5p768bno13jdm0gxwqdg6w18",
+                    "CreatedAt": "2026-09-28T15:45:16.939889883+08:00"
+                }
+            ]
+        }
+    }
+]

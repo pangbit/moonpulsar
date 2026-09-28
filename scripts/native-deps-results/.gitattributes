@@ -1,0 +1,2 @@
+# Preserve tool diagnostics verbatim, including terminal alignment and EOF lines.
+*.log -whitespace
