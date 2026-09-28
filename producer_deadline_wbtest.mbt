@@ -301,10 +301,14 @@ async test "send deadline starts after waiting for producer admission" {
       "persistent://public/default/admission-clock",
       max_pending_messages=1,
       block_if_queue_full=true,
-      send_timeout_ms=150,
+      send_timeout_ms=2000,
     )
     let first = producer.send_async(ProducerMessage::new(b"first"))
+    let first_deadline = producer.deadlines.heap[0].1
     let second = producer.send_async(ProducerMessage::new(b"second"))
+    // Admission waits for the first timeout. The second send must get a fresh
+    // deadline, independently of how promptly the OS schedules its receipt.
+    assert_true(producer.deadlines.heap[0].1 >= first_deadline + 1000L)
     let result : Result[SendReceipt, Error] = Ok(first.wait()) catch {
       e => Err(e)
     }

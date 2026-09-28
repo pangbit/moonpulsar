@@ -46,7 +46,11 @@ async fn start_mock_certificate_zts(
             "HTTP/1.1 \{status} Result\r\nContent-Length: \{response_body.length()}\r\nConnection: close\r\n\r\n\{response_body}"
         }
         tls.write(@utf8.encode(response))
-        tls.shutdown()
+        // The client may close after reading a retryable HTTP response.
+        // A close-notify failure must not prevent accepting the retry.
+        tls.shutdown() catch {
+          _ => ()
+        }
         tls.close()
         tcp.close()
       }

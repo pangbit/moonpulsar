@@ -329,21 +329,22 @@ async test "batched send timeout includes time spent waiting for flush" {
       manager.get(addr),
       "persistent://public/default/batch-inflight-timeout",
       batching={ max_messages: 10, max_bytes: 1000, max_delay_ms: 60000, },
-      send_timeout_ms=200,
+      send_timeout_ms=2000,
     )
     let future = producer.send_async(ProducerMessage::new(b"late"))
-    @async.sleep(150)
+    let original_deadline = producer.deadlines.heap[0].1
+    @async.sleep(50)
     producer.flush()
-    let flushed_at = @async.now()
+    // Assert the deadline itself: scheduler latency must not decide whether
+    // flush preserved the admission time or restarted the timeout.
+    assert_eq(producer.deadlines.heap[0].1, original_deadline)
     let result : Result[SendReceipt, Error] = Ok(
-      @async.with_timeout(1000, async fn() { future.wait() }),
+      @async.with_timeout(5000, async fn() { future.wait() }),
     ) catch {
       e => Err(e)
     }
-    let since_flush = @async.now() - flushed_at
     release.put(())
     assert_true(result is Err(RequestTimeout))
-    assert_true(since_flush < 130L)
     producer.close()
     manager.close()
   })
