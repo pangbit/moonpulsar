@@ -42,3 +42,23 @@ Any future integration must test normal zlib headers/checksums separately,
 declared lengths and output bounds, full consumption, forged suffixes,
 truncation at every position, and Java interoperability. No `.mooncakes`
 cache files were modified and no upstream issue/PR was submitted.
+
+## Follow-up: the retained native decoder required the same correction
+
+The wrapped version of the truncated example was reproduced against the
+existing public `decompress(Zlib, ..., uncompressed_size=5)` path: it incorrectly
+returned `hello`. A regression test failed before the change and passed after it.
+
+The native fallback now uses `inflate(..., Z_BLOCK)` and the documented
+`data_type` boundary/unused-bit indicators to locate each block. Acceptance
+requires a fully decoded, non-final, empty stored block ending byte-aligned,
+exact output size and complete input consumption. A complete final stream
+still requires a valid Adler checksum. This follows the
+[zlib inflate contract](https://zlib.net/manual.html), not the suffix alone.
+
+`moon run scripts/verify-zlib-boundary.mbtx` validates the product C stub under
+ASan/UBSan with the counterexamples and 1000 deterministic zlib-generated
+sync-flush/full-stream samples, levels 0–9 and sizes up to 256 KiB. It replaces
+only the MoonBit output allocator in the harness; real zlib performs decoding.
+LeakSanitizer is disabled. The regular MoonBit tests cover the public wrapper.
+This validates the retained native path; P1/P3 remain blocked for pure MoonBit.

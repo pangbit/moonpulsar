@@ -1,0 +1,46 @@
+///|
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn main {
+  let report = @fs.tmpdir(prefix="moonpulsar-zlib-boundary-")
+  let home = @env.get_env_var("MOON_HOME").unwrap_or(
+    @env.get_env_var("HOME").unwrap() + "/.moon",
+  )
+  let compiler = @env.get_env_var("CC").unwrap_or("cc")
+  let flags = [
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-g",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-I\{home}/include",
+    "scripts/native-deps/zlib_boundary_check.c",
+    "-lz",
+    "-o",
+    "\{report}/boundary-check",
+  ]
+  let platform = @shell.Cmd("uname", ["-s"]).output()
+  platform.check()
+  if !platform.stdout().contains("Darwin") {
+    flags.push("-ldl")
+  }
+  let build = @shell.Cmd(compiler, flags).output(timeout_ms=60000)
+  @fs.write_file("\{report}/build.log", build.stdout() + build.stderr())
+  build.check()
+  let run = @shell.Cmd("\{report}/boundary-check", [], env={
+    "ASAN_OPTIONS": "detect_leaks=0",
+    "UBSAN_OPTIONS": "halt_on_error=1",
+  }).output(timeout_ms=60000)
+  @fs.write_file("\{report}/run.log", run.stdout() + run.stderr())
+  println("Report: \{report}")
+  run.check()
+  println(run.stdout())
+}

@@ -75,6 +75,54 @@ test "zlib accepts official Java sync flush with declared size" {
 }
 
 ///|
+test "zlib rejects truncated stored header with forged sync flush suffix" {
+  let valid = b"\x78\x9c\x00\x05\x00\xfa\xffhello\x00\x00\x00\xff\xff"
+  assert_eq(decompress(Zlib, valid, uncompressed_size=5), b"hello")
+  let truncated = b"\x78\x9c\x00\x05\x00\xfa\xffhello\x00\x00\xff\xff"
+  let result : Result[Bytes, Error] = Ok(
+    decompress(Zlib, truncated, uncompressed_size=5),
+  ) catch {
+    error => Err(error)
+  }
+  assert_true(result is Err(InvalidFrame(_)))
+}
+
+///|
+test "native zlib requires a decoded empty stored block boundary" {
+  let valid = b"\x78\x9c\x00\x05\x00\xfa\xffhello\x00\x00\x00\xff\xff"
+  let fixed = b"\x78\x9c\xca\x48\xcd\xc9\xc9\x07\x00\x00\x00\xff\xff"
+  let multiple = b"\x78\x9c\x00\x02\x00\xfd\xffhe\x00\x00\x00\xff\xff\x00\x03\x00\xfc\xffllo\x00\x00\x00\xff\xff"
+  for bytes in [valid, fixed, multiple] {
+    assert_eq(@native_zlib.decompress_exact(bytes, 5), Some(b"hello"))
+    for size in [0, -1, 4, 6] {
+      assert_eq(@native_zlib.decompress_exact(bytes, size), None)
+    }
+  }
+  for bytes in [valid, fixed] {
+    for end in 0..<bytes.length() {
+      assert_eq(@native_zlib.decompress_exact(bytes[:end].to_owned(), 5), None)
+    }
+  }
+  // A complete nonempty stored block with marker-looking payload is not a flush.
+  let forged = b"\x78\x9c\x00\x05\x00\xfa\xffx\x00\x00\xff\xff"
+  assert_eq(@native_zlib.decompress_exact(forged, 5), None)
+  // A final stored block requires its Adler trailer even when it is empty.
+  let final_without_checksum = b"\x78\x9c\x00\x05\x00\xfa\xffhello\x01\x00\x00\xff\xff"
+  assert_eq(@native_zlib.decompress_exact(final_without_checksum, 5), None)
+  let garbage = @buffer.Buffer()
+  garbage.write_bytes(valid)
+  garbage.write_byte(b'\x00')
+  assert_eq(@native_zlib.decompress_exact(garbage.to_bytes(), 5), None)
+  let complete = compress(Zlib, b"hello")
+  assert_eq(@native_zlib.decompress_exact(complete, 5), Some(b"hello"))
+  // Rebuild with a corrupt checksum without relying on mutable Bytes.
+  let bad_checksum = @buffer.Buffer()
+  bad_checksum.write_bytes(complete[:complete.length() - 1])
+  bad_checksum.write_byte(complete[complete.length() - 1] ^ b'\x01')
+  assert_eq(@native_zlib.decompress_exact(bad_checksum.to_bytes(), 5), None)
+}
+
+///|
 test "zstd roundtrip" {
   let data = sample_data()
   assert_eq(decompress(Zstd, compress(Zstd, data)), data)

@@ -46,12 +46,40 @@ moonbit_bytes_t moonpulsar_zlib_uncompress_exact(
   stream.next_out = (Bytef *)scratch;
   stream.avail_out = (uInt)output_length + 1;
   int initialized = initialize(&stream, ZLIB_VERSION, sizeof(stream));
-  int result = initialized == Z_OK ? inflate_step(&stream, Z_SYNC_FLUSH) : initialized;
+  int result = initialized;
+  int sync_flushed = 0;
+  int have_block_start = 0;
+  if (initialized == Z_OK) {
+    for (;;) {
+      uLong before_in = stream.total_in;
+      uLong before_out = stream.total_out;
+      int before_type = stream.data_type;
+      /* Z_BLOCK first stops after the zlib header, then after each block.
+       * At a boundary, data_type's low bits count unused input bits.
+       * Remember the next block's actual bit offset, including shared bytes. */
+      uint64_t start_bit = (uint64_t)before_in * 8 - (before_type & 63);
+      result = inflate_step(&stream, Z_BLOCK);
+      sync_flushed = 0;
+      if (result == Z_OK && have_block_start && stream.data_type == 128 &&
+          stream.total_out == before_out && start_bit + 3 <= (uint64_t)input_length * 8) {
+        unsigned header = 0;
+        for (unsigned bit = 0; bit < 3; bit++) {
+          uint64_t offset = start_bit + bit;
+          header |= ((input[offset / 8] >> (offset % 8)) & 1u) << bit;
+        }
+        /* Exactly an empty, non-final stored block ending byte-aligned.
+         * Unlike a marker suffix, this proves LEN/NLEN were fully decoded. */
+        sync_flushed = header == 0;
+      }
+      have_block_start = (stream.data_type & 128) != 0;
+      if (result != Z_OK || stream.avail_in == 0 || stream.avail_out == 0 ||
+          (stream.total_in == before_in && stream.total_out == before_out &&
+           stream.data_type == before_type)) {
+        break;
+      }
+    }
+  }
   int complete = result == Z_STREAM_END;
-  /* Java's Pulsar codec emits a final sync flush without an Adler trailer. */
-  int sync_flushed = result == Z_OK &&
-      input[input_length - 4] == 0 && input[input_length - 3] == 0 &&
-      input[input_length - 2] == 0xff && input[input_length - 1] == 0xff;
   int valid = (complete || sync_flushed) && stream.avail_in == 0 &&
       stream.total_out == (uLong)output_length;
   if (initialized == Z_OK) {

@@ -20,6 +20,11 @@ These changes require fresh Linux/Broker validation; historical live results
 below are not evidence for this new adapter build. System zlib headers/runtime
 remain required by the Java sync-flush fallback: the flate replacement boundary
 gate is unresolved. See the source repository's `scripts/ZLIB_BOUNDARY_FINDING.md`.
+The retained native Zlib fallback now verifies decoded empty stored-block
+boundaries instead of accepting a marker suffix alone. Local public-API tests
+reject the reproduced truncated-header case; ASan/UBSan checks passed 1000
+zlib-generated sync-flush/full-stream samples. Fresh Linux and Java/Broker
+interop validation for this boundary change remains pending.
 
 | Capability | Status | Verification |
 | --- | --- | --- |
