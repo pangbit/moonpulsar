@@ -68,12 +68,18 @@ async test "custom CA is reused after reconnect" {
       group,
       "pulsar+ssl://\{addr}",
       "testdata/tls/server.crt",
-    )
-    let first = client.manager.get(addr)
+    ) catch {
+      e => fail("initial custom-CA connection: \{e}")
+    }
+    let first = client.manager.get(addr) catch {
+      e => fail("cached custom-CA connection: \{e}")
+    }
     first.close()
     let second = @async.with_timeout(5000, async fn() {
       client.manager.get(addr)
-    })
+    }) catch {
+      e => fail("replacement custom-CA connection: \{e}")
+    }
     assert_true(!second.is_closed())
     client.close()
   })

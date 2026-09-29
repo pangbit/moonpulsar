@@ -1,7 +1,9 @@
 # 原生依赖方案最终验收（2026-09-28）
 
 用户授权在 `root@192.168.12.111` 的隔离环境继续执行并保持本地提交记录。
-历史基线和中途停止原因保留在 [分批结果](NATIVE_DEPENDENCY_RESULT.md)。
+历史基线和分批执行记录可从[固定提交中的分批结果](https://github.com/pangbit/moonpulsar/blob/3ba160e82a356a17c3a7358f3ad739625dbb715d/scripts/NATIVE_DEPENDENCY_RESULT.md)恢复。
+
+关键取舍：最初的 flate 状态查询不能区分合法同步刷新边界与截断块头，因此停止直接替换；保留的 native Zlib 路径也暴露了同类接受错误，先修复它并保留作差分参考，再采用独立结构扫描器加已发布 flate API 完成纯 MoonBit 替换。详见[最初反例](ZLIB_BOUNDARY_FINDING.md)和[边界证明](ZLIB_BOUNDARY_PROOF.md)。OpenSSL 仅移除编译头文件要求，增强 TLS/ECIES 的运行库要求仍保留。
 **P0–P5 本地及指定 Linux 验收完成。** 同一候选 ZIP 已通过 Linux A/B/C 和 macOS 外部消费者及缺库检查，双版本真实 Broker 互通通过。云端 CI 尚未触发，未执行发布。
 
 完整回归：macOS 与 Linux 的 `moon test`、`moon test --release` 均为 **326/326**；`moon check --deny-warn`、`moon info`、`moon fmt --check`、`moon doc` 与 diff 检查通过。根 `.mbti` 无变化，README 软链接保留。
@@ -27,7 +29,7 @@ Linux 保存于 `reports/matrix-final-r2/candidate.zip`，macOS 保存于 `/priv
 
 macOS arm64：Apple Clang 21、OpenSSL 3.6.3。Linux x86_64：Ubuntu 24.04、GCC 13.3、OpenSSL 3.0.13。两端 Moon 0.1.20260920（914d7da）、moonc v0.10.14+7d59c7ec9；async 0.22.1、flate 0.8.3。
 
-Linux 工作区为 `/tmp/moonpulsar-native-plan-20260928/source`，报告根目录为同级 `reports/`。只创建和清理本批命名的容器；没有修改或重启既有 Broker、安全服务。原始日志仍留在测试机器；关键证据归档于 [native-deps-results/2026-09-28](native-deps-results/2026-09-28/)。不会归档临时证书私钥。
+Linux 工作区为 `/tmp/moonpulsar-native-plan-20260928/source`，报告根目录为同级 `reports/`。只创建和清理本批命名的容器；没有修改或重启既有 Broker、安全服务。原始日志仍留在测试机器；关键证据归档于 [native-deps-results/2026-09-28](../../../scripts/native-deps-results/2026-09-28/)。不会归档临时证书私钥。
 
 实际 A 组使用可达的固定 Ubuntu 镜像：
 `hub.chinaddos.com/ubuntu@sha256:95fc3d15a7c1c081b6038983ce83b1bf6cfc05c6ce7fb47737223de4ce90f6eb`。

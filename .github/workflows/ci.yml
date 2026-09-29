@@ -49,6 +49,8 @@ jobs:
       - name: Install ABI reference headers (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libssl-dev zlib1g-dev
+      - name: Update MoonBit dependencies
+        run: moon update
       - name: Install ABI reference headers (macOS)
         if: runner.os == 'macOS'
         run: brew install openssl@3
@@ -149,7 +151,9 @@ jobs:
         run: moon bench --release --target native --build-only -p pangbit/moonpulsar -f performance_wbtest.mbt
 
       - name: Check formatting
-        run: moon fmt --check
+        run: |
+          moon fmt --check
+          moon fmt scripts/check-doc-links.mbtx --check
 
       - name: Check generated interfaces
         run: |
@@ -161,6 +165,9 @@ jobs:
 
       - name: Create release archive
         run: moon package --list
+
+      - name: Check repository and package documentation links
+        run: moon run scripts/check-doc-links.mbtx -- --archive _build/publish/pangbit-moonpulsar-0.1.0.zip
 
       - name: Verify published OpenSSL boundary (partial native-dependency scope)
         run: moon run scripts/verify-native-deps.mbtx -- --openssl-only --report-dir /tmp/moonpulsar-openssl-deps

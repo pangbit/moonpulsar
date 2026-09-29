@@ -21,7 +21,7 @@ cargo test --release --locked
 cargo build --release --locked
 ```
 
-Use the environment variables documented in [PERFORMANCE.md](../PERFORMANCE.md)
+Use the environment variables documented in [Performance testing](../docs/performance.md)
 for all three executables. Run a producer and consumer against a fresh dedicated
 topic for each pair. Use equal CPU affinity budgets, set `GOMAXPROCS=1`, and keep
 the consumer measurement window within sustained production. The Rust adapter

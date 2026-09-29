@@ -1,14 +1,21 @@
 # Pulsar client capability and test matrix
 
-Performance coverage is tracked separately in [PERFORMANCE.md](PERFORMANCE.md):
+Performance coverage is tracked separately in [Performance testing](performance.md):
 local codec/routing/batch microbenchmarks and an explicit Broker throughput and
 send-receipt latency harness. Functional/live compatibility results below are
 not performance baselines; no performance regression threshold is enforced.
 
 Compared with the public APIs of [pulsar-rs](https://github.com/streamnative/pulsar-rs)
 and [pulsar-client-go](https://github.com/apache/pulsar-client-go). This is a
-functional comparison, not an API-by-API claim of parity. Status reflects the
-repository on 2026-09-25.
+functional comparison, not an API-by-API claim of parity.
+
+The Status column describes the 0.1.0 candidate source in this checkout.
+The Verification column summarizes historical runs recorded through 2026-09-28;
+it is not a passing result for every later commit. The original matrix was
+recorded on 2026-09-25, with the native dependency update below on 2026-09-28.
+Entries without a linked run and source revision are historical coverage notes,
+not independently reproducible acceptance evidence. For a release, record the
+candidate commit, commands, environment and results using the [release process](releasing.md).
 
 Native dependency update (2026-09-28, local validation): the enhanced TLS and
 ECIES adapters no longer require OpenSSL development headers; they still load
@@ -21,12 +28,12 @@ scanner and the released flate decoder; the product has no system zlib
 dependency. Differential checks cover 1000 sync-flush and 1000 complete streams,
 18000 mutations, truncations and size mismatches. Linux isolated build/runtime
 environments verified absence of development headers and optional libraries,
-then TLS/ECIES with only OpenSSL runtime libraries restored. Fresh Pulsar
-4.2.4/3.3.9 runs passed mTLS, certificate rejection, three EC curves, RSA and
+then TLS/ECIES with only OpenSSL runtime libraries restored. Pulsar
+4.2.4/3.3.9 runs recorded in that update passed mTLS, certificate rejection, three EC curves, RSA and
 Java/Go compressed chunk exchange. See the source repository's
-`scripts/ZLIB_BOUNDARY_PROOF.md` and `scripts/NATIVE_DEPENDENCY_COMPLETION.md`
+[boundary proof](https://github.com/pangbit/moonpulsar/blob/main/docs/archive/native-deps-2026-09/ZLIB_BOUNDARY_PROOF.md) and [completion report](https://github.com/pangbit/moonpulsar/blob/main/docs/archive/native-deps-2026-09/NATIVE_DEPENDENCY_COMPLETION.md)
 for acceptance details and evidence boundaries. Remote CI and registry
-publication are separate actions and have not been performed.
+publication were separate, unperformed actions at the time of that report.
 
 | Capability | Status | Verification |
 | --- | --- | --- |
@@ -59,16 +66,17 @@ publication are separate actions and have not been performed.
 | Producer and consumer interceptors, events, tracing, metrics | Producer and consumer hooks implemented. `ClientOptions::new(on_event=...)` reports structured send, receive/try-receive success and failure, ACK/nack and producer/consumer reconnect events; `ClientMetrics` counts outcomes including receive and negative-ACK failures. Optional on_span callbacks emit paired send, receive, ACK and reconnect spans with correlation IDs, results and durations; ClientMetrics exports fixed-label Prometheus counters and millisecond histograms | Producer mocks cover order, routing, failures, async completion and replay; consumer mocks cover message and ID ACK, nack, rejected confirmed ACK, blocking/nonblocking receive-after-close failure and composite delivery; reconnect event and metrics classification tests; 4.2.4/3.3.9 callback and counter roundtrips; mock span pairing, asynchronous receipt, closed-operation failures, broker-rejected ACK, cancellation and reconnect, plus histogram buckets/sum and label bound; 4.2.4 and isolated 3.3.9 live span exporters exercised |
 | Message encryption | RSA-OAEP-SHA1 key wrapping and AES-256-GCM payload encryption/decryption implemented for producer, consumer, reader and TableView; explicit file reload or synchronous named-key callbacks support rotation. Encrypted retry/DLQ messages are re-encrypted when a recipient key is supplied. Consumer/Reader decryption failure policies `Fail` (default), `Consume` (ciphertext; non-batched only) and `Discard` are implemented. P-256, P-384 and P-521 ECIES key wrapping is implemented with OpenSSL 3; other key-wrapping algorithms remain open. The pinned Go client exposes the 16-byte GCM tag for MoonBit's encrypted empty payload because its consumer does not replace the payload buffer when `UncompressedSize=0`; Go-to-MoonBit empty payload works | Local fresh-key, tamper, missing/wrong-key, multi-recipient, file and callback rotation, malformed-PEM and empty-payload tests; mock policy tests cover default failure, ciphertext delivery and ACK, encrypted-batch rejection, discard ACK and replacement FLOW, and Reader skip. Official Go client exchanged encrypted single, Zlib-compressed and batched messages with MoonBit on 4.2.4 and isolated 3.3.9. Live empty-payload Go-to-MoonBit consumer and Reader checks passed on both versions; `receive-empty` reproduces the Go-side limit on both. Live Reader, typed TableView, retry, DLQ, no-key failure, Consume ciphertext ACK and Discard skip/ACK paths passed on both versions. Official Java client exchanged P-256, P-384 and P-521 ECIES messages with MoonBit in both directions on isolated 4.2.4 and 3.3.9 brokers; local EC rotation, tampering and mixed RSA/EC recipients passed on macOS and Linux. The pinned Go client only accepts RSA encryption keys. Bidirectional RSA/Go and P-521 ECIES/Java exchanges over mutually authenticated TLS passed on isolated 4.2.4 and 3.3.9 brokers |
 | Full Admin REST surface | Outside the data-client parity target | Only listed topic/subscription endpoints are implemented |
-| Broker version compatibility | Current live regression suite passes on 4.2.4 and 3.3.9 | 4.2.4 test container and isolated 3.3.9 container with transaction coordinator enabled exercised `examples/live_capabilities` with Admin REST; separate isolated 4.2.4 and 3.3.9 containers exercised `examples/memory_budget` in an independent namespace |
+| Broker version compatibility | Historical live runs covered 4.2.4 and 3.3.9; rerun for the release candidate | 4.2.4 test container and isolated 3.3.9 container with transaction coordinator enabled exercised `examples/live_capabilities` with Admin REST; separate isolated 4.2.4 and 3.3.9 containers exercised `examples/memory_budget` in an independent namespace |
 
 `moon test --target native` runs the in-process mock suite. The
 `examples/live_capabilities` program exercises an authenticated Pulsar broker;
 set `PULSAR_ADMIN_URL` to include Admin REST checks. The live program is not
 part of `moon test` and requires a broker. `moon coverage` measures mock-suite
 line execution and therefore does not include the live program's execution.
-The mock suite does not yet reach full library line coverage. The current
-`moon coverage analyze` output still flags connection and Reader branches;
-live examples are not included in that report. Malformed frame lengths and
+Historical `moon coverage analyze` results showed uncovered connection and
+Reader branches. No current-commit coverage percentage is asserted here;
+regenerate coverage for the candidate being assessed. Live examples are not
+included in the mock coverage report. Malformed frame lengths and
 missing handshake metadata have executable regression tests.
 
 The CI broker matrix runs the isolated chunk/receive-queue memory and timestamp

@@ -1,0 +1,118 @@
+///|
+// Check inline Markdown file links in the checkout and, optionally, a ZIP.
+// Repository URLs are checked against local files, not fetched over the network.
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+fn normalize(path : String) -> String {
+  let parts : Array[String] = []
+  for part in path.split("/") {
+    match part.to_owned() {
+      "" | "." => ()
+      ".." => ignore(parts.pop())
+      value => parts.push(value)
+    }
+  }
+  parts.join("/")
+}
+
+///|
+async fn check_links(
+  path : String,
+  content : String,
+  archive_files : Set[String]?,
+) -> Int {
+  let parts = path.split("/").to_array()
+  let base = parts[:parts.length() - 1]
+    .to_owned()
+    .map(v => v.to_owned())
+    .join("/")
+  let chunks = content.split("](").to_array()
+  let mut count = 0
+  for i in 1..<chunks.length() {
+    let target = chunks[i].to_owned().split(")").to_array()[0].to_owned()
+    let file = target.split("#").to_array()[0].to_owned()
+    if file.is_empty() || file.has_prefix("mailto:") {
+      continue
+    }
+    let mut repo_path : String? = None
+    for kind in ["blob", "tree"] {
+      let prefix = "https://github.com/pangbit/moonpulsar/\{kind}/main/"
+      if file.has_prefix(prefix) {
+        repo_path = Some(file[prefix.length():].to_owned())
+      }
+    }
+    if repo_path is Some(resolved) {
+      assert_true(
+        @fs.exists(resolved),
+        msg="missing repository target: \{path} -> \{target}",
+      )
+    } else if !file.contains("://") {
+      let resolved = normalize(base + "/" + file)
+      let exists = match archive_files {
+        Some(files) => files.contains(resolved)
+        None => @fs.exists(resolved)
+      }
+      assert_true(exists, msg="missing local target: \{path} -> \{target}")
+    } else {
+      continue
+    }
+    count += 1
+  }
+  count
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  let mut archive : String? = None
+  let mut i = 1
+  while i < args.length() {
+    match args[i] {
+      "--" => i += 1
+      "--archive" if i + 1 < args.length() => {
+        archive = Some(args[i + 1])
+        i += 2
+      }
+      _ => fail("usage: check-doc-links.mbtx [--archive module.zip]")
+    }
+  }
+  let listing = @shell.Cmd("git", [
+    "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.md",
+  ]).output()
+  listing.check()
+  let mut count = 0
+  for item in listing.stdout().split("\n") {
+    let path = item.to_owned()
+    if path.is_empty() || !@fs.exists(path) {
+      continue
+    }
+    count += check_links(path, @fs.read_file(path).text(), None)
+  }
+  println("PASS checkout: \{count} file links")
+  if archive is Some(zip) {
+    let listing = @shell.Cmd("unzip", ["-Z1", zip]).output()
+    listing.check()
+    let files : Set[String] = Set([])
+    for path in listing.stdout().split("\n") {
+      if !path.is_empty() {
+        files.add(path.to_owned())
+      }
+    }
+    let mut count = 0
+    for path in files {
+      if !path.has_suffix(".md") {
+        continue
+      }
+      let content = @shell.Cmd("unzip", ["-p", zip, path]).output()
+      content.check()
+      count += check_links(path, content.stdout(), Some(files))
+    }
+    println("PASS archive: \{count} file links")
+  }
+}

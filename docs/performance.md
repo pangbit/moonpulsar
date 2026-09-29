@@ -1,29 +1,53 @@
 # Performance testing
 
+[Documentation](README.md)
+
+Start with [local microbenchmarks](#local-microbenchmarks) or the
+[Broker harness](#broker-producer-and-consumer). For sustained runs, use the
+[runner manual](https://github.com/pangbit/moonpulsar/blob/main/scripts/PERF_SUSTAINED.md) and the
+[reference-client adapters](https://github.com/pangbit/moonpulsar/blob/main/interop/PERFORMANCE_COMPARISON.md).
+
+Latest complete recorded comparison:
+[sustained v3 report](https://github.com/pangbit/moonpulsar/blob/main/performance-results/2026-09-28-sustained-v3/README.md).
+It covers 18 fifteen-minute comparisons and a two-hour MoonPulsar soak.
+Its conclusions apply to the recorded binaries and environment, not arbitrary
+later commits. Reports and runner sources are available in the source repository
+and are excluded from the published library package.
+
+## Measurement scope
+
 The suite has two independent layers, following the structure of
 [pulsar-client-go's perf tools](https://github.com/apache/pulsar-client-go/tree/a83c1519f68dfdbddfa7955a56d91735bd1ca95c/perf)
 and its compression/routing benchmarks. These measurements are not a throughput
 guarantee or a performance regression threshold.
 
-Real-Broker results: [three-client comparison (2026-09-26)](performance-results/2026-09-26-comparison/README.md).
-The [RSS-fix rerun](performance-results/2026-09-26-rss-broker-rerun/README.md)
+## Historical reports
+
+<details>
+<summary>Earlier runs, failure evidence and repair comparisons</summary>
+
+[Early single-client baseline (2026-09-26)](https://github.com/pangbit/moonpulsar/blob/main/performance-results/2026-09-26-3227d9a/README.md)
+is retained as a historical baseline, not a cross-client comparison.
+
+Real-Broker results: [three-client comparison (2026-09-26)](https://github.com/pangbit/moonpulsar/blob/main/performance-results/2026-09-26-comparison/README.md).
+The [RSS-fix rerun](https://github.com/pangbit/moonpulsar/blob/main/performance-results/2026-09-26-rss-broker-rerun/README.md)
 records the updated three-client measurements and Broker resource limitations.
-The [64 KiB follow-up](performance-results/2026-09-28-64k-comparison/README.md)
+The [64 KiB follow-up](https://github.com/pangbit/moonpulsar/blob/main/performance-results/2026-09-28-64k-comparison/README.md)
 completes the three-client large-message comparison with per-topic send/receive readiness checks.
-The [sustained-load run](performance-results/2026-09-28-sustained/README.md)
+The [sustained-load run](https://github.com/pangbit/moonpulsar/blob/main/performance-results/2026-09-28-sustained/README.md)
 stopped after 17 of 18 formal pairs on a host-memory guard. Its two-hour soak
 did not start, and a sampling-file defect prevents resource-trend conclusions.
-The revised [sustained-load runner](scripts/PERF_SUSTAINED.md) validates persisted
+The revised [sustained-load runner](https://github.com/pangbit/moonpulsar/blob/main/scripts/PERF_SUSTAINED.md) validates persisted
 sampling and host resource headroom before accepting each independent test group.
-The [completed sustained comparison](performance-results/2026-09-28-sustained-v3/README.md)
-includes all 18 fifteen-minute comparisons, a two-hour MoonPulsar soak, and
-validated CPU/RSS/throughput/backlog time series with sanitized data.
-The [reference adapters](interop/PERFORMANCE_COMPARISON.md) reproduce the matched
-workload using the Go and Rust clients. Reports contain sanitized measurements only.
+The [sustained v2 report](https://github.com/pangbit/moonpulsar/blob/main/performance-results/2026-09-28-sustained-v2/README.md)
+preserves the intermediate run. The completed v3 report is linked above.
+Reports contain sanitized measurements only.
 
-[Producer RSS fix validation](performance-results/2026-09-26-rss-fix/README.md)
+[Producer RSS fix validation](https://github.com/pangbit/moonpulsar/blob/main/performance-results/2026-09-26-rss-fix/README.md)
 uses an isolated mock to compare timeout-state retention before and after the fix;
 it is not a replacement for real-Broker throughput measurements.
+
+</details>
 
 ## Local microbenchmarks
 
@@ -132,8 +156,10 @@ Payload compression is disabled for this initial broker harness.
   measurement window. ACK submission is not a confirmed Broker ACK receipt.
   Consumer latency is null: receive waiting time is not end-to-end latency.
   Producer-specific configuration fields in consumer JSON are unused.
-- These tools do not yet measure end-to-end latency, CPU/RSS, allocation rate
-  of broker runs, faults under load, or automatically compare historical runs.
+- The `examples/perf` executable does not measure end-to-end latency, CPU/RSS,
+  allocation rate of broker runs, or faults under load, and does not automatically
+  compare historical runs. The separate sustained runner samples process CPU/RSS
+  externally; see its manual and recorded reports linked above.
 
 For useful comparisons, record commit, `moon version --all`, CPU/OS, Broker
 version/configuration, topic partition count, payload size, batch, concurrency

@@ -7,7 +7,7 @@
 # connect from another host.
 services:
   pulsar:
-    image: apachepulsar/pulsar:latest
+    image: apachepulsar/pulsar:4.2.4
     command: bin/pulsar standalone -a 127.0.0.1
     ports:
       - "6650:6650"
