@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.1.0 — Unreleased
+## 0.1.0 — 2026-09-29
 
-First release candidate; no release date or publication is declared here.
+Initial version notes, prepared for the scheduled release date above. Confirm actual availability in the Mooncakes registry; these notes alone do not establish that publication succeeded.
 
 - Native MoonBit Pulsar client with connection pooling, lookup, reconnect, producers, consumers and partition discovery.
 - Batching, compression, chunking, flow control, ACK/redelivery, retry and dead-letter handling.

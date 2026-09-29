@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-The first release is pending. There is currently no published stable release or supported historical release line. Reports should identify the exact commit, MoonBit version, operating system and Broker version. Compatibility and verification scope are documented in the [capability matrix](docs/capabilities.md).
+This policy covers the `0.1.0` source line. Registry availability should be checked before installation; this policy does not establish publication status. No separate historical maintenance branch is offered. Reports should identify the exact commit, MoonBit version, operating system and Broker version. Compatibility and verification scope are documented in the [capability matrix](docs/capabilities.md).
 
 ## Reporting a vulnerability
 
