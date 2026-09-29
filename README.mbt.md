@@ -35,13 +35,13 @@ Linux libraries must be discoverable by the system dynamic loader. The macOS Ope
 
 ## Installation
 
-These instructions target `0.1.0`. Check registry availability before adding the dependency:
+These instructions target `0.1.1`. Check registry availability before adding the dependency:
 
 ```sh
 moon view pangbit/moonpulsar --versions --json
 ```
 
-If `0.1.0` is unavailable, or to run repository examples and tests, use the source workspace:
+If `0.1.1` is unavailable, or to run repository examples and tests, use the source workspace:
 
 ```sh
 git clone https://github.com/pangbit/moonpulsar.git
@@ -66,7 +66,7 @@ moon run examples/roundtrip --target native
 
 A successful run prints `roundtrip OK`. Stop the disposable container after use with `docker stop moonpulsar-demo`.
 
-Once registry availability is confirmed, a separate executable can declare `"pangbit/moonpulsar@0.1.0"` and `"moonbitlang/async@0.22.1"` in `moon.mod`, set `preferred_target = "native"`, and use this `moon.pkg`:
+Once registry availability is confirmed, a separate executable can declare `"pangbit/moonpulsar@0.1.1"` and `"moonbitlang/async@0.22.1"` in `moon.mod`, set `preferred_target = "native"`, and use this `moon.pkg`:
 
 ```text
 import {

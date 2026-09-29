@@ -56,7 +56,7 @@ async fn main {
     "unzip",
     @shell.Cmd("unzip", [
       "-q",
-      "_build/publish/pangbit-moonpulsar-0.1.0.zip",
+      "_build/publish/pangbit-moonpulsar-0.1.1.zip",
       "-d",
       "\{report}/library",
     ]),

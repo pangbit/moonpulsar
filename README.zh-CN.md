@@ -35,13 +35,13 @@ Linux 动态库需要能被系统动态库加载器找到。macOS 的 OpenSSL 3 
 
 ## 安装
 
-以下说明面向 `0.1.0`。添加依赖前，先确认注册表中该版本可用：
+以下说明面向 `0.1.1`。添加依赖前，先确认注册表中该版本可用：
 
 ```sh
 moon view pangbit/moonpulsar --versions --json
 ```
 
-如果 `0.1.0` 尚不可用，或需要运行仓库中的示例与测试，请使用源码工作区：
+如果 `0.1.1` 尚不可用，或需要运行仓库中的示例与测试，请使用源码工作区：
 
 ```sh
 git clone https://github.com/pangbit/moonpulsar.git
@@ -66,7 +66,7 @@ moon run examples/roundtrip --target native
 
 成功时输出 `roundtrip OK`。使用完毕后执行 `docker stop moonpulsar-demo` 停止该一次性容器。
 
-确认注册表版本可用后，独立的可执行项目可在 `moon.mod` 中声明 `"pangbit/moonpulsar@0.1.0"` 和 `"moonbitlang/async@0.22.1"`，设置 `preferred_target = "native"`，并使用如下 `moon.pkg`：
+确认注册表版本可用后，独立的可执行项目可在 `moon.mod` 中声明 `"pangbit/moonpulsar@0.1.1"` 和 `"moonbitlang/async@0.22.1"`，设置 `preferred_target = "native"`，并使用如下 `moon.pkg`：
 
 ```text
 import {

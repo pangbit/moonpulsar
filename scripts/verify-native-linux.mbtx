@@ -109,7 +109,7 @@ async fn main {
     report,
   )
   check("package", @shell.Cmd("moon", ["package", "--list"]), report)
-  let archive = "_build/publish/pangbit-moonpulsar-0.1.0.zip"
+  let archive = "_build/publish/pangbit-moonpulsar-0.1.1.zip"
   check("archive-sha256", @shell.Cmd("sha256sum", [archive]), report)
   let listing = @shell.Cmd("unzip", ["-Z1", archive]).output()
   listing.check()
@@ -143,7 +143,7 @@ async fn main {
   )
   @fs.write_file(
     "\{work}/consumer/moon.mod",
-    "name = \"audit/consumer\"\nversion = \"0.0.1\"\npreferred_target = \"native\"\nimport { \"pangbit/moonpulsar@0.1.0\", \"moonbitlang/async@0.22.1\" }\n",
+    "name = \"audit/consumer\"\nversion = \"0.0.1\"\npreferred_target = \"native\"\nimport { \"pangbit/moonpulsar@0.1.1\", \"moonbitlang/async@0.22.1\" }\n",
   )
   @fs.write_file(
     "\{work}/consumer/moon.pkg",

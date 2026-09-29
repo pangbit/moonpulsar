@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 — 2026-09-29
+
+- Fix residual OpenSSL errors from failed TLS setup affecting other connections on the same event-loop thread. This caused intermittent TLS failures and test timeouts.
+- Add a deterministic regression test for missing private-key error isolation.
+- Clarify build requirements, feature-specific runtime dependencies, and test/example prerequisites in both READMEs.
+
+The public API is unchanged. These notes describe the release candidate; confirm availability in the Mooncakes registry before installation.
+
 ## 0.1.0 — 2026-09-29
 
 Initial version notes, prepared for the scheduled release date above. Confirm actual availability in the Mooncakes registry; these notes alone do not establish that publication succeeded.

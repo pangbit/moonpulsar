@@ -18,7 +18,7 @@ moon info && moon fmt
 moon doc
 moon package --list
 moon package
-moon run scripts/check-doc-links.mbtx -- --archive _build/publish/pangbit-moonpulsar-0.1.0.zip
+moon run scripts/check-doc-links.mbtx -- --archive _build/publish/pangbit-moonpulsar-0.1.1.zip
 git diff --check
 ```
 

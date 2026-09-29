@@ -75,7 +75,7 @@ async fn main {
   @fs.write_file("\{report}/workspace.txt", scratch + "\n")
   if archive == "" {
     run_check("package", @shell.Cmd("moon", ["package", "--list"]), report)
-    archive = "_build/publish/pangbit-moonpulsar-0.1.0.zip"
+    archive = "_build/publish/pangbit-moonpulsar-0.1.1.zip"
   }
   let listing = @shell.Cmd("unzip", ["-Z1", archive]).output()
   listing.check()
@@ -102,7 +102,7 @@ async fn main {
     #|name = "audit/consumer"
     #|version = "0.0.1"
     #|preferred_target = "native"
-    #|import { "pangbit/moonpulsar@0.1.0", "moonbitlang/async@0.22.1" }
+    #|import { "pangbit/moonpulsar@0.1.1", "moonbitlang/async@0.22.1" }
   @fs.write_file("\{scratch}/consumer/moon.mod", consumer_module)
   let consumer_package =
     #|import { "pangbit/moonpulsar" @pulsar, "moonbitlang/async" }

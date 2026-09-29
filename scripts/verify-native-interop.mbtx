@@ -144,7 +144,7 @@ async fn run(version : String, report : String) -> Unit {
   @fs.write_file("\{report}/moon.work", "members = [\"\{cwd}\", \"./probe\"]\n")
   @fs.write_file(
     "\{probe}/moon.mod",
-    "name = \"audit/tls_probe\"\nversion = \"0.0.1\"\npreferred_target = \"native\"\nimport { \"pangbit/moonpulsar@0.1.0\", \"moonbitlang/async@0.22.1\" }\n",
+    "name = \"audit/tls_probe\"\nversion = \"0.0.1\"\npreferred_target = \"native\"\nimport { \"pangbit/moonpulsar@0.1.1\", \"moonbitlang/async@0.22.1\" }\n",
   )
   @fs.write_file(
     "\{probe}/moon.pkg",

@@ -237,7 +237,7 @@ async fn Connection::connect_with_memory(
   errdefer conn.close()
   // handshake before any background traffic
   let connect = @proto.CommandConnect::default()
-  connect.client_version = "moonpulsar 0.1.0"
+  connect.client_version = "moonpulsar 0.1.1"
   connect.protocol_version = Some(PROTOCOL_VERSION)
   if auth is Some(a) {
     connect.auth_method_name = Some(a.method_name)
@@ -309,7 +309,7 @@ async fn Connection::respond_to_challenge(self : Connection) -> Unit {
     raise ConnectFailed("broker requested authentication without credentials")
   }
   let response = @proto.CommandAuthResponse::default()
-  response.client_version = Some("moonpulsar 0.1.0")
+  response.client_version = Some("moonpulsar 0.1.1")
   response.protocol_version = Some(PROTOCOL_VERSION)
   let data = @proto.AuthData::default()
   data.auth_method_name = Some(auth.method_name)

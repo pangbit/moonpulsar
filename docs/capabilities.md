@@ -9,7 +9,7 @@ Compared with the public APIs of [pulsar-rs](https://github.com/streamnative/pul
 and [pulsar-client-go](https://github.com/apache/pulsar-client-go). This is a
 functional comparison, not an API-by-API claim of parity.
 
-The Status column describes the 0.1.0 candidate source in this checkout.
+The Status column describes the 0.1.1 candidate source in this checkout.
 The Verification column summarizes historical runs recorded through 2026-09-28;
 it is not a passing result for every later commit. The original matrix was
 recorded on 2026-09-25, with the native dependency update below on 2026-09-28.
