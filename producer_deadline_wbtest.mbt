@@ -209,6 +209,12 @@ async test "chunked sends share one admission deadline across chunk receipts" {
       // Each chunk is individually fast, but their combined time exceeds 120 ms.
       for _ in 0..<3 {
         let frame = peer.next()
+        // Under load the shared deadline can expire before all chunks arrive.
+        // Leave the close handshake to the mock broker's normal close handler.
+        if frame.cmd.close_producer is Some(_) {
+          peer.unread(frame)
+          return
+        }
         let send = frame.cmd.send.unwrap()
         @async.sleep(50)
         send_receipt(peer, send.producer_id, send.sequence_id)

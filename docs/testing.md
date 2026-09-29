@@ -61,7 +61,7 @@ against an isolated Athenz-authenticated broker.
 disposable Broker provider and verifies a real binary `AUTH_CHALLENGE`,
 successful refresh and wrong-response rejection.
 
-GitHub Actions runs native checks, debug and release tests, formatting, generated-interface verification, documentation generation, and package creation on pushes and pull requests. The checked-in localhost TLS key and certificate are public, disposable test fixtures; never use them for a real broker. They are excluded from the Mooncakes package, along with tests and examples.
+GitHub Actions runs on Linux (Ubuntu 24.04) and performs native checks, debug and release tests, formatting, generated-interface verification, documentation generation, and package creation on pushes and pull requests. The checked-in localhost TLS key and certificate are public, disposable test fixtures; never use them for a real broker. They are excluded from the Mooncakes package, along with tests and examples.
 
 The protocol layer in `proto/` is generated from `proto/PulsarApi.proto` (vendored from apache/pulsar) with `protoc-gen-mbt`:
 

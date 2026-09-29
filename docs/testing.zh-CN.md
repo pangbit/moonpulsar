@@ -48,7 +48,7 @@ Mock 覆盖握手超时、Broker 拒绝 CONNECT、过多认证挑战、非空 To
 
 在一次性 Linux 测试环境，`scripts/test-athenz-broker-live.sh 4.2.4`（也可用 `3.3.9`）验证隔离 Athenz Broker 上的签名角色令牌与服务 NToken 交换。`scripts/test-auth-challenge-live.sh 4.2.4`（也可用 `3.3.9`）编译一次性 Broker 认证提供者，验证真实二进制 `AUTH_CHALLENGE`、成功刷新与错误响应拒绝。
 
-GitHub Actions 在推送和 PR 时执行 native 检查、debug/release 测试、格式与生成接口检查、文档生成及打包。仓库中的 localhost TLS 密钥与证书为公开的一次性测试夹具，不能用于真实 Broker；夹具、测试和示例均排除在 Mooncakes 包外。
+GitHub Actions 使用 Linux（Ubuntu 24.04），在推送和 PR 时执行 native 检查、debug/release 测试、格式与生成接口检查、文档生成及打包。仓库中的 localhost TLS 密钥与证书为公开的一次性测试夹具，不能用于真实 Broker；夹具、测试和示例均排除在 Mooncakes 包外。
 
 `proto/` 中的协议层由来自 apache/pulsar 的 `proto/PulsarApi.proto` 使用 `protoc-gen-mbt` 生成：
 
