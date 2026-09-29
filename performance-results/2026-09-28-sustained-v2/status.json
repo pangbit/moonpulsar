@@ -1,0 +1,20 @@
+{
+  "state": "failed_precheck",
+  "started_local": "2026-09-28T16:19:23+08:00",
+  "stopped_local": "2026-09-28T16:29:32+08:00",
+  "prechecks_passed": 9,
+  "prechecks_failed": 1,
+  "prechecks_not_executed": 2,
+  "formal_completed": 0,
+  "formal_planned": 18,
+  "soak_started": false,
+  "failure": "moon_64k_p99_exceeds_gate",
+  "p99_ms": 275.2,
+  "p99_gate_ms": 250,
+  "benchmark_processes_stopped": true,
+  "successful_topic_deletions": 9,
+  "failed_topic_cleanup_http": 404,
+  "failed_topic_confirmed_absent": true,
+  "raw_evidence_retrieved": true,
+  "automatic_retry": false
+}

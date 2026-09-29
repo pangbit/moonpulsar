@@ -1,0 +1,22 @@
+{
+  "state": "complete",
+  "started_local": "2026-09-28T16:37:11+08:00",
+  "finished_local": "2026-09-29T00:08:54+08:00",
+  "prechecks": 12,
+  "formal_pairs": 18,
+  "soak_pairs": 1,
+  "verified_pairs": 31,
+  "producer_consumer_exits_zero": 62,
+  "readiness_process_exits_zero": 62,
+  "stderr_empty": true,
+  "histogram_overflow_zero": true,
+  "cleanup_http_204_count": 31,
+  "performance_target_misses": 0,
+  "samples_total": 26050,
+  "max_sample_gap_s": 1.0711560230000177,
+  "minimum_analysis_host_available_gib": 10.742511749267578,
+  "analysis_swap_out_pages_sum": 12,
+  "analysis_swap_in_pages_sum": 150989,
+  "service_exit_zero": true,
+  "benchmark_processes_stopped": true
+}

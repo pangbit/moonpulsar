@@ -8,6 +8,16 @@ guarantee or a performance regression threshold.
 Real-Broker results: [three-client comparison (2026-09-26)](performance-results/2026-09-26-comparison/README.md).
 The [RSS-fix rerun](performance-results/2026-09-26-rss-broker-rerun/README.md)
 records the updated three-client measurements and Broker resource limitations.
+The [64 KiB follow-up](performance-results/2026-09-28-64k-comparison/README.md)
+completes the three-client large-message comparison with per-topic send/receive readiness checks.
+The [sustained-load run](performance-results/2026-09-28-sustained/README.md)
+stopped after 17 of 18 formal pairs on a host-memory guard. Its two-hour soak
+did not start, and a sampling-file defect prevents resource-trend conclusions.
+The revised [sustained-load runner](scripts/PERF_SUSTAINED.md) validates persisted
+sampling and host resource headroom before accepting each independent test group.
+The [completed sustained comparison](performance-results/2026-09-28-sustained-v3/README.md)
+includes all 18 fifteen-minute comparisons, a two-hour MoonPulsar soak, and
+validated CPU/RSS/throughput/backlog time series with sanitized data.
 The [reference adapters](interop/PERFORMANCE_COMPARISON.md) reproduce the matched
 workload using the Go and Rust clients. Reports contain sanitized measurements only.
 

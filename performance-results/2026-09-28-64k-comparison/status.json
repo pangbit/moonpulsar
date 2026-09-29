@@ -1,0 +1,18 @@
+{
+  "status": "complete",
+  "payload_bytes": 65536,
+  "concurrency": 32,
+  "batch_messages": 100,
+  "batch_max_bytes": 131072,
+  "batch_delay_ms": 1,
+  "formal_pairs": 9,
+  "repeats_per_client": 3,
+  "successful_process_exits": 18,
+  "end_to_end_readiness_checks_passed": 9,
+  "histogram_overflows": 0,
+  "nonempty_stderr_files": 0,
+  "topic_cleanup_http_204": 9,
+  "broker_restarts_during_run": 0,
+  "broker_configuration_changed_by_runner": false,
+  "broker_root_cause_fix_verified": false
+}

@@ -1,0 +1,1522 @@
+[
+  {
+    "case_id": "compare-1024-r1-moon",
+    "client": "moon",
+    "size": 1024,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-1024-r1-moon",
+      "client": "moon",
+      "phase": "compare",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 900,
+      "send_msg_s": 4999.995555555555,
+      "receive_msg_s": 4999.978818283166,
+      "p99_ms": 3.4,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.536490376,
+        "max_gap_s": 1.0449654079999309
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 10.2890625,
+          "min": 10.2109375,
+          "max": 10.29296875
+        },
+        "rss_first_minute_mean_mib": 10.2888671875,
+        "rss_last_minute_mean_mib": 10.2109375,
+        "rss_ols_mib_per_hour": -0.28536841762874704,
+        "cpu_mean_one_core_percent": 9.506760155783505,
+        "rss_process_peak_mib": 10.3046875
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 10.40625,
+          "min": 10.3359375,
+          "max": 10.40625
+        },
+        "rss_first_minute_mean_mib": 10.40625,
+        "rss_last_minute_mean_mib": 10.3359375,
+        "rss_ols_mib_per_hour": -0.26357021267012226,
+        "cpu_mean_one_core_percent": 7.310556869262902,
+        "rss_process_peak_mib": 10.35546875
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 1605.99609375,
+          "min": 1572.84375,
+          "max": 1618.65234375
+        },
+        "rss_first_minute_mean_mib": 1576.5227864583333,
+        "rss_last_minute_mean_mib": 1617.6306640625,
+        "rss_ols_mib_per_hour": 151.8670408402756,
+        "cpu_mean_one_core_percent": 24.351654976755597,
+        "rss_process_peak_mib": 1618.65234375
+      }
+    },
+    "analysis_start_s": 125.259474021,
+    "analysis_end_s": 1014.521416204,
+    "topic_send_msg_s": 5000.005947724454,
+    "topic_receive_msg_s": 4999.9744609389845,
+    "backlog_max": 6,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 12.119674682617188,
+    "host_swap_in_pages_delta": 6041,
+    "host_swap_out_pages_delta": 12,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-1024-r1-go",
+    "client": "go",
+    "size": 1024,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-1024-r1-go",
+      "client": "go",
+      "phase": "compare",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 900,
+      "send_msg_s": 4999.984444444444,
+      "receive_msg_s": 4999.985507246377,
+      "p99_ms": 3.3,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.52855334,
+        "max_gap_s": 1.0354683150000636
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 27.80078125,
+          "min": 27.359375,
+          "max": 27.859375
+        },
+        "rss_first_minute_mean_mib": 27.744270833333335,
+        "rss_last_minute_mean_mib": 27.80078125,
+        "rss_ols_mib_per_hour": 0.0482751394136119,
+        "cpu_mean_one_core_percent": 9.589910891234416,
+        "rss_process_peak_mib": 27.80078125
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 27.32421875,
+          "min": 27.00390625,
+          "max": 27.37890625
+        },
+        "rss_first_minute_mean_mib": 27.324348958333335,
+        "rss_last_minute_mean_mib": 27.31640625,
+        "rss_ols_mib_per_hour": -0.12921547523913418,
+        "cpu_mean_one_core_percent": 4.564428741500996,
+        "rss_process_peak_mib": 27.23828125
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 1657.86328125,
+          "min": 1602.7109375,
+          "max": 2157.46484375
+        },
+        "rss_first_minute_mean_mib": 1638.575,
+        "rss_last_minute_mean_mib": 2151.909635416667,
+        "rss_ols_mib_per_hour": 2360.0633211221607,
+        "cpu_mean_one_core_percent": 34.03586221212384,
+        "rss_process_peak_mib": 2157.46484375
+      }
+    },
+    "analysis_start_s": 125.248247264,
+    "analysis_end_s": 1014.516155665,
+    "topic_send_msg_s": 5000.008386668324,
+    "topic_receive_msg_s": 5000.023005434927,
+    "backlog_max": 13,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.372955322265625,
+    "host_swap_in_pages_delta": 124793,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-1024-r1-rust",
+    "client": "rust",
+    "size": 1024,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-1024-r1-rust",
+      "client": "rust",
+      "phase": "compare",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 900,
+      "send_msg_s": 4999.972222222223,
+      "receive_msg_s": 5000,
+      "p99_ms": 4.6,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.523031745,
+        "max_gap_s": 1.0299384939999872
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 11.3671875,
+          "min": 11.34375,
+          "max": 15.2890625
+        },
+        "rss_first_minute_mean_mib": 15.08828125,
+        "rss_last_minute_mean_mib": 11.382942708333333,
+        "rss_ols_mib_per_hour": -5.678615539063401,
+        "cpu_mean_one_core_percent": 8.215876615545243,
+        "rss_process_peak_mib": 15.1171875
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 11.140625,
+          "min": 10.984375,
+          "max": 14.859375
+        },
+        "rss_first_minute_mean_mib": 14.282421875,
+        "rss_last_minute_mean_mib": 11.140625,
+        "rss_ols_mib_per_hour": -4.587299432745194,
+        "cpu_mean_one_core_percent": 6.660640185309946,
+        "rss_process_peak_mib": 15.015625
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2199.78125,
+          "min": 2186.39453125,
+          "max": 2209.59375
+        },
+        "rss_first_minute_mean_mib": 2187.304296875,
+        "rss_last_minute_mean_mib": 2209.0011067708333,
+        "rss_ols_mib_per_hour": 90.04130392556809,
+        "cpu_mean_one_core_percent": 20.728613968566307,
+        "rss_process_peak_mib": 2209.59375
+      }
+    },
+    "analysis_start_s": 125.250502169,
+    "analysis_end_s": 1014.5043629410001,
+    "topic_send_msg_s": 5000.000782836072,
+    "topic_receive_msg_s": 5000.000782836072,
+    "backlog_max": 7,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.497055053710938,
+    "host_swap_in_pages_delta": 1195,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-1024-r2-moon",
+    "client": "moon",
+    "size": 1024,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-1024-r2-moon",
+      "client": "moon",
+      "phase": "compare",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 900,
+      "send_msg_s": 4999.984444444444,
+      "receive_msg_s": 4999.993311036789,
+      "p99_ms": 3.4,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.518616647,
+        "max_gap_s": 1.0421207789999898
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 10.2421875,
+          "min": 9.5703125,
+          "max": 10.24609375
+        },
+        "rss_first_minute_mean_mib": 9.69375,
+        "rss_last_minute_mean_mib": 10.24609375,
+        "rss_ols_mib_per_hour": 1.7563289483602975,
+        "cpu_mean_one_core_percent": 9.478509441484691,
+        "rss_process_peak_mib": 10.1484375
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 10.1015625,
+          "min": 9.71875,
+          "max": 10.1015625
+        },
+        "rss_first_minute_mean_mib": 9.778125,
+        "rss_last_minute_mean_mib": 10.1015625,
+        "rss_ols_mib_per_hour": 1.1097262297215134,
+        "cpu_mean_one_core_percent": 7.156392702053455,
+        "rss_process_peak_mib": 9.9453125
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2245.25,
+          "min": 2233.59375,
+          "max": 2259.37890625
+        },
+        "rss_first_minute_mean_mib": 2234.1627604166665,
+        "rss_last_minute_mean_mib": 2258.246614583333,
+        "rss_ols_mib_per_hour": 102.4120593209415,
+        "cpu_mean_one_core_percent": 23.248155676029718,
+        "rss_process_peak_mib": 2259.37890625
+      }
+    },
+    "analysis_start_s": 125.23650644,
+    "analysis_end_s": 1014.51134992,
+    "topic_send_msg_s": 4999.9997555311475,
+    "topic_receive_msg_s": 4999.952526038142,
+    "backlog_max": 6,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.422027587890625,
+    "host_swap_in_pages_delta": 312,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-1024-r2-go",
+    "client": "go",
+    "size": 1024,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-1024-r2-go",
+      "client": "go",
+      "phase": "compare",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 900,
+      "send_msg_s": 4999.992222222222,
+      "receive_msg_s": 4999.98773690078,
+      "p99_ms": 3.1,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.517514994,
+        "max_gap_s": 1.0284578560000228
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 27.83203125,
+          "min": 27.09765625,
+          "max": 27.97265625
+        },
+        "rss_first_minute_mean_mib": 27.918619791666668,
+        "rss_last_minute_mean_mib": 27.521223958333334,
+        "rss_ols_mib_per_hour": -0.8331460065180997,
+        "cpu_mean_one_core_percent": 10.393906348088024,
+        "rss_process_peak_mib": 27.97265625
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 27.33203125,
+          "min": 26.515625,
+          "max": 27.3359375
+        },
+        "rss_first_minute_mean_mib": 27.306510416666665,
+        "rss_last_minute_mean_mib": 27.333268229166666,
+        "rss_ols_mib_per_hour": 0.092572488111712,
+        "cpu_mean_one_core_percent": 4.487945497697641,
+        "rss_process_peak_mib": 27.23828125
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2220.7734375,
+          "min": 2178.31640625,
+          "max": 2244.5859375
+        },
+        "rss_first_minute_mean_mib": 2218.287174479167,
+        "rss_last_minute_mean_mib": 2193.096875,
+        "rss_ols_mib_per_hour": -207.4473703367495,
+        "cpu_mean_one_core_percent": 33.329545629230864,
+        "rss_process_peak_mib": 2244.5859375
+      }
+    },
+    "analysis_start_s": 125.240305699,
+    "analysis_end_s": 1014.511354567,
+    "topic_send_msg_s": 5000.000849752166,
+    "topic_receive_msg_s": 5000.044705897094,
+    "backlog_max": 13,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.220645904541016,
+    "host_swap_in_pages_delta": 377,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-1024-r2-rust",
+    "client": "rust",
+    "size": 1024,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-1024-r2-rust",
+      "client": "rust",
+      "phase": "compare",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 900,
+      "send_msg_s": 4999.977777777778,
+      "receive_msg_s": 4999.955406911929,
+      "p99_ms": 4.5,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.535151308,
+        "max_gap_s": 1.035221510000003
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 11.54296875,
+          "min": 11.50390625,
+          "max": 11.60546875
+        },
+        "rss_first_minute_mean_mib": 11.506640625,
+        "rss_last_minute_mean_mib": 11.5591796875,
+        "rss_ols_mib_per_hour": 0.08253253742667112,
+        "cpu_mean_one_core_percent": 7.835446782062419,
+        "rss_process_peak_mib": 15.26953125
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 11.13671875,
+          "min": 11.06640625,
+          "max": 11.15625
+        },
+        "rss_first_minute_mean_mib": 11.0671875,
+        "rss_last_minute_mean_mib": 11.15625,
+        "rss_ols_mib_per_hour": 0.4095779298975433,
+        "cpu_mean_one_core_percent": 6.500677073350006,
+        "rss_process_peak_mib": 14.96875
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2217.22265625,
+          "min": 2208.14453125,
+          "max": 2226.25390625
+        },
+        "rss_first_minute_mean_mib": 2209.099088541667,
+        "rss_last_minute_mean_mib": 2225.7628255208333,
+        "rss_ols_mib_per_hour": 74.33176249717393,
+        "cpu_mean_one_core_percent": 20.077770134001792,
+        "rss_process_peak_mib": 2226.25390625
+      }
+    },
+    "analysis_start_s": 125.23969946999999,
+    "analysis_end_s": 1014.531681639,
+    "topic_send_msg_s": 5000.011345154575,
+    "topic_receive_msg_s": 5000.011345154575,
+    "backlog_max": 7,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.449840545654297,
+    "host_swap_in_pages_delta": 657,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-1024-r3-moon",
+    "client": "moon",
+    "size": 1024,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-1024-r3-moon",
+      "client": "moon",
+      "phase": "compare",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 900,
+      "send_msg_s": 4999.993333333333,
+      "receive_msg_s": 4999.9721293199555,
+      "p99_ms": 3.4,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.5460742529999,
+        "max_gap_s": 1.046503973999992
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 10.14453125,
+          "min": 10.140625,
+          "max": 10.1484375
+        },
+        "rss_first_minute_mean_mib": 10.143619791666667,
+        "rss_last_minute_mean_mib": 10.1484375,
+        "rss_ols_mib_per_hour": 0.023181976342575943,
+        "cpu_mean_one_core_percent": 9.498687594549997,
+        "rss_process_peak_mib": 10.06640625
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 10.0625,
+          "min": 10.00390625,
+          "max": 10.06640625
+        },
+        "rss_first_minute_mean_mib": 10.0625,
+        "rss_last_minute_mean_mib": 10.00390625,
+        "rss_ols_mib_per_hour": -0.32059419158125413,
+        "cpu_mean_one_core_percent": 7.318273809083863,
+        "rss_process_peak_mib": 9.9921875
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2243.34375,
+          "min": 2231.9609375,
+          "max": 2255.0703125
+        },
+        "rss_first_minute_mean_mib": 2232.9419921875,
+        "rss_last_minute_mean_mib": 2254.0948567708333,
+        "rss_ols_mib_per_hour": 91.73429433140025,
+        "cpu_mean_one_core_percent": 24.32864994768429,
+        "rss_process_peak_mib": 2255.0703125
+      }
+    },
+    "analysis_start_s": 125.263525286,
+    "analysis_end_s": 1014.544272328,
+    "topic_send_msg_s": 5000.005920278852,
+    "topic_receive_msg_s": 4999.9924262275745,
+    "backlog_max": 7,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.27425765991211,
+    "host_swap_in_pages_delta": 1469,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-1024-r3-go",
+    "client": "go",
+    "size": 1024,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-1024-r3-go",
+      "client": "go",
+      "phase": "compare",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 900,
+      "send_msg_s": 4999.985555555556,
+      "receive_msg_s": 4999.973244147157,
+      "p99_ms": 3.1,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.556939422,
+        "max_gap_s": 1.03874532300001
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 28.01171875,
+          "min": 27.43359375,
+          "max": 28.0234375
+        },
+        "rss_first_minute_mean_mib": 27.43359375,
+        "rss_last_minute_mean_mib": 27.63671875,
+        "rss_ols_mib_per_hour": 1.9115709891818908,
+        "cpu_mean_one_core_percent": 9.23080308876712,
+        "rss_process_peak_mib": 27.77734375
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 27.640625,
+          "min": 26.546875,
+          "max": 27.67578125
+        },
+        "rss_first_minute_mean_mib": 27.49375,
+        "rss_last_minute_mean_mib": 27.67578125,
+        "rss_ols_mib_per_hour": 0.8417631075126802,
+        "cpu_mean_one_core_percent": 4.320227246563927,
+        "rss_process_peak_mib": 27.609375
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2277.41796875,
+          "min": 2234.80078125,
+          "max": 2301.86328125
+        },
+        "rss_first_minute_mean_mib": 2265.7213541666665,
+        "rss_last_minute_mean_mib": 2249.9239583333333,
+        "rss_ols_mib_per_hour": -180.59384020938435,
+        "cpu_mean_one_core_percent": 31.16815690272226,
+        "rss_process_peak_mib": 2301.86328125
+      }
+    },
+    "analysis_start_s": 125.252071685,
+    "analysis_end_s": 1014.557143092,
+    "topic_send_msg_s": 5000.005220891176,
+    "topic_receive_msg_s": 5000.022087993909,
+    "backlog_max": 11,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.187454223632812,
+    "host_swap_in_pages_delta": 1812,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-1024-r3-rust",
+    "client": "rust",
+    "size": 1024,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-1024-r3-rust",
+      "client": "rust",
+      "phase": "compare",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 900,
+      "send_msg_s": 4999.981111111111,
+      "receive_msg_s": 5000.016722408027,
+      "p99_ms": 4.5,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.526796906,
+        "max_gap_s": 1.0392531280000694
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 11.44921875,
+          "min": 11.41015625,
+          "max": 11.51171875
+        },
+        "rss_first_minute_mean_mib": 11.412890625,
+        "rss_last_minute_mean_mib": 11.464973958333333,
+        "rss_ols_mib_per_hour": 0.07982221494142533,
+        "cpu_mean_one_core_percent": 8.012187070491104,
+        "rss_process_peak_mib": 15.32421875
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 11.09375,
+          "min": 11.03125,
+          "max": 11.12890625
+        },
+        "rss_first_minute_mean_mib": 11.033138020833333,
+        "rss_last_minute_mean_mib": 11.1037109375,
+        "rss_ols_mib_per_hour": 0.23897988923915392,
+        "cpu_mean_one_core_percent": 6.53794464952074,
+        "rss_process_peak_mib": 14.95703125
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2221.703125,
+          "min": 2212.22265625,
+          "max": 2276.1015625
+        },
+        "rss_first_minute_mean_mib": 2270.4064453125,
+        "rss_last_minute_mean_mib": 2223.776302083333,
+        "rss_ols_mib_per_hour": -271.24932341628346,
+        "cpu_mean_one_core_percent": 20.45384850879476,
+        "rss_process_peak_mib": 2276.1015625
+      }
+    },
+    "analysis_start_s": 125.250768429,
+    "analysis_end_s": 1014.52106845,
+    "topic_send_msg_s": 5000.009558280536,
+    "topic_receive_msg_s": 4999.987067930864,
+    "backlog_max": 7,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.379779815673828,
+    "host_swap_in_pages_delta": 209,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-65536-r1-moon",
+    "client": "moon",
+    "size": 65536,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-65536-r1-moon",
+      "client": "moon",
+      "phase": "compare",
+      "size": 65536,
+      "target_rate": 500,
+      "measurement_s": 900,
+      "send_msg_s": 499.99888888888887,
+      "receive_msg_s": 499.99777034559645,
+      "p99_ms": 4.1,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.507917323,
+        "max_gap_s": 1.0495732240000506
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 12.7265625,
+          "min": 10.77734375,
+          "max": 13.8359375
+        },
+        "rss_first_minute_mean_mib": 11.408072916666667,
+        "rss_last_minute_mean_mib": 13.6484375,
+        "rss_ols_mib_per_hour": 4.800259885917015,
+        "cpu_mean_one_core_percent": 16.13591691823497,
+        "rss_process_peak_mib": 13.76953125
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 19.81640625,
+          "min": 12.3515625,
+          "max": 21.5390625
+        },
+        "rss_first_minute_mean_mib": 12.3515625,
+        "rss_last_minute_mean_mib": 21.5390625,
+        "rss_ols_mib_per_hour": 51.76728187658436,
+        "cpu_mean_one_core_percent": 12.888267042991913,
+        "rss_process_peak_mib": 21.32421875
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2435.45703125,
+          "min": 2415.16015625,
+          "max": 2459.3828125
+        },
+        "rss_first_minute_mean_mib": 2425.142122395833,
+        "rss_last_minute_mean_mib": 2447.3450520833335,
+        "rss_ols_mib_per_hour": 89.75594337293167,
+        "cpu_mean_one_core_percent": 39.24393536919395,
+        "rss_process_peak_mib": 2459.3828125
+      }
+    },
+    "analysis_start_s": 125.24164268400001,
+    "analysis_end_s": 1014.5000636780001,
+    "topic_send_msg_s": 499.9986387567759,
+    "topic_receive_msg_s": 499.9986387567759,
+    "backlog_max": 6,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.036811828613281,
+    "host_swap_in_pages_delta": 440,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-65536-r1-go",
+    "client": "go",
+    "size": 65536,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-65536-r1-go",
+      "client": "go",
+      "phase": "compare",
+      "size": 65536,
+      "target_rate": 500,
+      "measurement_s": 900,
+      "send_msg_s": 499.99888888888887,
+      "receive_msg_s": 499.99777034559645,
+      "p99_ms": 3.8,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.529317319,
+        "max_gap_s": 1.0389114069999195
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 28.5703125,
+          "min": 26.71875,
+          "max": 33.28125
+        },
+        "rss_first_minute_mean_mib": 28.160677083333333,
+        "rss_last_minute_mean_mib": 28.6154296875,
+        "rss_ols_mib_per_hour": 0.6434882118641827,
+        "cpu_mean_one_core_percent": 10.51192315517087,
+        "rss_process_peak_mib": 33.203125
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 27.45703125,
+          "min": 26.2734375,
+          "max": 29.55078125
+        },
+        "rss_first_minute_mean_mib": 27.872981770833334,
+        "rss_last_minute_mean_mib": 27.217708333333334,
+        "rss_ols_mib_per_hour": -3.0007236081421795,
+        "cpu_mean_one_core_percent": 7.394780345357685,
+        "rss_process_peak_mib": 30.33203125
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2459.27734375,
+          "min": 2399.01171875,
+          "max": 2503.0703125
+        },
+        "rss_first_minute_mean_mib": 2467.740690104167,
+        "rss_last_minute_mean_mib": 2439.468359375,
+        "rss_ols_mib_per_hour": 31.551815511711577,
+        "cpu_mean_one_core_percent": 41.594514932243825,
+        "rss_process_peak_mib": 2503.0703125
+      }
+    },
+    "analysis_start_s": 125.246961367,
+    "analysis_end_s": 1014.522868545,
+    "topic_send_msg_s": 500.0000521896518,
+    "topic_receive_msg_s": 499.9966786584723,
+    "backlog_max": 7,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 10.966419219970703,
+    "host_swap_in_pages_delta": 2197,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-65536-r1-rust",
+    "client": "rust",
+    "size": 65536,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-65536-r1-rust",
+      "client": "rust",
+      "phase": "compare",
+      "size": 65536,
+      "target_rate": 500,
+      "measurement_s": 900,
+      "send_msg_s": 499.9977777777778,
+      "receive_msg_s": 500,
+      "p99_ms": 5.5,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.56116561,
+        "max_gap_s": 1.0304454050000058
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 12.921875,
+          "min": 12.80859375,
+          "max": 13
+        },
+        "rss_first_minute_mean_mib": 12.846484375,
+        "rss_last_minute_mean_mib": 13,
+        "rss_ols_mib_per_hour": 0.6793160377388744,
+        "cpu_mean_one_core_percent": 13.996363932217657,
+        "rss_process_peak_mib": 16.63671875
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 11.26953125,
+          "min": 10.78515625,
+          "max": 11.26953125
+        },
+        "rss_first_minute_mean_mib": 11.004036458333333,
+        "rss_last_minute_mean_mib": 11.26953125,
+        "rss_ols_mib_per_hour": 0.5856338608400475,
+        "cpu_mean_one_core_percent": 11.532635051725258,
+        "rss_process_peak_mib": 14.87890625
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2434.375,
+          "min": 2413.453125,
+          "max": 2449.8828125
+        },
+        "rss_first_minute_mean_mib": 2430.467578125,
+        "rss_last_minute_mean_mib": 2441.249609375,
+        "rss_ols_mib_per_hour": 58.01296120154812,
+        "cpu_mean_one_core_percent": 32.986529762320636,
+        "rss_process_peak_mib": 2449.8828125
+      }
+    },
+    "analysis_start_s": 125.243770737,
+    "analysis_end_s": 1014.546168151,
+    "topic_send_msg_s": 500.000901035466,
+    "topic_receive_msg_s": 500.00539894305246,
+    "backlog_max": 8,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 10.941638946533203,
+    "host_swap_in_pages_delta": 808,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-65536-r2-moon",
+    "client": "moon",
+    "size": 65536,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-65536-r2-moon",
+      "client": "moon",
+      "phase": "compare",
+      "size": 65536,
+      "target_rate": 500,
+      "measurement_s": 900,
+      "send_msg_s": 499.99888888888887,
+      "receive_msg_s": 499.9988851727982,
+      "p99_ms": 4.2,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.515313001,
+        "max_gap_s": 1.042752233999956
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 12.75390625,
+          "min": 10.8203125,
+          "max": 13.421875
+        },
+        "rss_first_minute_mean_mib": 12.6875,
+        "rss_last_minute_mean_mib": 11.55859375,
+        "rss_ols_mib_per_hour": -4.367296511231877,
+        "cpu_mean_one_core_percent": 15.67993312822875,
+        "rss_process_peak_mib": 13.17578125
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 14.71875,
+          "min": 12.51953125,
+          "max": 14.92578125
+        },
+        "rss_first_minute_mean_mib": 12.51953125,
+        "rss_last_minute_mean_mib": 14.34765625,
+        "rss_ols_mib_per_hour": 9.826927138347799,
+        "cpu_mean_one_core_percent": 12.682034267080025,
+        "rss_process_peak_mib": 14.86328125
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2578.37109375,
+          "min": 2518.29296875,
+          "max": 2599.359375
+        },
+        "rss_first_minute_mean_mib": 2578.864778645833,
+        "rss_last_minute_mean_mib": 2542.4951171875,
+        "rss_ols_mib_per_hour": -275.7990250960943,
+        "cpu_mean_one_core_percent": 36.54490438427325,
+        "rss_process_peak_mib": 2599.359375
+      }
+    },
+    "analysis_start_s": 125.24000191799999,
+    "analysis_end_s": 1014.529508829,
+    "topic_send_msg_s": 499.9991527444166,
+    "topic_receive_msg_s": 500.0002772376128,
+    "backlog_max": 10,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 10.742511749267578,
+    "host_swap_in_pages_delta": 2148,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-65536-r2-go",
+    "client": "go",
+    "size": 65536,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-65536-r2-go",
+      "client": "go",
+      "phase": "compare",
+      "size": 65536,
+      "target_rate": 500,
+      "measurement_s": 900,
+      "send_msg_s": 499.99888888888887,
+      "receive_msg_s": 500,
+      "p99_ms": 3.8,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.593613242,
+        "max_gap_s": 1.0711560230000177
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 28.5078125,
+          "min": 26.6953125,
+          "max": 33.73828125
+        },
+        "rss_first_minute_mean_mib": 28.53203125,
+        "rss_last_minute_mean_mib": 28.568424479166666,
+        "rss_ols_mib_per_hour": 0.4971659059672332,
+        "cpu_mean_one_core_percent": 10.453959159549681,
+        "rss_process_peak_mib": 33.765625
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 27.26953125,
+          "min": 25.10546875,
+          "max": 28.94921875
+        },
+        "rss_first_minute_mean_mib": 27.161328125,
+        "rss_last_minute_mean_mib": 27.257161458333332,
+        "rss_ols_mib_per_hour": 1.1418234457096392,
+        "cpu_mean_one_core_percent": 7.31788385612018,
+        "rss_process_peak_mib": 34.65234375
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2450.23046875,
+          "min": 2427.16796875,
+          "max": 2487.171875
+        },
+        "rss_first_minute_mean_mib": 2435.7156901041667,
+        "rss_last_minute_mean_mib": 2472.0987630208333,
+        "rss_ols_mib_per_hour": 160.4942750153849,
+        "cpu_mean_one_core_percent": 41.032098923429864,
+        "rss_process_peak_mib": 2487.171875
+      }
+    },
+    "analysis_start_s": 125.25889616000002,
+    "analysis_end_s": 1014.5870308989998,
+    "topic_send_msg_s": 499.9987998023921,
+    "topic_receive_msg_s": 500.0055464685164,
+    "backlog_max": 7,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 11.005218505859375,
+    "host_swap_in_pages_delta": 2029,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-65536-r2-rust",
+    "client": "rust",
+    "size": 65536,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-65536-r2-rust",
+      "client": "rust",
+      "phase": "compare",
+      "size": 65536,
+      "target_rate": 500,
+      "measurement_s": 900,
+      "send_msg_s": 499.9977777777778,
+      "receive_msg_s": 500,
+      "p99_ms": 5.2,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.489900139,
+        "max_gap_s": 1.051686935000005
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 12.703125,
+          "min": 12.57421875,
+          "max": 12.76171875
+        },
+        "rss_first_minute_mean_mib": 12.616015625,
+        "rss_last_minute_mean_mib": 12.76171875,
+        "rss_ols_mib_per_hour": 0.6969717416501929,
+        "cpu_mean_one_core_percent": 13.534138351392016,
+        "rss_process_peak_mib": 16.40625
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 11.1640625,
+          "min": 11.03515625,
+          "max": 11.1640625
+        },
+        "rss_first_minute_mean_mib": 11.0537109375,
+        "rss_last_minute_mean_mib": 11.1640625,
+        "rss_ols_mib_per_hour": 0.5697138230588815,
+        "cpu_mean_one_core_percent": 11.270389244507752,
+        "rss_process_peak_mib": 14.96875
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2510.375,
+          "min": 2495.7734375,
+          "max": 2522.3125
+        },
+        "rss_first_minute_mean_mib": 2506.9215494791665,
+        "rss_last_minute_mean_mib": 2517.371549479167,
+        "rss_ols_mib_per_hour": 45.06817240229863,
+        "cpu_mean_one_core_percent": 30.63652107245308,
+        "rss_process_peak_mib": 2522.3125
+      }
+    },
+    "analysis_start_s": 125.24790853,
+    "analysis_end_s": 1014.480727608,
+    "topic_send_msg_s": 500.0017885765863,
+    "topic_receive_msg_s": 500.0040377063497,
+    "backlog_max": 6,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 10.812606811523438,
+    "host_swap_in_pages_delta": 506,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-65536-r3-moon",
+    "client": "moon",
+    "size": 65536,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-65536-r3-moon",
+      "client": "moon",
+      "phase": "compare",
+      "size": 65536,
+      "target_rate": 500,
+      "measurement_s": 900,
+      "send_msg_s": 499.99888888888887,
+      "receive_msg_s": 500.0011148272018,
+      "p99_ms": 4.1,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.5622342689999,
+        "max_gap_s": 1.0581021579999943
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 12.609375,
+          "min": 10.8984375,
+          "max": 13.7578125
+        },
+        "rss_first_minute_mean_mib": 11.622200520833333,
+        "rss_last_minute_mean_mib": 12.81640625,
+        "rss_ols_mib_per_hour": 3.035045881429501,
+        "cpu_mean_one_core_percent": 16.2567532127877,
+        "rss_process_peak_mib": 13.6875
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 14.2734375,
+          "min": 12.453125,
+          "max": 15.5234375
+        },
+        "rss_first_minute_mean_mib": 13.6171875,
+        "rss_last_minute_mean_mib": 12.63671875,
+        "rss_ols_mib_per_hour": -5.555147618444427,
+        "cpu_mean_one_core_percent": 12.840552323222159,
+        "rss_process_peak_mib": 15.33203125
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2555.15234375,
+          "min": 2533.07421875,
+          "max": 2573.7890625
+        },
+        "rss_first_minute_mean_mib": 2546.1610026041667,
+        "rss_last_minute_mean_mib": 2564.812955729167,
+        "rss_ols_mib_per_hour": 85.51243259649547,
+        "cpu_mean_one_core_percent": 39.03105097986174,
+        "rss_process_peak_mib": 2573.7890625
+      }
+    },
+    "analysis_start_s": 125.245234353,
+    "analysis_end_s": 1014.537198792,
+    "topic_send_msg_s": 500.00001999399603,
+    "topic_receive_msg_s": 499.9977710138185,
+    "backlog_max": 7,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 10.81008529663086,
+    "host_swap_in_pages_delta": 83,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-65536-r3-go",
+    "client": "go",
+    "size": 65536,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-65536-r3-go",
+      "client": "go",
+      "phase": "compare",
+      "size": 65536,
+      "target_rate": 500,
+      "measurement_s": 900,
+      "send_msg_s": 499.9977777777778,
+      "receive_msg_s": 499.99777034559645,
+      "p99_ms": 3.7,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.504754492,
+        "max_gap_s": 1.0405037980000489
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 28.25390625,
+          "min": 25.38671875,
+          "max": 31.5390625
+        },
+        "rss_first_minute_mean_mib": 28.3677734375,
+        "rss_last_minute_mean_mib": 28.2408203125,
+        "rss_ols_mib_per_hour": -0.03752604335770176,
+        "cpu_mean_one_core_percent": 8.917639709600829,
+        "rss_process_peak_mib": 33.2265625
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 27.22265625,
+          "min": 26.671875,
+          "max": 30.52734375
+        },
+        "rss_first_minute_mean_mib": 27.0724609375,
+        "rss_last_minute_mean_mib": 27.290104166666666,
+        "rss_ols_mib_per_hour": 0.7310007362809673,
+        "cpu_mean_one_core_percent": 7.131862678220487,
+        "rss_process_peak_mib": 40.5078125
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2561.19140625,
+          "min": 2494.6796875,
+          "max": 2600.078125
+        },
+        "rss_first_minute_mean_mib": 2555.4205078125,
+        "rss_last_minute_mean_mib": 2523.6337890625,
+        "rss_ols_mib_per_hour": -152.94290230015355,
+        "cpu_mean_one_core_percent": 41.27753886262396,
+        "rss_process_peak_mib": 2600.078125
+      }
+    },
+    "analysis_start_s": 125.25049991,
+    "analysis_end_s": 1014.499253867,
+    "topic_send_msg_s": 499.9995760708145,
+    "topic_receive_msg_s": 499.99395334716405,
+    "backlog_max": 22,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 10.775989532470703,
+    "host_swap_in_pages_delta": 801,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "compare-65536-r3-rust",
+    "client": "rust",
+    "size": 65536,
+    "phase": "compare",
+    "measurement": {
+      "case_id": "compare-65536-r3-rust",
+      "client": "rust",
+      "phase": "compare",
+      "size": 65536,
+      "target_rate": 500,
+      "measurement_s": 900,
+      "send_msg_s": 499.9977777777778,
+      "receive_msg_s": 500,
+      "p99_ms": 5.2,
+      "coverage": {
+        "sample_count": 1021,
+        "last_sample_s": 1021.526482614,
+        "max_gap_s": 1.048223253000062
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 12.88671875,
+          "min": 12.81640625,
+          "max": 16.81640625
+        },
+        "rss_first_minute_mean_mib": 16.613411458333335,
+        "rss_last_minute_mean_mib": 13.00390625,
+        "rss_ols_mib_per_hour": -5.5608178364599645,
+        "cpu_mean_one_core_percent": 13.60093342592885,
+        "rss_process_peak_mib": 16.578125
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 11.015625,
+          "min": 10.7578125,
+          "max": 11.140625
+        },
+        "rss_first_minute_mean_mib": 10.88984375,
+        "rss_last_minute_mean_mib": 11.140625,
+        "rss_ols_mib_per_hour": 0.42707869333248005,
+        "cpu_mean_one_core_percent": 11.279947349771998,
+        "rss_process_peak_mib": 14.74609375
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2503.0234375,
+          "min": 2489.8671875,
+          "max": 2511.69140625
+        },
+        "rss_first_minute_mean_mib": 2498.342838541667,
+        "rss_last_minute_mean_mib": 2505.707486979167,
+        "rss_ols_mib_per_hour": 29.66354493147861,
+        "cpu_mean_one_core_percent": 30.47643635465264,
+        "rss_process_peak_mib": 2511.69140625
+      }
+    },
+    "analysis_start_s": 125.236566205,
+    "analysis_end_s": 1014.513766617,
+    "topic_send_msg_s": 499.99932506309653,
+    "topic_receive_msg_s": 499.99932506309653,
+    "backlog_max": 8,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 10.85369873046875,
+    "host_swap_in_pages_delta": 1418,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  },
+  {
+    "case_id": "soak-1024-moon",
+    "client": "moon",
+    "size": 1024,
+    "phase": "soak",
+    "measurement": {
+      "case_id": "soak-1024-moon",
+      "client": "moon",
+      "phase": "soak",
+      "size": 1024,
+      "target_rate": 5000,
+      "measurement_s": 7200,
+      "send_msg_s": 4999.9991666666665,
+      "receive_msg_s": 4999.999027372516,
+      "p99_ms": 3.4,
+      "coverage": {
+        "sample_count": 7312,
+        "last_sample_s": 7321.681063122,
+        "max_gap_s": 1.0459943380001933
+      },
+      "evidence_valid": true,
+      "performance_targets_met": true,
+      "performance_targets": {
+        "send_min_fraction": 0.98,
+        "receive_min_fraction": 0.95,
+        "p99_max_ms": 250,
+        "send_met": true,
+        "receive_met": true,
+        "p99_met": true
+      }
+    },
+    "roles": {
+      "producer": {
+        "rss_mib": {
+          "median": 10.203125,
+          "min": 10.1640625,
+          "max": 10.21875
+        },
+        "rss_first_minute_mean_mib": 10.1640625,
+        "rss_last_minute_mean_mib": 10.21875,
+        "rss_ols_mib_per_hour": 0.017836053370719123,
+        "cpu_mean_one_core_percent": 9.42941923498916,
+        "rss_process_peak_mib": 10.30078125
+      },
+      "consumer": {
+        "rss_mib": {
+          "median": 10.1640625,
+          "min": 10.1015625,
+          "max": 10.18359375
+        },
+        "rss_first_minute_mean_mib": 10.1015625,
+        "rss_last_minute_mean_mib": 10.18359375,
+        "rss_ols_mib_per_hour": 0.02281568608410943,
+        "cpu_mean_one_core_percent": 7.103499532848955,
+        "rss_process_peak_mib": 10.16015625
+      },
+      "broker": {
+        "rss_mib": {
+          "median": 2453.8203125,
+          "min": 2412.75,
+          "max": 2498.265625
+        },
+        "rss_first_minute_mean_mib": 2413.4143229166666,
+        "rss_last_minute_mean_mib": 2483.9015625,
+        "rss_ols_mib_per_hour": 16.62508954030716,
+        "cpu_mean_one_core_percent": 23.578277262803173,
+        "rss_process_peak_mib": 2498.265625
+      }
+    },
+    "analysis_start_s": 125.24746299599998,
+    "analysis_end_s": 7314.661605115001,
+    "topic_send_msg_s": 4999.998371133618,
+    "topic_receive_msg_s": 4999.998371133618,
+    "backlog_max": 7,
+    "final_sample_backlog": 0,
+    "host_min_available_gib": 10.90610122680664,
+    "host_swap_in_pages_delta": 3694,
+    "host_swap_out_pages_delta": 0,
+    "cleanup_http": 204
+  }
+]

@@ -1,0 +1,318 @@
+{
+  "aggregation": "median_min_max_of_completed_rounds",
+  "time_series_valid": false,
+  "groups": [
+    {
+      "size": 1024,
+      "client": "moon",
+      "rounds": 3,
+      "target_rate": 5000,
+      "metrics": {
+        "send_msg_s": {
+          "median": 4999.992222222222,
+          "min": 4999.972222222223,
+          "max": 4999.995555555555
+        },
+        "receive_msg_s": {
+          "median": 5000.006688963211,
+          "min": 4999.977703455965,
+          "max": 5000.016722408027
+        },
+        "p99_ms": {
+          "median": 5.7,
+          "min": 5.6,
+          "max": 5.7
+        },
+        "producer_rss": {
+          "median": 9.984375,
+          "min": 9.9453125,
+          "max": 10.15234375
+        },
+        "consumer_rss": {
+          "median": 9.984375,
+          "min": 9.9453125,
+          "max": 9.9921875
+        },
+        "producer_cpu": {
+          "median": 9.817550808325409,
+          "min": 9.790100097057872,
+          "max": 9.98127469338536
+        },
+        "consumer_cpu": {
+          "median": 7.565058128715683,
+          "min": 7.544490259644862,
+          "max": 7.681609386783675
+        }
+      }
+    },
+    {
+      "size": 1024,
+      "client": "go",
+      "rounds": 3,
+      "target_rate": 5000,
+      "metrics": {
+        "send_msg_s": {
+          "median": 4999.986666666667,
+          "min": 4999.982222222222,
+          "max": 4999.988888888889
+        },
+        "receive_msg_s": {
+          "median": 5000.008918617615,
+          "min": 4999.943143812709,
+          "max": 5000.008918617615
+        },
+        "p99_ms": {
+          "median": 5.9,
+          "min": 5.8,
+          "max": 5.9
+        },
+        "producer_rss": {
+          "median": 27.76171875,
+          "min": 27.75390625,
+          "max": 28.1953125
+        },
+        "consumer_rss": {
+          "median": 27.67578125,
+          "min": 27.3671875,
+          "max": 27.69140625
+        },
+        "producer_cpu": {
+          "median": 9.94000117644752,
+          "min": 9.71451540165879,
+          "max": 10.026175700714687
+        },
+        "consumer_cpu": {
+          "median": 4.7903077314842015,
+          "min": 4.686489980607627,
+          "max": 4.962684374449081
+        }
+      }
+    },
+    {
+      "size": 1024,
+      "client": "rust",
+      "rounds": 3,
+      "target_rate": 5000,
+      "metrics": {
+        "send_msg_s": {
+          "median": 4999.961111111111,
+          "min": 4999.947777777777,
+          "max": 4999.966666666666
+        },
+        "receive_msg_s": {
+          "median": 5000.016722408027,
+          "min": 4999.94983277592,
+          "max": 5000.0278706800445
+        },
+        "p99_ms": {
+          "median": 6.6,
+          "min": 6.6,
+          "max": 6.6
+        },
+        "producer_rss": {
+          "median": 15.234375,
+          "min": 15.16015625,
+          "max": 15.32421875
+        },
+        "consumer_rss": {
+          "median": 14.93359375,
+          "min": 14.8203125,
+          "max": 15.05078125
+        },
+        "producer_cpu": {
+          "median": 8.245674231655311,
+          "min": 8.116268810352434,
+          "max": 8.349590706337926
+        },
+        "consumer_cpu": {
+          "median": 7.053661498682702,
+          "min": 6.878483070684909,
+          "max": 7.07429825076884
+        }
+      }
+    },
+    {
+      "size": 65536,
+      "client": "moon",
+      "rounds": 3,
+      "target_rate": 500,
+      "metrics": {
+        "send_msg_s": {
+          "median": 499.99888888888887,
+          "min": 499.9977777777778,
+          "max": 499.99888888888887
+        },
+        "receive_msg_s": {
+          "median": 499.9988851727982,
+          "min": 499.99777034559645,
+          "max": 499.9988851727982
+        },
+        "p99_ms": {
+          "median": 6.5,
+          "min": 6.5,
+          "max": 6.8
+        },
+        "producer_rss": {
+          "median": 13.5703125,
+          "min": 13.38671875,
+          "max": 13.7421875
+        },
+        "consumer_rss": {
+          "median": 17.40234375,
+          "min": 16.4140625,
+          "max": 21.16015625
+        },
+        "producer_cpu": {
+          "median": 16.77042381937432,
+          "min": 16.738071195380435,
+          "max": 17.120420388035413
+        },
+        "consumer_cpu": {
+          "median": 13.30643186648515,
+          "min": 13.236763236763238,
+          "max": 13.62656950892245
+        }
+      }
+    },
+    {
+      "size": 65536,
+      "client": "go",
+      "rounds": 2,
+      "target_rate": 500,
+      "metrics": {
+        "send_msg_s": {
+          "median": 499.9994444444444,
+          "min": 499.99888888888887,
+          "max": 500
+        },
+        "receive_msg_s": {
+          "median": 499.9983277591973,
+          "min": 499.9966555183947,
+          "max": 500
+        },
+        "p99_ms": {
+          "median": 6.1,
+          "min": 6.1,
+          "max": 6.1
+        },
+        "producer_rss": {
+          "median": 33.421875,
+          "min": 33.421875,
+          "max": 33.421875
+        },
+        "consumer_rss": {
+          "median": 34.79296875,
+          "min": 33.3984375,
+          "max": 36.1875
+        },
+        "producer_cpu": {
+          "median": 10.440971745652046,
+          "min": 9.462559557655734,
+          "max": 11.41938393364836
+        },
+        "consumer_cpu": {
+          "median": 7.6565591271473625,
+          "min": 7.6227693874752696,
+          "max": 7.690348866819455
+        }
+      }
+    },
+    {
+      "size": 65536,
+      "client": "rust",
+      "rounds": 3,
+      "target_rate": 500,
+      "metrics": {
+        "send_msg_s": {
+          "median": 499.9977777777778,
+          "min": 499.9977777777778,
+          "max": 499.9977777777778
+        },
+        "receive_msg_s": {
+          "median": 500,
+          "min": 499.99777034559645,
+          "max": 500
+        },
+        "p99_ms": {
+          "median": 8,
+          "min": 8,
+          "max": 9.3
+        },
+        "producer_rss": {
+          "median": 16.33984375,
+          "min": 16.18359375,
+          "max": 16.3984375
+        },
+        "consumer_rss": {
+          "median": 14.9453125,
+          "min": 14.86328125,
+          "max": 20.33203125
+        },
+        "producer_cpu": {
+          "median": 14.204762698404918,
+          "min": 14.140057450417151,
+          "max": 14.479269811080284
+        },
+        "consumer_cpu": {
+          "median": 11.891050126344243,
+          "min": 11.848935378347143,
+          "max": 12.09073190797528
+        }
+      }
+    }
+  ],
+  "moon_relative_to_reference": [
+    {
+      "size": 1024,
+      "reference_client": "go",
+      "relative_median_percent": {
+        "send_msg_s": 0.00011111140740815983,
+        "receive_msg_s": -0.00004459300854131598,
+        "p99_ms": -3.3898305084745783,
+        "producer_rss": -64.03545799915575,
+        "consumer_rss": -63.92378263937897,
+        "producer_cpu": -1.2318949057295137,
+        "consumer_cpu": 57.92426192151476
+      }
+    },
+    {
+      "size": 1024,
+      "reference_client": "rust",
+      "relative_median_percent": {
+        "send_msg_s": 0.000622227061763958,
+        "receive_msg_s": -0.00020066822519204663,
+        "p99_ms": -13.636363636363624,
+        "producer_rss": -34.46153846153847,
+        "consumer_rss": -33.141511901647924,
+        "producer_cpu": 19.063044846419363,
+        "consumer_cpu": 7.250087491843571
+      }
+    },
+    {
+      "size": 65536,
+      "reference_client": "go",
+      "relative_median_percent": {
+        "send_msg_s": -0.00011111123456863936,
+        "receive_msg_s": 0.00011148309304598314,
+        "p99_ms": 6.557377049180335,
+        "producer_rss": -59.39691444600281,
+        "consumer_rss": -49.98315931289997,
+        "producer_cpu": 60.62129299754171,
+        "consumer_cpu": 73.79127680612302
+      }
+    },
+    {
+      "size": 65536,
+      "reference_client": "rust",
+      "relative_median_percent": {
+        "send_msg_s": 0.00022222320987808075,
+        "receive_msg_s": -0.00022296544035516064,
+        "p99_ms": -18.75,
+        "producer_rss": -16.94955773368396,
+        "consumer_rss": 16.440146366962892,
+        "producer_cpu": 18.06197805231553,
+        "consumer_cpu": 11.902916269818542
+      }
+    }
+  ]
+}

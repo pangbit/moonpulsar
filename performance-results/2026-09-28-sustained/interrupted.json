@@ -1,0 +1,10 @@
+{
+  "size": 65536,
+  "client": "go",
+  "repeat": 3,
+  "last_sample_elapsed_s": 600.902059335,
+  "last_backlog": 4,
+  "saved_sample_count": 1,
+  "time_series_valid": false,
+  "formal_measurement_valid": false
+}

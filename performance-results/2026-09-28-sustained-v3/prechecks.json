@@ -1,0 +1,314 @@
+[
+  {
+    "case_id": "smoke-1024-moon",
+    "client": "moon",
+    "phase": "smoke",
+    "size": 1024,
+    "target_rate": 100,
+    "measurement_s": 15,
+    "send_msg_s": 100,
+    "receive_msg_s": 100.08333333333333,
+    "p99_ms": 3.2,
+    "coverage": {
+      "sample_count": 18,
+      "last_sample_s": 17.083920136,
+      "max_gap_s": 1.0257959540000001
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "smoke-1024-go",
+    "client": "go",
+    "phase": "smoke",
+    "size": 1024,
+    "target_rate": 100,
+    "measurement_s": 15,
+    "send_msg_s": 100,
+    "receive_msg_s": 100,
+    "p99_ms": 3.2,
+    "coverage": {
+      "sample_count": 18,
+      "last_sample_s": 17.086560673,
+      "max_gap_s": 1.005883884
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "smoke-1024-rust",
+    "client": "rust",
+    "phase": "smoke",
+    "size": 1024,
+    "target_rate": 100,
+    "measurement_s": 15,
+    "send_msg_s": 100,
+    "receive_msg_s": 100.08333333333333,
+    "p99_ms": 4.1,
+    "coverage": {
+      "sample_count": 18,
+      "last_sample_s": 17.081152741999997,
+      "max_gap_s": 1.0246553059999988
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "smoke-65536-moon",
+    "client": "moon",
+    "phase": "smoke",
+    "size": 65536,
+    "target_rate": 100,
+    "measurement_s": 15,
+    "send_msg_s": 100,
+    "receive_msg_s": 100,
+    "p99_ms": 3.5,
+    "coverage": {
+      "sample_count": 18,
+      "last_sample_s": 17.081489586,
+      "max_gap_s": 1.0333663750000015
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "smoke-65536-go",
+    "client": "go",
+    "phase": "smoke",
+    "size": 65536,
+    "target_rate": 100,
+    "measurement_s": 15,
+    "send_msg_s": 100,
+    "receive_msg_s": 100.08333333333333,
+    "p99_ms": 5.7,
+    "coverage": {
+      "sample_count": 18,
+      "last_sample_s": 17.081419249,
+      "max_gap_s": 1.0099938710000016
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "smoke-65536-rust",
+    "client": "rust",
+    "phase": "smoke",
+    "size": 65536,
+    "target_rate": 100,
+    "measurement_s": 15,
+    "send_msg_s": 100,
+    "receive_msg_s": 100,
+    "p99_ms": 5.2,
+    "coverage": {
+      "sample_count": 18,
+      "last_sample_s": 17.081958141,
+      "max_gap_s": 1.004777657999999
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "ratecheck-1024-moon",
+    "client": "moon",
+    "phase": "smoke",
+    "size": 1024,
+    "target_rate": 5000,
+    "measurement_s": 30,
+    "send_msg_s": 4999.733333333334,
+    "receive_msg_s": 4999.62962962963,
+    "p99_ms": 3.4,
+    "coverage": {
+      "sample_count": 42,
+      "last_sample_s": 41.126226568,
+      "max_gap_s": 1.0254935010000046
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "ratecheck-1024-go",
+    "client": "go",
+    "phase": "smoke",
+    "size": 1024,
+    "target_rate": 5000,
+    "measurement_s": 30,
+    "send_msg_s": 4999.533333333334,
+    "receive_msg_s": 4998.962962962963,
+    "p99_ms": 3.3,
+    "coverage": {
+      "sample_count": 42,
+      "last_sample_s": 41.117223424,
+      "max_gap_s": 1.0206181179999911
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "ratecheck-1024-rust",
+    "client": "rust",
+    "phase": "smoke",
+    "size": 1024,
+    "target_rate": 5000,
+    "measurement_s": 30,
+    "send_msg_s": 4999.666666666667,
+    "receive_msg_s": 5000.740740740741,
+    "p99_ms": 4.6,
+    "coverage": {
+      "sample_count": 42,
+      "last_sample_s": 41.118140457,
+      "max_gap_s": 1.015727261999993
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "ratecheck-65536-moon",
+    "client": "moon",
+    "phase": "smoke",
+    "size": 65536,
+    "target_rate": 500,
+    "measurement_s": 30,
+    "send_msg_s": 499.93333333333334,
+    "receive_msg_s": 500.0740740740741,
+    "p99_ms": 4.3,
+    "coverage": {
+      "sample_count": 42,
+      "last_sample_s": 41.1182337,
+      "max_gap_s": 1.0215385920000002
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "ratecheck-65536-go",
+    "client": "go",
+    "phase": "smoke",
+    "size": 65536,
+    "target_rate": 500,
+    "measurement_s": 30,
+    "send_msg_s": 499.96666666666664,
+    "receive_msg_s": 500.1111111111111,
+    "p99_ms": 7.2,
+    "coverage": {
+      "sample_count": 42,
+      "last_sample_s": 41.120264734,
+      "max_gap_s": 1.021254006
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  },
+  {
+    "case_id": "ratecheck-65536-rust",
+    "client": "rust",
+    "phase": "smoke",
+    "size": 65536,
+    "target_rate": 500,
+    "measurement_s": 30,
+    "send_msg_s": 499.93333333333334,
+    "receive_msg_s": 499.9259259259259,
+    "p99_ms": 23.2,
+    "coverage": {
+      "sample_count": 42,
+      "last_sample_s": 41.126064352,
+      "max_gap_s": 1.0301179949999997
+    },
+    "evidence_valid": true,
+    "performance_targets_met": true,
+    "performance_targets": {
+      "send_min_fraction": 0.98,
+      "receive_min_fraction": 0.95,
+      "p99_max_ms": 250,
+      "send_met": true,
+      "receive_met": true,
+      "p99_met": true
+    }
+  }
+]
