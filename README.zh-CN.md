@@ -8,10 +8,30 @@
 
 ## 环境要求
 
-- 支持 **native** 后端的 MoonBit 工具链；网络连接依赖 TCP socket
-- C 编译器与系统 SDK/libc。不需要 OpenSSL、zlib 开发头文件；Zlib（包括 Java 同步刷新兼容路径）使用纯 MoonBit，不需要系统 zlib 动态库。
-- 构建不需要 OpenSSL 开发头文件。客户端证书、TLS 版本/密码套件配置以及 ECIES 消息加密在运行时需要 OpenSSL **3** 动态库；macOS 使用 Homebrew `openssl@3` 标准路径，Linux 使用系统动态库加载器。缺库或缺符号在使用相关功能时明确报错。RSA 消息加密不加载这项 ECIES 依赖。普通 TLS 仍遵循 `moonbitlang/async/tls` 的平台运行库要求。
-- 运行示例需要 Pulsar broker；自动化测试使用进程内 mock broker，无需 Docker
+### 构建环境
+
+- 使用 **native** 后端；本客户端不支持 JS 或 Wasm。CI 覆盖 **Linux（Ubuntu 24.04）**；macOS 已做本地验证，Windows 尚未验证。
+- 安装 MoonBit 工具链、C 编译器及系统 SDK/libc 开发文件。本地验证使用 `moon 0.1.20260920` / `moonc 0.10.14+7d59c7ec9`；这是已验证版本，不代表最低版本要求。CI 安装当前工具链。
+- 构建库**不需要** OpenSSL 或 zlib 开发头文件。通过 `moon update` 获取 MoonBit 依赖。
+
+### 运行时依赖
+
+根据应用使用的功能准备依赖：
+
+| 功能 | Linux | macOS |
+| --- | --- | --- |
+| 普通 TCP（`pulsar://`）、压缩、RSA 消息加密 | 不需要 OpenSSL 或系统 zlib 动态库 | 相同 |
+| 普通 TLS（`pulsar+ssl://`，包括自定义 CA） | `moonbitlang/async@0.22.1` 加载 `libssl.so.3`，也会尝试 `libssl.so.1.1` 和 `libssl.so` | 通过 `moonbitlang/async@0.22.1` 使用系统 TLS 库 |
+| 使用客户端证书，或指定 TLS 版本/密码套件 | OpenSSL **3**：`libssl.so.3` 和 `libcrypto.so.3` | Homebrew `openssl@3` |
+| ECIES 消息加密 | OpenSSL **3**：`libcrypto.so.3` | Homebrew `openssl@3` |
+
+Linux 动态库需要能被系统动态库加载器找到。macOS 的 OpenSSL 3 适配层查找 `/opt/homebrew/opt/openssl@3/lib` 或 `/usr/local/opt/openssl@3/lib`。这些动态库需要安装在**运行应用的机器上**，只在构建机器安装不够。
+
+### 测试与示例
+
+- `moon test --target native` 包含 TLS 和 ECIES 测试，因此需要上表中的 TLS 动态库，包括 OpenSSL **3**。测试使用进程内 mock broker，不需要外部 Broker 或 Docker。
+- 示例需要可访问的 Pulsar Broker。下方快速开始使用 Docker 在本地启动 Pulsar **4.2.4**。Broker CI 覆盖 **4.2.4** 和 **3.3.9**；这是已验证版本，不代表完整兼容范围。
+- 额外的 ABI 与真实 Broker 互操作检查有各自的依赖，见[开发与验证](docs/testing.zh-CN.md)。
 
 ## 安装
 

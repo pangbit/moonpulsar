@@ -8,10 +8,30 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 
 ## Requirements
 
-- MoonBit toolchain with the **native** backend (TCP sockets)
-- A C compiler and system SDK/libc. OpenSSL and zlib development headers are not required. Zlib, including Java sync-flush compatibility, uses pure MoonBit and needs no system zlib runtime.
-- OpenSSL development headers are not required. Client-certificate / TLS-policy options and ECIES message encryption require OpenSSL **3** shared libraries at runtime. On macOS these adapters look in the standard Homebrew `openssl@3` locations; on Linux they use the system library loader. Missing libraries or symbols produce errors when those features are used. RSA message encryption does not load this ECIES dependency. Ordinary TLS keeps the platform requirements of `moonbitlang/async/tls`.
-- A Pulsar broker for the examples; the test suite uses an in-process mock broker and needs no external services
+### Build environment
+
+- Use the **native** backend; JS and Wasm are not supported by this client. CI runs on **Linux (Ubuntu 24.04)**. macOS has been tested locally; Windows is not verified.
+- Install the MoonBit toolchain and a C compiler with the system SDK/libc development files. The locally verified toolchain is `moon 0.1.20260920` / `moonc 0.10.14+7d59c7ec9`; this is a tested version, not a declared minimum. CI installs the current toolchain.
+- Building the library does **not** require OpenSSL or zlib development headers. Run `moon update` to fetch MoonBit dependencies.
+
+### Runtime dependencies
+
+Requirements depend on the features your application uses:
+
+| Feature | Linux | macOS |
+| --- | --- | --- |
+| Plain TCP (`pulsar://`), compression, RSA message encryption | No OpenSSL or system zlib runtime needed | Same |
+| Ordinary TLS (`pulsar+ssl://`, including a custom CA) | `moonbitlang/async@0.22.1` loads `libssl.so.3`, with fallbacks to `libssl.so.1.1` and `libssl.so` | Uses the system TLS library through `moonbitlang/async@0.22.1` |
+| TLS with a client certificate or explicit protocol/cipher settings | OpenSSL **3**: `libssl.so.3` and `libcrypto.so.3` | Homebrew `openssl@3` |
+| ECIES message encryption | OpenSSL **3**: `libcrypto.so.3` | Homebrew `openssl@3` |
+
+Linux libraries must be discoverable by the system dynamic loader. The macOS OpenSSL 3 adapters look under `/opt/homebrew/opt/openssl@3/lib` or `/usr/local/opt/openssl@3/lib`. These shared libraries are needed on the **machine running the application**, not just the build machine.
+
+### Tests and examples
+
+- `moon test --target native` includes TLS and ECIES tests, so it needs the TLS libraries above, including OpenSSL **3**. It uses in-process mock brokers: no external broker or Docker is required.
+- Examples need a reachable Pulsar broker. The quickstart below uses Docker to start Pulsar **4.2.4** locally. Broker CI covers **4.2.4** and **3.3.9**; these are verified versions, not a complete compatibility range.
+- Additional ABI and live interoperability checks have separate dependencies; see [Development and verification](docs/testing.md).
 
 ## Installation
 
