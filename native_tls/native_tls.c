@@ -223,6 +223,9 @@ moonbit_bytes_t moonpulsar_tls_error(void) {
     return unavailable;
   }
   unsigned long code = ERR_get_error();
+  /* A failed operation can enqueue multiple errors. Do not leak the rest to
+   * another TLS connection running on the same event-loop thread. */
+  ERR_clear_error();
   char buffer[256];
   ERR_error_string_n(code, buffer, sizeof(buffer));
   size_t len = strlen(buffer);
