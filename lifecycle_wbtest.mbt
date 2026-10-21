@@ -8,12 +8,17 @@ fn lifecycle_memory_connection(
   reject? : Bool = false,
   blocked? : (String, @aqueue.Queue[Unit]),
   close_calls? : Ref[Int],
+  wrap_writer? : (&@io.Writer) -> &@io.Writer,
+  observe? : (IncomingFrame) -> Unit,
 ) -> (Connection, @io.PipeWrite) {
   let (reader, peer_writer) = @io.pipe()
   let (peer_reader, writer) = @io.pipe()
   let conn : Connection = {
     reader,
-    writer,
+    writer: match wrap_writer {
+      Some(wrap) => wrap(writer)
+      None => writer
+    },
     auth: None,
     auth_provider: None,
     async_auth_provider: None,
@@ -52,6 +57,9 @@ fn lifecycle_memory_connection(
     async fn() {
       while true {
         let frame = read_frame(peer_reader) catch { _ => return }
+        if observe is Some(callback) {
+          callback(frame)
+        }
         let cmd = frame.cmd
         if blocked is Some((phase, ready)) &&
           (
@@ -59,6 +67,7 @@ fn lifecycle_memory_connection(
               phase == "create" &&
               (cmd.producer is Some(_) || cmd.subscribe is Some(_))
             ) ||
+            (phase == "send" && cmd.send is Some(_)) ||
             (
               phase == "close" &&
               (cmd.close_producer is Some(_) || cmd.close_consumer is Some(_))

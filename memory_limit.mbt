@@ -8,6 +8,22 @@ priv struct MemoryWaiter {
 }
 
 ///|
+// A producer can retire its own admissions without closing the shared budget.
+priv struct ProducerMemoryAdmission {
+  mut closed : Bool
+  waiters : Map[UInt64, @aqueue.Queue[Unit]]
+}
+
+///|
+fn ProducerMemoryAdmission::close(self : ProducerMemoryAdmission) -> Unit {
+  self.closed = true
+  for waiter in self.waiters.values() {
+    waiter.close(error=ProducerClosed, clear=true)
+  }
+  self.waiters.clear()
+}
+
+///|
 struct ClientMemoryLimiter {
   limit : Int
   mut used : Int
@@ -58,13 +74,14 @@ async fn ClientMemoryLimiter::acquire(
   self : ClientMemoryLimiter,
   size : Int,
   block : Bool,
+  owner? : ProducerMemoryAdmission,
 ) -> Unit {
   if size > self.limit {
     raise ClientMemoryFull
   }
   while true {
     self.mu.acquire()
-    if self.closed {
+    if self.closed || (owner is Some(owner) && owner.closed) {
       self.mu.release()
       raise ProducerClosed
     }
@@ -83,7 +100,11 @@ async fn ClientMemoryLimiter::acquire(
       kind=@aqueue.Kind::Blocking(1),
     )
     self.waiters.push({ token, ready, })
+    if owner is Some(owner) {
+      owner.waiters[token] = ready
+    }
     self.mu.release()
+    defer (if owner is Some(owner) { owner.waiters.remove(token) })
     errdefer self.remove_waiter(token)
     ready.get()
   }

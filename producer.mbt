@@ -81,6 +81,7 @@ priv struct PendingFrame {
   entries : Array[(PendingSend, Int)]
   mut remaining : Int
   chunk_waiter : @aqueue.Queue[SendReceipt]?
+  mut write_task : Ref[@async.Task[Unit]?]
 }
 
 ///|
@@ -112,6 +113,7 @@ pub struct SingleProducer {
   priv reconnecting : Ref[Bool]
   priv pending_slots : @aqueue.Queue[Unit]?
   priv memory_limiter : ClientMemoryLimiter?
+  priv memory_admission : ProducerMemoryAdmission
   priv on_event : ((ClientEvent) -> Unit)?
   priv span_recorder : ClientSpanRecorder?
   priv block_if_queue_full : Bool
@@ -267,6 +269,7 @@ async fn SingleProducer::create_with_memory(
     reconnecting: { val: false, },
     pending_slots,
     memory_limiter,
+    memory_admission: { closed: false, waiters: {}, },
     on_event,
     span_recorder,
     block_if_queue_full,
@@ -485,7 +488,10 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
     seqs.sort()
     for seq in seqs {
       if self.payloads.get(seq) is Some(bytes) {
-        conn.send_bytes(bytes)
+        self.write_pending_frame(conn, seq, bytes)
+        if conn.is_closed() {
+          raise ConnectionClosed
+        }
       }
     }
   }
@@ -523,6 +529,7 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
 ///|
 fn SingleProducer::fail_all(self : SingleProducer, error : PulsarError) -> Unit {
   self.closed = true
+  self.memory_admission.close()
   self.detach_connection()
   self.conn.producer_handlers.remove(self.producer_id)
   if self.pending_slots is Some(slots) {
@@ -795,6 +802,7 @@ async fn SingleProducer::send_encoded(
     entries: live,
     remaining: live.length(),
     chunk_waiter,
+    write_task: { val: None, },
   }
   for (entry, _) in live {
     entry.frame = Some(sequence_id)
@@ -802,8 +810,41 @@ async fn SingleProducer::send_encoded(
   self.payloads[sequence_id] = frame
   errdefer self.finish_frame(sequence_id, Err(ConnectionClosed))
   if !self.reconnecting.val {
-    self.conn.send_bytes(frame)
+    self.write_pending_frame(self.conn, sequence_id, frame)
   }
+}
+
+///|
+// Each attempt has its own slot: an old attempt cannot clear a newer replay's
+// task handle. The nested group joins the writer even on caller cancellation.
+async fn SingleProducer::write_pending_frame(
+  self : SingleProducer,
+  conn : Connection,
+  sequence_id : UInt64,
+  bytes : Bytes,
+) -> Unit {
+  guard self.pending.get(sequence_id) is Some(frame) else { return }
+  let slot : Ref[@async.Task[Unit]?] = { val: None, }
+  frame.write_task = slot
+  defer {
+    slot.val = None
+  }
+  @async.with_task_group(group => {
+    let task = group.spawn(
+      () => conn.send_bytes(bytes),
+      no_wait=true,
+      allow_failure=true,
+    )
+    slot.val = Some(task)
+    // spawn may run the writer before returning; expiry can win in that gap.
+    if frame.remaining == 0 {
+      task.cancel()
+    }
+    task.wait() catch {
+      @async.TaskCancelled if frame.remaining == 0 => ()
+      e => raise e
+    }
+  })
 }
 
 ///|
@@ -1040,6 +1081,7 @@ pub async fn SingleProducer::close(self : SingleProducer) -> Unit {
     return
   }
   self.closed = true
+  self.memory_admission.close()
   defer self.fail_all(ProducerClosed)
   if self.pending_slots is Some(slots) {
     slots.close(error=ProducerClosed, clear=true)

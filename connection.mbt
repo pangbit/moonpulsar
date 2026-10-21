@@ -332,6 +332,16 @@ async fn Connection::send_bytes(self : Connection, bytes : Bytes) -> Unit {
   }
   self.write_mu.acquire()
   defer self.write_mu.release()
+  if self.closed {
+    raise ConnectionClosed
+  }
+  // Once writing begins, cancellation can leave a partial frame (including TLS
+  // buffered output). Retire the transport before releasing the writer lock.
+  // Cancellation while acquiring the lock never reaches this cleanup.
+  errdefer {
+    self.notify_closed(Some(ConnectionClosed))
+    self.close_transport_once()
+  }
   self.writer.write(bytes) catch {
     e => {
       self.notify_closed(Some(e))

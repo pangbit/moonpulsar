@@ -88,7 +88,7 @@ fn SingleProducer::wake_deadlines(self : SingleProducer) -> Unit {
 
 ///|
 async fn SingleProducer::run_deadlines(self : SingleProducer) -> Unit {
-  while !self.closed {
+  while !self.closed || !self.sends.is_empty() {
     // Coalesce changes; no await between reading the heap and choosing a wait.
     ignore(self.deadline_changed.try_get())
     if self.deadlines.heap.get(0) is Some((id, deadline)) {
@@ -133,7 +133,7 @@ async fn SingleProducer::admit_send(
   })
   let size = msg.retained_bytes()
   if self.memory_limiter is Some(limiter) {
-    limiter.acquire(size, self.block_if_queue_full)
+    limiter.acquire(size, self.block_if_queue_full, owner=self.memory_admission)
   }
   errdefer (if self.memory_limiter is Some(limiter) {
     limiter.release_now(size)
@@ -192,6 +192,9 @@ fn SingleProducer::finish_send(
   if send.frame is Some(seq) && self.pending.get(seq) is Some(frame) {
     frame.remaining -= 1
     if frame.remaining == 0 {
+      if frame.write_task.val is Some(task) {
+        task.cancel()
+      }
       self.pending.remove(seq)
       self.payloads.remove(seq)
       self.release_frame_charge(seq)
