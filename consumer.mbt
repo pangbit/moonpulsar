@@ -520,8 +520,8 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
     self.batch_acks.clear()
     self.chunks.clear()
     self.chunk_acks.clear()
-    // the broker forgot our permits with the old connection; re-open the
-    // flow window fully (messages buffered locally may over-deliver slightly)
+    // The broker forgot its permits, but locally buffered messages still
+    // occupy the receive window.
     self.reset_flow()
   }
   let run = async fn() -> Unit {
@@ -627,8 +627,16 @@ async fn SingleConsumer::reset_flow(self : SingleConsumer) -> Unit {
       self.request_one()
     }
   } else {
-    self.send_flow(self.current_receiver_permits)
-    self.available_permits = self.current_receiver_permits
+    let permits = Int::max(
+      0,
+      self.current_receiver_permits - self.buffered_messages,
+    )
+    // available_permits counts both buffered messages and broker credits;
+    // receive decrements it and replenishes only the newly freed capacity.
+    self.available_permits = self.buffered_messages + permits
+    if permits > 0 {
+      self.send_flow(permits)
+    }
   }
 }
 
@@ -1457,6 +1465,14 @@ pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
   }
   self.closed.val = true
   self.clear_buffered_messages()
+  // Local receivers must not wait for the broker's CLOSE response.
+  // The drained queue may already be closed by a delivery failure. Closing
+  // it again can wake an old queue reader during an unrelated async request.
+  try self.messages.try_get() catch {
+    _ => ()
+  } noraise {
+    _ => self.messages.close(error=ConsumerClosed, clear=true)
+  }
   self.chunks.clear()
   self.stop_chunk_sweeper()
   self.ack_dispatcher.stop()
@@ -1479,7 +1495,6 @@ pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
   self.ack_pending.clear()
   self.batch_acks.clear()
   self.chunk_acks.clear()
-  self.messages.close(error=ConsumerClosed, clear=true)
 }
 
 ///|
