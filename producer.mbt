@@ -382,7 +382,10 @@ fn SingleProducer::on_command(
       ),
     )
   } else if cmd.close_producer is Some(_) {
-    self.fail_all(ConnectionClosed)
+    // A topic unload closes this producer while the TCP connection may stay
+    // healthy. Reuse the connection-loss path, retaining unconfirmed frames.
+    self.conn.producer_handlers.remove(self.producer_id)
+    self.on_connection_closed(None)
   }
 }
 
