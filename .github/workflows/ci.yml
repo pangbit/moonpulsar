@@ -57,6 +57,8 @@ jobs:
         run: moon run scripts/verify-native-abi.mbtx -- --report-dir /tmp/moonpulsar-abi
       - name: Verify native zlib boundaries with sanitizers
         run: moon run scripts/verify-zlib-boundary.mbtx
+      - name: Test Zlib archive selection
+        run: moon test --deny-warn -j 1 scripts/verify-zlib-replacement.mbtx
       - name: Verify pure Zlib differential and performance gate
         env:
           MOONPULSAR_ZLIB_REPORT: /tmp/moonpulsar-zlib-gate

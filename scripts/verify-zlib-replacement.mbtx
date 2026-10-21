@@ -7,6 +7,69 @@ import {
 }
 
 ///|
+// Resolve only the archive reported by this successful packaging command.
+// Reject ambiguous output and paths outside this project's publish directory.
+fn package_archive(output : String, project_root : String) -> String? {
+  let archives : Array[String] = []
+  for line in output.split("\n") {
+    if line.to_owned().strip_prefix("Package to ") is Some(path) {
+      archives.push(path.to_owned())
+    }
+  }
+  guard archives.length() == 1 else { return None }
+  let archive = archives[0]
+  guard archive.strip_prefix(
+      project_root + "/_build/publish/pangbit-moonpulsar-",
+    )
+    is Some(filename) else {
+    return None
+  }
+  let filename = filename.to_owned()
+  guard filename.length() > 4 && filename.has_suffix(".zip") else {
+    return None
+  }
+  for forbidden in ["/", "\\", "..", " ", "\t", "\r"] {
+    if filename.contains(forbidden) {
+      return None
+    }
+  }
+  Some(archive)
+}
+
+///|
+test "package archive follows the generated version" {
+  for version in ["0.1.2", "0.2.0-rc.1"] {
+    let archive = "/project with spaces/_build/publish/pangbit-moonpulsar-\{version}.zip"
+    assert_eq(
+      package_archive(
+        "Check passed\nPackage to \{archive}\n",
+        "/project with spaces",
+      ),
+      Some(archive),
+    )
+  }
+}
+
+///|
+test "package archive rejects missing or ambiguous output" {
+  let line = "Package to /project/_build/publish/pangbit-moonpulsar-0.1.2.zip\n"
+  assert_eq(package_archive("Check passed\n", "/project"), None)
+  assert_eq(package_archive(line + line, "/project"), None)
+}
+
+///|
+test "package archive rejects unrelated or unsafe targets" {
+  for
+    path in [
+      "/other/_build/publish/pangbit-moonpulsar-0.1.2.zip", "/project/_build/publish/other-0.1.2.zip",
+      "/project/_build/publish/pangbit-moonpulsar-../other.zip", "/project/_build/publish/pangbit-moonpulsar-0.1.2\\other.zip",
+      "/project/_build/publish/pangbit-moonpulsar-0.1.2.zip.bak", "/project/_build/publish/pangbit-moonpulsar-.zip",
+    ] {
+    assert_eq(package_archive("Package to \{path}\n", "/project"), None)
+  }
+}
+
+///|
 async fn checked(name : String, command : @shell.Cmd, report : String) -> Unit {
   let out = command.output(timeout_ms=600000, max_output_bytes=16000000)
   @fs.write_file("\{report}/\{name}.log", out.stdout() + out.stderr())
@@ -52,14 +115,29 @@ async fn main {
     report,
   )
   checked("package", @shell.Cmd("moon", ["package", "--list"]), report)
+  let directory = @shell.Cmd("pwd", ["-P"]).output(timeout_ms=10000)
+  directory.check()
+  guard package_archive(
+      @fs.read_file("\{report}/package.log").text(),
+      directory.stdout().trim().to_owned(),
+    )
+    is Some(archive) else {
+    fail(
+      "package output must identify exactly one archive in this project's publish directory",
+    )
+  }
+  checked(
+    "archive-manifest",
+    @shell.Cmd("unzip", ["-p", archive, "moon.mod"]),
+    report,
+  )
+  assert_eq(
+    @fs.read_file("\{report}/archive-manifest.log").text(),
+    @fs.read_file("moon.mod").text(),
+  )
   checked(
     "unzip",
-    @shell.Cmd("unzip", [
-      "-q",
-      "_build/publish/pangbit-moonpulsar-0.1.1.zip",
-      "-d",
-      "\{report}/library",
-    ]),
+    @shell.Cmd("unzip", ["-q", archive, "-d", "\{report}/library"]),
     report,
   )
   let library = "\{report}/library"
