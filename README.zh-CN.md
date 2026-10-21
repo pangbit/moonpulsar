@@ -11,8 +11,24 @@
 ### 构建环境
 
 - 使用 **native** 后端；本客户端不支持 JS 或 Wasm。CI 覆盖 **Linux（Ubuntu 24.04）**；macOS 已做本地验证，Windows 尚未验证。
-- 安装 MoonBit 工具链、C 编译器及系统 SDK/libc 开发文件。本地验证使用 `moon 0.1.20260920` / `moonc 0.10.14+7d59c7ec9`；这是已验证版本，不代表最低版本要求。CI 安装当前工具链。
+- 安装[受支持的 MoonBit 工具链](#工具链兼容性)、C 编译器及系统 SDK/libc 开发文件。CI 固定并检查同一工具链；这是具体的已验证组合，不代表最低版本要求。
 - 构建库**不需要** OpenSSL 或 zlib 开发头文件。通过 `moon update` 获取 MoonBit 依赖。
+
+### 工具链兼容性
+
+当前支持并已验证的组合是：
+
+| 组件 | 版本 |
+| --- | --- |
+| `moon` / `moonrun` | `0.1.20260920`（`914d7da`） |
+| `moonc` | `v0.10.14+7d59c7ec9` |
+| Protobuf 运行库依赖 | `moonbitlang/protobuf@0.1.3` |
+
+同一个 Protobuf 运行库在 `moon 0.1.20261020` / `moonc v0.10.16+b1a0e846e` 下存在已知编译失败：它声明了保留类型名 `Option`。详见[兼容记录与上游问题](docs/verification-0.1.2.md#supported-toolchain)。其他组合尚未验证。
+
+普通生产与消费应用无需单独声明 Protobuf。自行生成 Protobuf 消息的应用会直接使用它的 `Read`/`Write` 接口。依赖兼容性由本库维护；上游正式发布修复后，本库再统一升级并验证，使用者无需修改上游代码。
+
+CI 固定版本只控制本仓库的运行环境。应用由自身环境选定的工具链编译，安装本库不会自动切换应用的 SDK。
 
 ### 运行时依赖
 

@@ -1,0 +1,28 @@
+///|
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn main {
+  let output = @shell.Cmd("moon", ["version", "--all"]).output(timeout_ms=10000)
+  output.check()
+  let actual = output.stdout()
+  println(actual)
+  let expected = [
+    "moon 0.1.20260920 (914d7da ", "moonc v0.10.14+7d59c7ec9 ", "moonrun 0.1.20260920 (914d7da ",
+  ]
+  for prefix in expected {
+    guard actual.split("\n").any(line => line.has_prefix(prefix)) else {
+      fail(
+        "Unsupported MoonBit toolchain; expected moon/moonrun 0.1.20260920 (914d7da) and moonc v0.10.14+7d59c7ec9. See README toolchain compatibility.",
+      )
+    }
+  }
+  if @env.get_env_var("MOONBIT_INSTALL_VERSION") is Some(version) {
+    assert_eq(version, "0.10.14+7d59c7ec9")
+  }
+  println("PASS supported MoonBit toolchain for protobuf 0.1.3")
+}

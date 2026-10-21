@@ -11,8 +11,24 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 ### Build environment
 
 - Use the **native** backend; JS and Wasm are not supported by this client. CI runs on **Linux (Ubuntu 24.04)**. macOS has been tested locally; Windows is not verified.
-- Install the MoonBit toolchain and a C compiler with the system SDK/libc development files. The locally verified toolchain is `moon 0.1.20260920` / `moonc 0.10.14+7d59c7ec9`; this is a tested version, not a declared minimum. CI installs the current toolchain.
+- Install the [supported MoonBit toolchain](#toolchain-compatibility) and a C compiler with the system SDK/libc development files. CI pins and verifies the same toolchain; this is a specific tested combination, not a minimum-version claim.
 - Building the library does **not** require OpenSSL or zlib development headers. Run `moon update` to fetch MoonBit dependencies.
+
+### Toolchain compatibility
+
+The supported, verified combination is:
+
+| Component | Version |
+| --- | --- |
+| `moon` / `moonrun` | `0.1.20260920` (`914d7da`) |
+| `moonc` | `v0.10.14+7d59c7ec9` |
+| Protobuf runtime dependency | `moonbitlang/protobuf@0.1.3` |
+
+The same Protobuf runtime is known to fail compilation with `moon 0.1.20261020` / `moonc v0.10.16+b1a0e846e` because it declares the reserved type name `Option`. See the [compatibility record and upstream issue](docs/verification-0.1.2.md#supported-toolchain). Other combinations are unverified.
+
+Ordinary producer/consumer applications do not need to declare Protobuf separately. Applications that generate their own Protobuf messages directly use its `Read`/`Write` interfaces. This library maintains its dependency compatibility and will update after an official upstream fix is released and verified. Users do not need to patch upstream code.
+
+The CI pin controls this repository's runners. Applications are compiled with the toolchain selected by their own environment, so installing this library does not switch the application's SDK.
 
 ### Runtime dependencies
 

@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  MOONBIT_INSTALL_VERSION: "0.10.14+7d59c7ec9"
+
 jobs:
   native-dependencies:
     name: Linux native dependency matrix
@@ -21,6 +24,8 @@ jobs:
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - run: moon update
+      - name: Verify supported MoonBit toolchain
+        run: moon run --deny-warn -j 1 scripts/check-supported-sdk.mbtx
       - name: Verify ZIP in isolated build and runtime environments
         run: moon run scripts/verify-native-deps.mbtx -- --report-dir /tmp/moonpulsar-native-matrix
       - name: Preserve matrix evidence and candidate archive
@@ -46,6 +51,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libssl-dev zlib1g-dev
       - name: Update MoonBit dependencies
         run: moon update
+      - name: Verify supported MoonBit toolchain
+        run: moon run --deny-warn -j 1 scripts/check-supported-sdk.mbtx
       - name: Compare ABI and test loader failures
         run: moon run scripts/verify-native-abi.mbtx -- --report-dir /tmp/moonpulsar-abi
       - name: Verify native zlib boundaries with sanitizers
@@ -82,6 +89,8 @@ jobs:
 
       - name: Update MoonBit dependencies
         run: moon update
+      - name: Verify supported MoonBit toolchain
+        run: moon run --deny-warn -j 1 scripts/check-supported-sdk.mbtx
 
       - uses: actions/setup-go@v5
         with:
@@ -129,6 +138,8 @@ jobs:
         run: |
           moon version --all
           moon update
+      - name: Verify supported MoonBit toolchain
+        run: moon run --deny-warn -j 1 scripts/check-supported-sdk.mbtx
 
       - name: Check library and examples
         run: moon check --target native

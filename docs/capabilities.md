@@ -10,6 +10,7 @@ and [pulsar-client-go](https://github.com/apache/pulsar-client-go). This is a
 functional comparison, not an API-by-API claim of parity.
 
 The Status column describes the 0.1.2 development candidate source in this checkout.
+Toolchain compatibility is limited to the [supported SDK and Protobuf combination](verification-0.1.2.md#supported-toolchain); newer SDKs are not implied by a dependency version alone.
 Most Verification entries summarize historical runs recorded through 2026-09-28;
 dated maintenance updates are described in the [candidate verification summary](verification-0.1.2.md).
 These records are not passing results for every later commit. The original matrix was
