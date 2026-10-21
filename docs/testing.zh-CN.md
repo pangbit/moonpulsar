@@ -16,7 +16,7 @@ moon info && moon fmt
 moon doc
 moon package --list
 moon package
-moon run scripts/check-doc-links.mbtx -- --archive _build/publish/pangbit-moonpulsar-0.1.2.zip
+moon run scripts/check-doc-links.mbtx -- --public --archive _build/publish/pangbit-moonpulsar-0.1.2.zip
 git diff --check
 ```
 
@@ -61,3 +61,5 @@ protoc --mbt_out=. --mbt_opt=project_name=proto proto/PulsarApi.proto
 [能力矩阵](capabilities.md)集中维护历史功能验证摘要，包括 mock、真实 Broker 覆盖及已知限制。具体运行证据见其链接报告和[性能报告](performance.md)；历史通过不能推导当前提交已验收。复现入口与环境变量见[示例说明](https://github.com/pangbit/moonpulsar/blob/main/examples/README.zh-CN.md)。
 
 每次新验收应记录源码提交、工具链、平台、Broker 版本与配置、确切命令、结果和跳过的场景，并与报告一同保存。[发布流程](releasing.zh-CN.md)要求验证确切候选提交。
+
+发布链接门槛使用 `--public --archive`，检查确切 ZIP 中 Markdown 文件的工作区版本与包内版本。省略 `--public` 可另行审计全部工作区，包括历史机器相关证据；公开文档检查通过不表示历史归档链接均可移植或有效。

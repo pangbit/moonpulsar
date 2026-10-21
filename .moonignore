@@ -1,4 +1,6 @@
 # The published module contains library sources and documentation.
+._*
+.DS_Store
 *_test.mbt
 *_wbtest.mbt
 /testdata/
@@ -10,3 +12,8 @@
 /docs/archive/
 /performance-results/
 /interop/
+# Internal maintenance plans and machine-specific evidence stay in the checkout.
+/docs/maintenance*
+/docs/lifecycle-linux*
+/docs/next-stage-*
+/docs/producer-lifecycle-*

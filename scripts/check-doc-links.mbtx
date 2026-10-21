@@ -10,15 +10,21 @@ import {
 
 ///|
 fn normalize(path : String) -> String {
+  let prefix = if path.has_prefix("/") { "/" } else { "" }
   let parts : Array[String] = []
   for part in path.split("/") {
     match part.to_owned() {
       "" | "." => ()
-      ".." => ignore(parts.pop())
+      ".." =>
+        if parts.last() is Some(last) && last != ".." {
+          ignore(parts.pop())
+        } else if prefix.is_empty() {
+          parts.push("..")
+        }
       value => parts.push(value)
     }
   }
-  parts.join("/")
+  prefix + parts.join("/")
 }
 
 ///|
@@ -53,7 +59,11 @@ async fn check_links(
         msg="missing repository target: \{path} -> \{target}",
       )
     } else if !file.contains("://") {
-      let resolved = normalize(base + "/" + file)
+      let resolved = if file.has_prefix("/") {
+        normalize(file)
+      } else {
+        normalize(if base.is_empty() { file } else { base + "/" + file })
+      }
       let exists = match archive_files {
         Some(files) => files.contains(resolved)
         None => @fs.exists(resolved)
@@ -70,31 +80,52 @@ async fn check_links(
 ///|
 async fn main {
   let args = @env.args()
+  if args.length() == 2 && args[1] == "--self-test" {
+    assert_eq(normalize("docs/../README.md"), "README.md")
+    assert_eq(normalize("/tmp/run/../record.tar"), "/tmp/record.tar")
+    assert_eq(normalize("docs/../../README.md"), "../README.md")
+    let files : Set[String] = Set(["README.md", "docs/guide.md"])
+    assert_eq(
+      check_links("CHANGELOG.md", "[guide](docs/guide.md)", Some(files)),
+      1,
+    )
+    assert_eq(
+      check_links("docs/guide.md", "[root](../README.md)", Some(files)),
+      1,
+    )
+    for target in ["missing.md", "/tmp/not-in-package.tar", "../../README.md"] {
+      let rejected = try {
+        ignore(check_links("docs/guide.md", "[bad](\{target})", Some(files)))
+        false
+      } catch {
+        _ => true
+      }
+      assert_true(rejected)
+    }
+    println("PASS link normalization and package-boundary checks")
+    return
+  }
   let mut archive : String? = None
+  let mut public_only = false
   let mut i = 1
   while i < args.length() {
     match args[i] {
       "--" => i += 1
+      "--public" => {
+        public_only = true
+        i += 1
+      }
       "--archive" if i + 1 < args.length() => {
         archive = Some(args[i + 1])
         i += 2
       }
-      _ => fail("usage: check-doc-links.mbtx [--archive module.zip]")
+      _ =>
+        fail(
+          "usage: check-doc-links.mbtx [--public --archive module.zip] | --self-test",
+        )
     }
   }
-  let listing = @shell.Cmd("git", [
-    "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.md",
-  ]).output()
-  listing.check()
-  let mut count = 0
-  for item in listing.stdout().split("\n") {
-    let path = item.to_owned()
-    if path.is_empty() || !@fs.exists(path) {
-      continue
-    }
-    count += check_links(path, @fs.read_file(path).text(), None)
-  }
-  println("PASS checkout: \{count} file links")
+  let mut archive_files : Set[String]? = None
   if archive is Some(zip) {
     let listing = @shell.Cmd("unzip", ["-Z1", zip]).output()
     listing.check()
@@ -104,6 +135,46 @@ async fn main {
         files.add(path.to_owned())
       }
     }
+    archive_files = Some(files)
+  }
+  let paths : Array[String] = []
+  if public_only {
+    guard archive_files is Some(files) else {
+      fail("--public requires --archive")
+    }
+    for path in files {
+      if path.has_suffix(".md") {
+        paths.push(path)
+      }
+    }
+  } else {
+    let listing = @shell.Cmd("git", [
+      "ls-files", "--cached", "--others", "--exclude-standard", "--", "*.md",
+    ]).output()
+    listing.check()
+    for path in listing.stdout().split("\n") {
+      if !path.is_empty() {
+        paths.push(path.to_owned())
+      }
+    }
+  }
+  let mut count = 0
+  for path in paths {
+    if public_only {
+      assert_true(
+        @fs.exists(path),
+        msg="archive Markdown missing from checkout: \{path}",
+      )
+    }
+    if path.is_empty() || !@fs.exists(path) {
+      continue
+    }
+    count += check_links(path, @fs.read_file(path).text(), None)
+  }
+  let scope = if public_only { "public checkout" } else { "full checkout" }
+  println("PASS \{scope}: \{count} file links")
+  if archive is Some(zip) {
+    let files = archive_files.unwrap()
     let mut count = 0
     for path in files {
       if !path.has_suffix(".md") {
@@ -111,6 +182,13 @@ async fn main {
       }
       let content = @shell.Cmd("unzip", ["-p", zip, path]).output()
       content.check()
+      if public_only {
+        assert_eq(
+          content.stdout(),
+          @fs.read_file(path).text(),
+          msg="stale archive Markdown: \{path}",
+        )
+      }
       count += check_links(path, content.stdout(), Some(files))
     }
     println("PASS archive: \{count} file links")

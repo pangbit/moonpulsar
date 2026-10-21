@@ -18,7 +18,7 @@ moon info && moon fmt
 moon doc
 moon package --list
 moon package
-moon run scripts/check-doc-links.mbtx -- --archive _build/publish/pangbit-moonpulsar-0.1.2.zip
+moon run scripts/check-doc-links.mbtx -- --public --archive _build/publish/pangbit-moonpulsar-0.1.2.zip
 git diff --check
 ```
 
@@ -82,3 +82,5 @@ For each new acceptance run, record the source commit, toolchain, platform,
 Broker version/configuration, exact command, result and any skipped scenarios
 alongside its report. The [release process](releasing.md) requires validation
 of the exact candidate commit.
+
+The release link gate uses `--public --archive` to check exactly the Markdown files included in that ZIP, both in the checkout and inside the archive. Omit `--public` for the separate full-checkout audit, which includes historical machine-specific evidence. Public scope does not claim that all historical archive links are portable or valid.

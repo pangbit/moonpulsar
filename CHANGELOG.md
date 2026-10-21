@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.2 — Unreleased
+
+- Reduce the CRC32-C dependency chain with portable slicing-by-eight and independent polynomial regression tests.
+- Preserve receive-window capacity across reconnects with buffered messages.
+- Wake blocked receivers before waiting for the Broker's close response.
+- Reconnect and replay unconfirmed producer frames after a Broker `CLOSE_PRODUCER` notification, including Topic unloads.
+- Add a bounded recovery example that records per-message send and delivery events. Unknown sends remain unresolved unless delivery is observed; no end-to-end exactly-once guarantee is implied.
+- Release closed-handle callbacks and failed initial-connection resources; prevent closed handles from reconnecting and release terminal chunk buffers.
+- End a producer's own memory-admission waits on close and bound blocked sends/replays by their original deadline. Cancellation after a write starts retires that transport; other handles sharing it follow their existing failure or reconnect policy.
+- Retire silent connections after bounded keepalive probes, including blocked PING writes; complete incoming commands clear the pending probe.
+- Use the module's 0.1.2 identity consistently in CONNECT and AUTH_RESPONSE. Keep internal maintenance plans and raw evidence out of the published archive.
+
+The public API is unchanged. This is a maintenance candidate, not a publication record. See [development and verification](docs/testing.md) for reproducible checks and [candidate verification](docs/verification-0.1.2.md) for source-specific evidence boundaries. SEND timeouts can leave broker acceptance unknown; the existing user-supplied sequence-ID limitation remains documented in the client guide.
+
 ## 0.1.1 — 2026-09-29
 
 - Fix residual OpenSSL errors from failed TLS setup affecting other connections on the same event-loop thread. This caused intermittent TLS failures and test timeouts.
