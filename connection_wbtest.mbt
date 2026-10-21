@@ -54,6 +54,7 @@ async test "authentication challenge during handshake gets a response" {
           fail("expected CONNECT")
         }
         assert_eq(connect.auth_data, Some(b"token-1"))
+        assert_eq(connect.client_version, CLIENT_VERSION)
         let challenge = @proto.BaseCommand::default()
         challenge.type_ = @proto.BaseCommand_Type::AUTH_CHALLENGE
         challenge.auth_challenge = Some(@proto.CommandAuthChallenge::default())
@@ -65,6 +66,7 @@ async test "authentication challenge during handshake gets a response" {
         }
         assert_eq(data.auth_method_name, Some("token"))
         assert_eq(data.auth_data, Some(b"token-2"))
+        assert_eq(response.client_version, Some(CLIENT_VERSION))
         let connected = @proto.BaseCommand::default()
         connected.type_ = @proto.BaseCommand_Type::CONNECTED
         let info = @proto.CommandConnected::default()
@@ -136,7 +138,10 @@ async test "authentication challenge after handshake gets a response" {
         response.response is Some(data) else {
         fail("expected AUTH_RESPONSE")
       }
-      seen.put(data.auth_data == Some(b"test-token"))
+      seen.put(
+        data.auth_data == Some(b"test-token") &&
+        response.client_version == Some(CLIENT_VERSION),
+      )
     })
     let conn = Connection::connect(group, addr, auth={
       method_name: "token",
@@ -454,4 +459,19 @@ async test "connection refusal returns ConnectFailed" {
     }
     assert_true(result is Err(ConnectFailed(_)))
   })
+}
+
+///|
+async test "wire client identity matches the declared module version" {
+  let metadata = @fs.read_file("moon.mod").text()
+  let mut found = false
+  for line in metadata.split("\n") {
+    if line.trim().has_prefix("version =") {
+      let fields = line.split("\"").to_array()
+      assert_eq(fields.length(), 3)
+      assert_eq(CLIENT_VERSION, "moonpulsar " + fields[1].to_owned())
+      found = true
+    }
+  }
+  assert_true(found)
 }
