@@ -343,7 +343,9 @@ async fn main {
     })
     assert_eq(retry.payload(), b"a")
     assert_eq(retry.id(), first.id())
-    retry.ack()
+    // Wait for the durable ACK before resetting the cursor. Otherwise its
+    // asynchronous mark-delete can race with SEEK on a real broker.
+    retry.ack(await_response=true)
     timeout_consumer.seek(
       @pulsar.SeekPosition::PositionId(@pulsar.MessageId::earliest()),
     )

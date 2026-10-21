@@ -23,10 +23,11 @@ test "histogram overflow is explicit, not a capped false percentile" {
 }
 
 ///|
-test "warmup and drain are excluded from send measurements" {
+test "warmup and drain are excluded from measurements" {
   assert_false(in_window(999.0, 1100.0, 1000.0, 2000.0))
   assert_true(in_window(1000.0, 1999.0, 1000.0, 2000.0))
   assert_false(in_window(1900.0, 2000.0, 1000.0, 2000.0))
+  assert_false(in_window(2001.0, 2001.0, 1000.0, 2000.0))
 }
 
 ///|

@@ -87,11 +87,13 @@ async fn consume(
   let clock = @bench.monotonic_clock_start()
   let warmup_us = config.warmup_ms.to_double() * 1000.0
   let stop_us = warmup_us + config.duration_ms.to_double() * 1000.0
+  let drain_ms = setting("PERF_DRAIN_MS", 0, 0, 10000)
+  let receive_stop_us = stop_us + drain_ms.to_double() * 1000.0
   @async.with_timeout(
-    config.warmup_ms + config.duration_ms + config.timeout_ms,
+    config.warmup_ms + config.duration_ms + drain_ms + config.timeout_ms,
     async fn() {
-      while @bench.monotonic_clock_end(clock) < stop_us {
-        let remaining = stop_us - @bench.monotonic_clock_end(clock)
+      while @bench.monotonic_clock_end(clock) < receive_stop_us {
+        let remaining = receive_stop_us - @bench.monotonic_clock_end(clock)
         if remaining <= 0.0 {
           break
         }
