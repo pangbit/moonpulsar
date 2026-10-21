@@ -2,6 +2,9 @@
 
 ///|
 /// Options for a Pulsar client. Durations are milliseconds.
+/// `keepalive_interval_ms` is the probe interval and the timeout for both PING
+/// writes and subsequent peer activity. Any complete incoming command, including
+/// PONG, satisfies the current probe; outbound traffic does not.
 pub struct ClientOptions {
   priv service_url : String
   priv auth : &Authentication?

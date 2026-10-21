@@ -40,6 +40,7 @@ fn lifecycle_memory_connection(
     close_handlers: {},
     next_close_handler_id: 0UL,
     closed: false,
+    waiting_for_ping_response: false,
     stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
     write_mu: @async.Mutex::Mutex(),
     remote_version: "in-memory-lifecycle",

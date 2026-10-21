@@ -6,7 +6,7 @@
 const PROTOCOL_VERSION : Int = 21
 
 ///|
-/// Default interval between keepalive PING commands.
+/// Default keepalive probe interval and response/write timeout.
 const KEEPALIVE_INTERVAL_MS : Int = 30000
 
 ///|
@@ -40,6 +40,7 @@ pub struct Connection {
   priv close_handlers : Map[UInt64, (Error?) -> Unit]
   priv mut next_close_handler_id : UInt64
   priv mut closed : Bool
+  priv mut waiting_for_ping_response : Bool
   /// signalled on close to interrupt the keepalive timer
   priv stop : @aqueue.Queue[Unit]
   priv write_mu : @async.Mutex
@@ -60,6 +61,8 @@ pub(all) struct AuthData {
 ///|
 /// Connect to `addr` ("host:port"), perform the protocol handshake and
 /// start the background reader/keepalive tasks in `group`.
+/// `keepalive_interval_ms` also bounds PING writes and the subsequent wait for
+/// peer activity. PONG or any other complete incoming command proves liveness.
 pub async fn Connection::connect(
   group : @async.TaskGroup[Unit],
   addr : String,
@@ -230,6 +233,7 @@ async fn Connection::connect_with_memory(
     close_handlers: {},
     next_close_handler_id: 0UL,
     closed: false,
+    waiting_for_ping_response: false,
     stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
     write_mu: @async.Mutex::Mutex(),
     remote_version: "",
@@ -528,6 +532,7 @@ fn Connection::notify_closed(self : Connection, error : Error?) -> Unit {
     return
   }
   self.closed = true
+  self.waiting_for_ping_response = false
   ignore(self.stop.try_put(()) catch { _ => false })
   for id, pending in self.pending {
     pending.reply.close(error?, clear=true)
@@ -644,19 +649,37 @@ async fn Connection::keepalive_loop(
   self : Connection,
   interval_ms : Int,
 ) -> Unit {
-  while true {
-    // sleep, but wake up immediately when the connection closes
-    let stopped = @async.with_timeout_opt(interval_ms, async fn() {
-      self.stop.get()
-    })
-    if stopped is Some(_) || self.closed {
-      return
-    }
-    let cmd = @proto.BaseCommand::default()
-    cmd.type_ = @proto.BaseCommand_Type::PING
-    cmd.ping = Some(@proto.CommandPing::default())
-    self.send_command(cmd) catch {
-      _ => return
+  // The stop task interrupts both the timer and a queued/blocked PING write.
+  // Structured cancellation waits for the losing task to release its write lock.
+  errdefer {
+    self.notify_closed(Some(ConnectionClosed))
+    self.close_transport_once()
+  }
+  @async.any([
+    () => self.stop.get(),
+    () => {
+      while !self.closed {
+        @async.sleep(interval_ms)
+        if self.closed {
+          return
+        }
+        if self.waiting_for_ping_response {
+          raise ConnectionClosed
+        }
+        if self.remote_protocol_version >= 1 {
+          let cmd = @proto.BaseCommand::default()
+          cmd.type_ = @proto.BaseCommand_Type::PING
+          cmd.ping = Some(@proto.CommandPing::default())
+          // Register before writing: the reader may run during write awaits.
+          self.waiting_for_ping_response = true
+          @async.with_timeout(interval_ms, () => self.send_command(cmd))
+        }
+      }
+    },
+  ]) catch {
+    _ => {
+      self.notify_closed(Some(ConnectionClosed))
+      self.close_transport_once()
     }
   }
 }
@@ -679,6 +702,9 @@ pub fn split_host_port(addr : String) -> (String, Int) raise PulsarError {
 
 ///|
 async fn Connection::dispatch(self : Connection, frame : IncomingFrame) -> Unit {
+  // Match PulsarHandler: every decoded command (including PONG) is evidence
+  // that the peer is alive; outbound traffic alone never resets this state.
+  self.waiting_for_ping_response = false
   let cmd = frame.cmd
   match cmd.type_ {
     @proto.BaseCommand_Type::AUTH_CHALLENGE =>

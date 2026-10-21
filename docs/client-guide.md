@@ -6,7 +6,7 @@ Configuration semantics and interoperability caveats. For verification scope, se
 
 ## Features
 
-- Connection management over TCP with the Pulsar binary protocol (`pulsar://`), handshake, keepalive and request/response correlation
+- Connection management over TCP with the Pulsar binary protocol (`pulsar://`), handshake, keepalive and request/response correlation. `keepalive_interval_ms` (existing default 30000) also bounds each PING write, including write-lock admission, and the subsequent wait for peer activity. PONG or any other complete incoming command satisfies the probe; outbound traffic and partial incoming frames do not. A timeout closes the shared connection and uses the existing producer/consumer recovery policy. Explicit close interrupts the timer and pending PING write.
 - `ClientOptions` for connection/operation timeouts, keepalive interval, per-broker connection pool size and idle eviction, a shared byte budget for producer messages, chunks, receive queues and inbound frames, advertised listener and lookup properties; asynchronous authentication providers and token-file reload on connection or challenge
 - Topic lookup with redirect following and connection pooling
 - Producer: synchronous and asynchronous send, shared/exclusive/wait-for-exclusive/fencing access modes, producer metadata, batching (count/bytes/delay triggers, manual flush), broker receipts, send error propagation, optional message-count and client-wide payload-byte limits with blocking or fail-fast admission, and send timeout including buffered batches
