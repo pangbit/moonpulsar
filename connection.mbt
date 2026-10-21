@@ -27,6 +27,7 @@ pub struct Connection {
   priv auth_provider : (() -> AuthData)?
   priv async_auth_provider : (async () -> AuthData)?
   priv close_transport : () -> Unit
+  priv mut transport_closed : Bool
   priv mut next_id : UInt64
   priv pending : Map[UInt64, PendingRequest]
   /// consumer_id -> handler for MESSAGE / ACK_RESPONSE / CLOSE_CONSUMER
@@ -36,7 +37,8 @@ pub struct Connection {
   /// Coordinator handles keep pooled connections alive between requests.
   priv mut coordinator_leases : Int
   /// notified once when the connection breaks
-  priv close_handlers : Array[(Error?) -> Unit]
+  priv close_handlers : Map[UInt64, (Error?) -> Unit]
+  priv mut next_close_handler_id : UInt64
   priv mut closed : Bool
   /// signalled on close to interrupt the keepalive timer
   priv stop : @aqueue.Queue[Unit]
@@ -219,12 +221,14 @@ async fn Connection::connect_with_memory(
     auth_provider,
     async_auth_provider,
     close_transport,
+    transport_closed: false,
     next_id: 0,
     pending: {},
     message_handlers: {},
     producer_handlers: {},
     coordinator_leases: 0,
-    close_handlers: [],
+    close_handlers: {},
+    next_close_handler_id: 0UL,
     closed: false,
     stop: @aqueue.Queue::Queue(kind=@aqueue.Kind::Blocking(1)),
     write_mu: @async.Mutex::Mutex(),
@@ -520,9 +524,30 @@ fn Connection::notify_closed(self : Connection, error : Error?) -> Unit {
     ignore(id)
   }
   self.pending.clear()
-  for handler in self.close_handlers {
-    handler(error)
+  let ids = self.close_handlers.keys().collect()
+  ids.sort()
+  for id in ids {
+    if self.close_handlers.get(id) is Some(handler) {
+      self.close_handlers.remove(id)
+      handler(error)
+    }
   }
+}
+
+///|
+// Internal owners keep the ID to release captured handles when they retire.
+// A closed connection never retains a newly registered callback.
+fn Connection::add_close_handler(
+  self : Connection,
+  handler : (Error?) -> Unit,
+) -> UInt64? {
+  if self.closed {
+    return None
+  }
+  let id = self.next_close_handler_id
+  self.next_close_handler_id += 1UL
+  self.close_handlers[id] = handler
+  Some(id)
 }
 
 ///|
@@ -531,14 +556,22 @@ pub fn Connection::on_close(
   self : Connection,
   handler : (Error?) -> Unit,
 ) -> Unit {
-  self.close_handlers.push(handler)
+  ignore(self.add_close_handler(handler))
 }
 
 ///|
 /// Close the connection and fail all pending requests.
 pub fn Connection::close(self : Connection) -> Unit {
   self.notify_closed(None)
-  (self.close_transport)()
+  self.close_transport_once()
+}
+
+///|
+fn Connection::close_transport_once(self : Connection) -> Unit {
+  if !self.transport_closed {
+    self.transport_closed = true
+    (self.close_transport)()
+  }
 }
 
 ///|
@@ -577,7 +610,7 @@ async fn Connection::reader_loop(self : Connection) -> Unit {
     ) catch {
       e => {
         self.notify_closed(Some(e))
-        (self.close_transport)()
+        self.close_transport_once()
         return
       }
     }
@@ -590,7 +623,7 @@ async fn Connection::reader_loop(self : Connection) -> Unit {
     }
     if dispatched is Err(error) {
       self.notify_closed(Some(error))
-      (self.close_transport)()
+      self.close_transport_once()
       return
     }
   }
@@ -642,7 +675,7 @@ async fn Connection::dispatch(self : Connection, frame : IncomingFrame) -> Unit 
       self.respond_to_challenge() catch {
         e => {
           self.notify_closed(Some(e))
-          (self.close_transport)()
+          self.close_transport_once()
         }
       }
     @proto.BaseCommand_Type::PING => {

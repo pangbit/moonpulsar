@@ -137,12 +137,29 @@ pub async fn Client::connect_with_options(
     connection_idle_timeout_ms?=options.connection_idle_timeout_ms,
   )
   manager.memory_limiter = memory_limiter
+  Client::connect_manager(manager, options, addr)
+}
+
+///|
+// Keep the eager initial connection in one place so its manager ownership
+// can be exercised with deterministic, pre-transport authentication failures.
+async fn Client::connect_manager(
+  manager : ConnectionManager,
+  options : ClientOptions,
+  addr : String,
+) -> Client {
+  errdefer {
+    if manager.memory_limiter is Some(limiter) {
+      limiter.close()
+    }
+    manager.close()
+  }
   ignore(manager.get(addr))
   {
     manager,
     service_addr: addr,
     reconnect_policy: options.reconnect_policy,
-    memory_limiter,
+    memory_limiter: manager.memory_limiter,
     on_event: options.on_event,
     span_recorder: options.on_span.map(fn(sink) {
       ClientSpanRecorder::new(sink)

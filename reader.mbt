@@ -29,6 +29,7 @@ fn ReaderEvent::consumer_id(self : ReaderEvent) -> UInt64 {
 ///|
 /// A reader over a topic starting at a given position.
 pub struct SingleReader {
+  priv mut close_registration : UInt64?
   priv group : @async.TaskGroup[Unit]
   priv conn : Connection
   priv topic : String
@@ -120,6 +121,7 @@ async fn SingleReader::create_with_memory(
   let request_id = conn.next_request_id()
   let consumer_id = conn.next_request_id()
   let reader : SingleReader = {
+    close_registration: None,
     group,
     conn,
     topic,
@@ -162,7 +164,9 @@ async fn SingleReader::create_with_memory(
   }
   reader.send_flow(receiver_queue_size)
   reader.available_permits = receiver_queue_size
-  conn.on_close(fn(error) { reader.on_connection_closed(error) })
+  reader.close_registration = conn.add_close_handler(fn(error) {
+    reader.on_connection_closed(error)
+  })
   if conn.is_closed() {
     reader.on_connection_closed(None)
     raise ConnectionClosed
@@ -259,6 +263,7 @@ fn SingleReader::on_connection_closed(
   self : SingleReader,
   error : Error?,
 ) -> Unit {
+  self.detach_connection()
   if self.closed.val {
     return
   }
@@ -274,6 +279,15 @@ fn SingleReader::on_connection_closed(
   self.chunks.clear()
   self.clear_buffered_events()
   self.events.close(error=close_error, clear=true)
+}
+
+///|
+fn SingleReader::detach_connection(self : SingleReader) -> Unit {
+  if self.close_registration is Some(id) {
+    self.close_registration = None
+    self.conn.close_handlers.remove(id)
+    self.conn.message_handlers.remove(self.consumer_id)
+  }
 }
 
 ///|
@@ -743,6 +757,10 @@ pub async fn SingleReader::close(self : SingleReader) -> Unit {
     return
   }
   self.closed.val = true
+  defer {
+    self.detach_connection()
+    self.events.close(error=ConsumerClosed, clear=true)
+  }
   self.clear_buffered_events()
   self.chunks.clear()
   self.stop_chunk_sweeper()
@@ -754,7 +772,6 @@ pub async fn SingleReader::close(self : SingleReader) -> Unit {
   cmd.close_consumer = Some(close)
   ignore(self.conn.request(cmd) catch { _ => @proto.BaseCommand::default() })
   self.conn.message_handlers.remove(self.consumer_id)
-  self.events.close(error=ConsumerClosed, clear=true)
 }
 
 ///|

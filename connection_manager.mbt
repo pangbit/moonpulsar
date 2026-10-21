@@ -27,6 +27,7 @@ pub struct ConnectionManager {
   priv listener_name : String?
   priv lookup_properties : Map[String, String]
   priv mut memory_limiter : ClientMemoryLimiter?
+  priv mut idle_worker : @async.Task[Unit]?
   priv mut closed : Bool
 }
 
@@ -90,18 +91,21 @@ pub fn ConnectionManager::new(
     listener_name,
     lookup_properties,
     memory_limiter: None,
+    idle_worker: None,
     closed: false,
   }
   if connection_idle_timeout_ms is Some(timeout) {
-    group.spawn_bg(
-      async fn() {
-        while !manager.closed {
-          @async.sleep(timeout)
-          manager.evict_idle()
-        }
-      },
-      no_wait=true,
-      allow_failure=true,
+    manager.idle_worker = Some(
+      group.spawn(
+        async fn() {
+          while !manager.closed {
+            @async.sleep(timeout)
+            manager.evict_idle()
+          }
+        },
+        no_wait=true,
+        allow_failure=true,
+      ),
     )
   }
   manager
@@ -213,10 +217,19 @@ pub fn ConnectionManager::is_closed(self : ConnectionManager) -> Bool {
 ///|
 /// Close all cached connections; further `get` calls fail.
 pub fn ConnectionManager::close(self : ConnectionManager) -> Unit {
+  if self.closed {
+    return
+  }
   self.closed = true
+  if self.idle_worker is Some(worker) {
+    worker.cancel()
+  }
+  self.idle_worker = None
   for _, pool in self.connections {
     for entry in pool {
       entry.conn.close()
     }
   }
+  self.connections.clear()
+  self.next_connection.clear()
 }

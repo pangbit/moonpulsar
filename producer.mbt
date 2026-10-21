@@ -88,6 +88,7 @@ priv struct PendingFrame {
 pub struct SingleProducer {
   priv group : @async.TaskGroup[Unit]
   priv mut conn : Connection
+  priv mut close_registration : (Connection, UInt64)?
   priv topic : String
   priv producer_id : UInt64
   priv requested_name : String?
@@ -243,6 +244,7 @@ async fn SingleProducer::create_with_memory(
   let producer : SingleProducer = {
     group,
     conn,
+    close_registration: None,
     topic,
     producer_id,
     requested_name: name,
@@ -288,7 +290,7 @@ async fn SingleProducer::create_with_memory(
     closed: false,
   }
   producer.attach(conn)
-  errdefer conn.producer_handlers.remove(producer_id)
+  errdefer producer.fail_all(ProducerClosed)
   let reply = conn.request(producer.producer_command(request_id))
   guard reply.producer_success is Some(success) else {
     raise UnexpectedResponse("expected PRODUCER_SUCCESS")
@@ -342,9 +344,27 @@ fn SingleProducer::producer_command(
 
 ///|
 /// Wire dispatch handlers and the close hook onto a connection.
-fn SingleProducer::attach(self : SingleProducer, conn : Connection) -> Unit {
+fn SingleProducer::attach(
+  self : SingleProducer,
+  conn : Connection,
+) -> Unit raise PulsarError {
+  self.detach_connection()
+  guard !self.closed else { raise ProducerClosed }
+  guard conn.add_close_handler(fn(e) { self.on_connection_closed(e) })
+    is Some(id) else {
+    raise ConnectionClosed
+  }
+  self.close_registration = Some((conn, id))
   conn.producer_handlers[self.producer_id] = fn(cmd) { self.on_command(cmd) }
-  conn.on_close(fn(e) { self.on_connection_closed(e) })
+}
+
+///|
+fn SingleProducer::detach_connection(self : SingleProducer) -> Unit {
+  if self.close_registration is Some((conn, id)) {
+    self.close_registration = None
+    conn.close_handlers.remove(id)
+    conn.producer_handlers.remove(self.producer_id)
+  }
 }
 
 ///|
@@ -394,6 +414,7 @@ fn SingleProducer::on_connection_closed(
   self : SingleProducer,
   error : Error?,
 ) -> Unit {
+  self.detach_connection()
   ignore(error)
   if self.closed || self.reconnect_with is None {
     self.fail_all(ConnectionClosed)
@@ -438,6 +459,7 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
     }
     let conn = provider()
     self.attach(conn)
+    errdefer self.detach_connection()
     let request_id = conn.next_request_id()
     self.epoch += 1UL
     let reply = conn.request(self.producer_command(request_id))
@@ -501,6 +523,7 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
 ///|
 fn SingleProducer::fail_all(self : SingleProducer, error : PulsarError) -> Unit {
   self.closed = true
+  self.detach_connection()
   self.conn.producer_handlers.remove(self.producer_id)
   if self.pending_slots is Some(slots) {
     slots.close(error~, clear=true)
@@ -1017,6 +1040,7 @@ pub async fn SingleProducer::close(self : SingleProducer) -> Unit {
     return
   }
   self.closed = true
+  defer self.fail_all(ProducerClosed)
   if self.pending_slots is Some(slots) {
     slots.close(error=ProducerClosed, clear=true)
   }

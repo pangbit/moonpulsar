@@ -168,6 +168,7 @@ pub fn DeadLetterPolicy::max_deliveries(self : DeadLetterPolicy) -> UInt {
 ///|
 /// A consumer bound to a topic subscription.
 pub struct SingleConsumer {
+  priv mut close_registration : (Connection, UInt64)?
   /// current connection; swapped on reconnect (shared with `Message` acks)
   priv conn_ref : Ref[Connection]
   priv topic : String
@@ -323,6 +324,7 @@ async fn SingleConsumer::create_with_memory(
   let consumer_id = conn.next_request_id()
   let conn_ref : Ref[Connection] = { val: conn, }
   let consumer : SingleConsumer = {
+    close_registration: None,
     conn_ref,
     topic,
     subscription,
@@ -379,7 +381,15 @@ async fn SingleConsumer::create_with_memory(
     closed: { val: false, },
   }
   consumer.attach(conn)
-  errdefer conn.message_handlers.remove(consumer_id)
+  errdefer {
+    consumer.closed.val = true
+    consumer.detach_connection()
+    consumer.stop_chunk_sweeper()
+    consumer.ack_dispatcher.stop()
+    consumer.chunks.clear()
+    consumer.clear_buffered_messages()
+    consumer.messages.close(error=ConsumerClosed, clear=true)
+  }
   let reply = conn.request(consumer.subscribe_command(request_id))
   guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
     raise UnexpectedResponse("expected SUCCESS for SUBSCRIBE")
@@ -478,9 +488,27 @@ fn SingleConsumer::subscribe_command(
 
 ///|
 /// Wire the message handler and the close hook onto a connection.
-fn SingleConsumer::attach(self : SingleConsumer, conn : Connection) -> Unit {
+fn SingleConsumer::attach(
+  self : SingleConsumer,
+  conn : Connection,
+) -> Unit raise PulsarError {
+  self.detach_connection()
+  guard !self.closed.val else { raise ConsumerClosed }
+  guard conn.add_close_handler(fn(e) { self.on_connection_closed(e) })
+    is Some(id) else {
+    raise ConnectionClosed
+  }
+  self.close_registration = Some((conn, id))
   conn.message_handlers[self.consumer_id] = fn(frame) { self.on_frame(frame) }
-  conn.on_close(fn(e) { self.on_connection_closed(e) })
+}
+
+///|
+fn SingleConsumer::detach_connection(self : SingleConsumer) -> Unit {
+  if self.close_registration is Some((conn, id)) {
+    self.close_registration = None
+    conn.close_handlers.remove(id)
+    conn.message_handlers.remove(self.consumer_id)
+  }
 }
 
 ///|
@@ -508,6 +536,7 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
     }
     let conn = provider()
     self.attach(conn)
+    errdefer self.detach_connection()
     let request_id = conn.next_request_id()
     let reply = conn.request(self.subscribe_command(request_id))
     guard reply.type_ is @proto.BaseCommand_Type::SUCCESS else {
@@ -553,6 +582,7 @@ async fn SingleConsumer::reconnect(self : SingleConsumer) -> Unit {
       self.closed.val = true
       self.stop_chunk_sweeper()
       self.ack_dispatcher.stop()
+      self.chunks.clear()
       self.clear_buffered_messages()
       self.messages.close(error=ConnectionClosed, clear=true)
     }
@@ -565,6 +595,7 @@ fn SingleConsumer::on_connection_closed(
   self : SingleConsumer,
   error : Error?,
 ) -> Unit {
+  self.detach_connection()
   self.nack_epoch.val += 1
   if error is Some(ClientMemoryFull) && !self.closed.val {
     self.closed.val = true
@@ -585,6 +616,7 @@ fn SingleConsumer::on_connection_closed(
       self.closed.val = true
       self.stop_chunk_sweeper()
       self.ack_dispatcher.stop()
+      self.chunks.clear()
       self.clear_buffered_messages()
       self.messages.close(error=ConnectionClosed, clear=true)
     }
@@ -1464,6 +1496,12 @@ pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
     return
   }
   self.closed.val = true
+  defer {
+    self.detach_connection()
+    self.ack_pending.clear()
+    self.batch_acks.clear()
+    self.chunk_acks.clear()
+  }
   self.clear_buffered_messages()
   // Local receivers must not wait for the broker's CLOSE response.
   // The drained queue may already be closed by a delivery failure. Closing
