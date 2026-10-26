@@ -126,6 +126,9 @@ suberror LifecycleTransportError {
 } derive(Debug)
 
 ///|
+pub extend LifecycleTransportError with @debug.Debug::{to_repr}
+
+///|
 struct LifecycleBWriter {
   inner : &@io.Writer
   transport_closed : Ref[Bool]?

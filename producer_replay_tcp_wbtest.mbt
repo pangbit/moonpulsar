@@ -9,6 +9,9 @@ suberror ReplayTcpFault {
 } derive(Debug)
 
 ///|
+pub extend ReplayTcpFault with @debug.Debug::{to_repr}
+
+///|
 struct ReplayTcpWriter {
   tcp : @socket.Tcp
   held_frame : Bytes?
