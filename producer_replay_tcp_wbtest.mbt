@@ -27,14 +27,17 @@ impl @io.Writer for ReplayTcpWriter with fn write_once(
   offset~,
   len~,
 ) {
-  if !self.entered && offset == 0 &&
+  if !self.entered &&
+    offset == 0 &&
     self.held_frame is Some(expected) &&
     decode_frame_body(bytes[4:].to_owned()).cmd.send is Some(_) {
     // Gate the real awaited replay write, not a log event or a later receipt.
     assert_eq(bytes, expected)
     self.entered = true
     self.active += 1
-    defer { self.active -= 1 }
+    defer {
+      self.active -= 1
+    }
     let count = self.tcp.write_once(bytes, offset~, len=1)
     assert_eq(count, 1)
     self.prefix_bytes += count
@@ -52,7 +55,11 @@ impl @io.Writer for ReplayTcpWriter with fn write_once(
 ///|
 fn replay_tcp_join(a : Bytes, b : Bytes) -> Bytes {
   Bytes::makei(a.length() + b.length(), i => {
-    if i < a.length() { a[i] } else { b[i - a.length()] }
+    if i < a.length() {
+      a[i]
+    } else {
+      b[i - a.length()]
+    }
   })
 }
 
@@ -66,15 +73,18 @@ async fn replay_tcp_read(tcp : @socket.Tcp, prefix? : Bytes) -> Bytes {
     None => tcp.read_exactly(4) catch { _ => raise ConnectionClosed }
   }
   let size = ((header[0].to_uint() << 24) |
-    (header[1].to_uint() << 16) |
-    (header[2].to_uint() << 8) |
-    header[3].to_uint()).reinterpret_as_int()
+  (header[1].to_uint() << 16) |
+  (header[2].to_uint() << 8) |
+  header[3].to_uint()).reinterpret_as_int()
   guard size >= 4 && size <= 65536 else {
     raise InvalidFrame("TCP replay fixture frame bound")
   }
-  replay_tcp_join(header, tcp.read_exactly(size) catch {
-    _ => raise ConnectionClosed
-  })
+  replay_tcp_join(
+    header,
+    tcp.read_exactly(size) catch {
+      _ => raise ConnectionClosed
+    },
+  )
 }
 
 ///|
@@ -95,67 +105,77 @@ async fn replay_tcp_peer(
 ) -> ReplayTcpPeer {
   let server = @socket.TcpServer::TcpServer(@socket.Addr::parse("127.0.0.1:0"))
   let state : ReplayTcpPeer = {
-    address: server.addr.to_string(), tcp: { val: None, },
-    sends: [], epochs: [],
+    address: server.addr.to_string(),
+    tcp: { val: None, },
+    sends: [],
+    epochs: [],
     received: @aqueue.Queue::Queue(kind=Blocking(4)),
     prefix_seen: @aqueue.Queue::Queue(kind=Blocking(1)),
     finished: false,
   }
-  group.spawn_bg(async fn() {
-    let listener_open : Ref[Bool] = { val: true, }
-    defer (if listener_open.val { server.close() })
-    let (tcp, _) = server.accept()
-    // No more accepts; the endpoint is retired while this one TCP pair lives.
-    server.close()
-    listener_open.val = false
-    state.tcp.val = Some(tcp)
-    defer { tcp.close(); state.finished = true }
-    let mut prefix_next = false
-    while true {
-      let raw = (if prefix_next {
-        prefix_next = false
-        let byte = tcp.read_exactly(1) catch { _ => raise ConnectionClosed }
-        state.prefix_seen.put(())
-        replay_tcp_read(tcp, prefix=byte)
-      } else {
-        replay_tcp_read(tcp)
-      }) catch {
-        ConnectionClosed => return
-        error => raise error
+  group.spawn_bg(
+    async fn() {
+      let listener_open : Ref[Bool] = { val: true, }
+      defer (if listener_open.val { server.close() })
+      let (tcp, _) = server.accept()
+      // No more accepts; the endpoint is retired while this one TCP pair lives.
+      server.close()
+      listener_open.val = false
+      state.tcp.val = Some(tcp)
+      defer {
+        tcp.close()
+        state.finished = true
       }
-      let command = decode_frame_body(raw[4:].to_owned()).cmd
-      let reply = @proto.BaseCommand::default()
-      if command.connect is Some(_) {
-        reply.type_ = @proto.BaseCommand_Type::CONNECTED
-        let connected = @proto.CommandConnected::default()
-        connected.server_version = "two-send-tcp-mock"
-        connected.protocol_version = Some(21)
-        reply.connected = Some(connected)
-      } else if command.producer is Some(request) {
-        state.epochs.push(request.epoch.unwrap())
-        reply.type_ = @proto.BaseCommand_Type::PRODUCER_SUCCESS
-        let success = @proto.CommandProducerSuccess::default()
-        success.request_id = request.request_id
-        success.producer_name = "two-send-producer"
-        reply.producer_success = Some(success)
-        prefix_next = observe_prefix
-      } else if command.send is Some(_) {
-        assert_true(state.sends.length() < 2)
-        state.sends.push(raw)
-        state.received.put(())
-        // Both receipts are explicitly controlled by the test, including A.
-        continue
-      } else if command.close_producer is Some(request) {
-        reply.type_ = @proto.BaseCommand_Type::SUCCESS
-        let success = @proto.CommandSuccess::default()
-        success.request_id = request.request_id
-        reply.success = Some(success)
-      } else {
-        fail("unexpected two-send peer command")
+      let mut prefix_next = false
+      while true {
+        let raw = try {
+          if prefix_next {
+            prefix_next = false
+            let byte = tcp.read_exactly(1) catch { _ => raise ConnectionClosed }
+            state.prefix_seen.put(())
+            replay_tcp_read(tcp, prefix=byte)
+          } else {
+            replay_tcp_read(tcp)
+          }
+        } catch {
+          ConnectionClosed => return
+          error => raise error
+        }
+        let command = decode_frame_body(raw[4:].to_owned()).cmd
+        let reply = @proto.BaseCommand::default()
+        if command.connect is Some(_) {
+          reply.type_ = @proto.BaseCommand_Type::CONNECTED
+          let connected = @proto.CommandConnected::default()
+          connected.server_version = "two-send-tcp-mock"
+          connected.protocol_version = Some(21)
+          reply.connected = Some(connected)
+        } else if command.producer is Some(request) {
+          state.epochs.push(request.epoch.unwrap())
+          reply.type_ = @proto.BaseCommand_Type::PRODUCER_SUCCESS
+          let success = @proto.CommandProducerSuccess::default()
+          success.request_id = request.request_id
+          success.producer_name = "two-send-producer"
+          reply.producer_success = Some(success)
+          prefix_next = observe_prefix
+        } else if command.send is Some(_) {
+          assert_true(state.sends.length() < 2)
+          state.sends.push(raw)
+          state.received.put(())
+          // Both receipts are explicitly controlled by the test, including A.
+          continue
+        } else if command.close_producer is Some(request) {
+          reply.type_ = @proto.BaseCommand_Type::SUCCESS
+          let success = @proto.CommandSuccess::default()
+          success.request_id = request.request_id
+          reply.success = Some(success)
+        } else {
+          fail("unexpected two-send peer command")
+        }
+        tcp.write(encode_command_frame(reply))
       }
-      tcp.write(encode_command_frame(reply))
-    }
-  }, no_wait=true)
+    },
+    no_wait=true,
+  )
   state
 }
 
@@ -176,22 +196,39 @@ async fn replay_tcp_connect(
   let tcp = @socket.Tcp::connect_to_host(host, port~)
   errdefer tcp.close()
   let writer : ReplayTcpWriter = {
-    tcp, held_frame,
+    tcp,
+    held_frame,
     started: @aqueue.Queue::Queue(kind=Blocking(1)),
     release: @aqueue.Queue::Queue(kind=Blocking(1)),
-    entered: false, active: 0, prefix_bytes: 0, injected: 0,
+    entered: false,
+    active: 0,
+    prefix_bytes: 0,
+    injected: 0,
   }
   let conn : Connection = {
-    reader: tcp, writer,
-    auth: None, auth_provider: None, async_auth_provider: None,
-    close_transport: fn() { tcp.close() }, transport_closed: false,
-    next_id: 0UL, pending: {}, message_handlers: {}, producer_handlers: {},
-    coordinator_leases: 0, close_handlers: {}, next_close_handler_id: 0UL,
-    closed: false, waiting_for_ping_response: false,
+    reader: tcp,
+    writer,
+    auth: None,
+    auth_provider: None,
+    async_auth_provider: None,
+    close_transport: fn() { tcp.close() },
+    transport_closed: false,
+    next_id: 0UL,
+    pending: {},
+    message_handlers: {},
+    producer_handlers: {},
+    coordinator_leases: 0,
+    close_handlers: {},
+    next_close_handler_id: 0UL,
+    closed: false,
+    waiting_for_ping_response: false,
     stop: @aqueue.Queue::Queue(kind=Blocking(1)),
-    write_mu: @async.Mutex::Mutex(), remote_version: "",
-    remote_protocol_version: 0, max_message_size: None,
-    request_timeout_ms: 2000, memory_limiter: Some(limiter),
+    write_mu: @async.Mutex::Mutex(),
+    remote_version: "",
+    remote_protocol_version: 0,
+    max_message_size: None,
+    request_timeout_ms: 2000,
+    memory_limiter: Some(limiter),
   }
   errdefer conn.close()
   let command = @proto.BaseCommand::default()
@@ -207,7 +244,11 @@ async fn replay_tcp_connect(
   conn.max_message_size = connected.max_message_size
   assert_eq(conn.remote_protocol_version, 21)
   group.spawn_bg(() => conn.reader_loop(), no_wait=true, allow_failure=true)
-  group.spawn_bg(() => conn.keepalive_loop(60000), no_wait=true, allow_failure=true)
+  group.spawn_bg(
+    () => conn.keepalive_loop(60000),
+    no_wait=true,
+    allow_failure=true,
+  )
   (conn, writer)
 }
 
@@ -234,13 +275,16 @@ fn replay_tcp_wait_once(
   original : ReceiptFuture,
   entered : @aqueue.Queue[Unit],
 ) -> @async.Task[Result[SendReceipt, Error]] {
-  group.spawn(() => {
-    entered.put(())
-    let result : Result[SendReceipt, Error] = Ok(original.wait()) catch {
-      error => Err(error)
-    }
-    result
-  }, no_wait=true)
+  group.spawn(
+    () => {
+      entered.put(())
+      let result : Result[SendReceipt, Error] = Ok(original.wait()) catch {
+        error => Err(error)
+      }
+      result
+    },
+    no_wait=true,
+  )
 }
 
 ///|
@@ -255,11 +299,17 @@ async fn replay_tcp_two_send(retry : Bool, closing : Bool) -> Unit {
       let second_ref : Ref[Connection?] = { val: None, }
       let third_ref : Ref[Connection?] = { val: None, }
       let attempts : Ref[Int] = { val: 0, }
-      let completed : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(kind=Blocking(1))
+      let completed : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
+        kind=Blocking(1),
+      )
       let producer = SingleProducer::create_with_memory(
-        group, first, "persistent://public/default/two-send-tcp",
-        name="two-send-producer", max_pending_messages=2,
-        block_if_queue_full=false, send_timeout_ms=60000,
+        group,
+        first,
+        "persistent://public/default/two-send-tcp",
+        name="two-send-producer",
+        max_pending_messages=2,
+        block_if_queue_full=false,
+        send_timeout_ms=60000,
         memory_limiter=limiter,
         reconnect_with=() => {
           attempts.val += 1
@@ -277,8 +327,15 @@ async fn replay_tcp_two_send(retry : Bool, closing : Bool) -> Unit {
             third
           }
         },
-        reconnect_policy={ max_retries: if retry { 1 } else { 0 },
-          initial_backoff_ms: 1, max_backoff_ms: 1, },
+        reconnect_policy={
+          max_retries: if retry {
+            1
+          } else {
+            0
+          },
+          initial_backoff_ms: 1,
+          max_backoff_ms: 1,
+        },
         on_event=fn(event) {
           if event is ProducerReconnected(_, result) {
             replay_notify_event(completed, result is Ok(_))
@@ -289,8 +346,12 @@ async fn replay_tcp_two_send(retry : Bool, closing : Bool) -> Unit {
       // This synchronous cleanup neither retries nor replaces the primary error.
       defer {
         producer.fail_all(ProducerClosed)
-        if third_ref.val is Some(third) { third.close() }
-        if second_ref.val is Some(second) { second.close() }
+        if third_ref.val is Some(third) {
+          third.close()
+        }
+        if second_ref.val is Some(second) {
+          second.close()
+        }
       }
       let a = producer.send_async(ProducerMessage::new(b"replay-A"))
       first_peer.received.get()
@@ -304,7 +365,10 @@ async fn replay_tcp_two_send(retry : Bool, closing : Bool) -> Unit {
       entered.get()
       let second_peer = replay_tcp_peer(group, true)
       let (second, gate) = replay_tcp_connect(
-        group, second_peer.address, limiter, held_frame=original_a,
+        group,
+        second_peer.address,
+        limiter,
+        held_frame=original_a,
       )
       second_ref.val = Some(second)
       // Allocate a third owned TCP pair only for the registration-retry case.
@@ -313,7 +377,9 @@ async fn replay_tcp_two_send(retry : Bool, closing : Bool) -> Unit {
         let (third, _) = replay_tcp_connect(group, peer.address, limiter)
         third_ref.val = Some(third)
         Some(peer)
-      } else { None }
+      } else {
+        None
+      }
       first.close()
       gate.started.get()
       second_peer.prefix_seen.get()
@@ -323,7 +389,9 @@ async fn replay_tcp_two_send(retry : Bool, closing : Bool) -> Unit {
       assert_eq(producer.epoch, 1UL)
       assert_eq(second_peer.sends.length(), 0)
       assert_true(a_wait.try_wait() is None)
-      assert_true(producer.pending.get(a_seq).unwrap().write_task.val is Some(_))
+      assert_true(
+        producer.pending.get(a_seq).unwrap().write_task.val is Some(_),
+      )
       assert_eq(producer.payloads.get(a_seq).unwrap(), original_a)
       // B is admitted only after BOTH the actual Writer and peer prefix gates.
       let b = producer.send_async(ProducerMessage::new(b"during-replay-B"))
@@ -344,14 +412,18 @@ async fn replay_tcp_two_send(retry : Bool, closing : Bool) -> Unit {
       // This third call must not produce another admitted message/future.
       let full : Result[ReceiptFuture, Error] = Ok(
         producer.send_async(ProducerMessage::new(b"must-not-be-admitted")),
-      ) catch { error => Err(error) }
+      ) catch {
+        error => Err(error)
+      }
       assert_true(full is Err(ProducerQueueFull))
       assert_eq(producer.pending.length(), 2)
       assert_eq(producer.sends.length(), 2)
       assert_eq(second_peer.sends.length(), 0)
       if closing {
         let close_task = group.spawn(() => producer.close(), no_wait=true)
-        while !producer.closed { @async.pause() }
+        while !producer.closed {
+          @async.pause()
+        }
         gate.release.put(true)
         assert_false(completed.get())
         close_task.wait()
@@ -407,18 +479,28 @@ async fn replay_tcp_two_send(retry : Bool, closing : Bool) -> Unit {
       assert_producer_drained(producer)
       first.close()
       second.close()
-      if third_ref.val is Some(third) { third.close() }
-      while !first_peer.finished || !second_peer.finished { @async.pause() }
+      if third_ref.val is Some(third) {
+        third.close()
+      }
+      while !first_peer.finished || !second_peer.finished {
+        @async.pause()
+      }
       if third_peer is Some(peer) {
-        while !peer.finished { @async.pause() }
+        while !peer.finished {
+          @async.pause()
+        }
         assert_eq(peer.epochs, [2UL])
         assert_eq(second_peer.sends.length(), 0)
       }
       lifecycle_assert_connection_empty(first, limiter)
       lifecycle_assert_connection_empty(second, limiter)
-      if third_ref.val is Some(third) { lifecycle_assert_connection_empty(third, limiter) }
+      if third_ref.val is Some(third) {
+        lifecycle_assert_connection_empty(third, limiter)
+      }
       assert_true(first.is_closed() && second.is_closed())
-      if third_ref.val is Some(third) { assert_true(third.is_closed()) }
+      if third_ref.val is Some(third) {
+        assert_true(third.is_closed())
+      }
     })
   })
 }
