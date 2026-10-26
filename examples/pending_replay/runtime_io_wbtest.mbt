@@ -487,7 +487,7 @@ async fn io_acknowledged(journal : Journal, index : Int) -> Unit {
         let record = @fs.read_file(path).json()
         if io_field(record, "event") is Some(String("command_ack")) &&
           io_field(record, "data") is Some(data) &&
-          io_field(data, "index") is Some(Number(value)) &&
+          io_field(data, "index") is Some(Number(value, ..)) &&
           value == index.to_double() {
           println("IO_COMMAND_ACK index=\{index}")
           return
