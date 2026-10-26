@@ -1,18 +1,24 @@
 ///|
 async test "native dependency base TCP RSA and Zlib" {
   let crypto = MessageCrypto::new()
-  crypto.load_public_key_file("rsa", "testdata/encryption/rsa_public.pem")
-  crypto.load_private_key_file("rsa", "testdata/encryption/rsa_private.pem")
+  let fixtures = @env.current_dir().unwrap() + "/testdata/encryption"
+  crypto.load_public_key_file("rsa", "\{fixtures}/rsa_public.pem")
+  crypto.load_private_key_file("rsa", "\{fixtures}/rsa_private.pem")
   let metadata = @proto.MessageMetadata::default()
   let encrypted = crypto.encrypt(metadata, b"independent RSA", ["rsa"])
   assert_eq(crypto.decrypt(metadata, encrypted), b"independent RSA")
   let flushed = b"\x78\x9c\xca\x48\xcd\xc9\xc9\x07\x00\x00\x00\xff\xff"
   assert_eq(decompress(Zlib, flushed, uncompressed_size=5), b"hello")
   for codec in [Zlib, Lz4, Snappy, Zstd] {
-    assert_eq(decompress(codec, compress(codec, b"hello"), uncompressed_size=5), b"hello")
+    assert_eq(
+      decompress(codec, compress(codec, b"hello"), uncompressed_size=5),
+      b"hello",
+    )
   }
   @async.with_task_group(async fn(group) {
-    let done : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded)
+    let done : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
     let addr = start_mock_broker(group, async fn(_, peer) {
       let producer = peer.next().cmd.producer.unwrap()
       let reply = @proto.BaseCommand::default()
@@ -29,6 +35,8 @@ async test "native dependency base TCP RSA and Zlib" {
       success.request_id = subscription.request_id
       reply.success = Some(success)
       peer.send_command(reply)
+      let flow = peer.next()
+      peer.unread(flow)
       assert_true(peer.next().cmd.flow is Some(_))
       let frame = peer.next()
       let send = frame.cmd.send.unwrap()
@@ -56,8 +64,14 @@ async test "native dependency base TCP RSA and Zlib" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let producer = SingleProducer::create(group, conn, "persistent://public/default/deps")
-    let consumer = Consumer::single(SingleConsumer::create(group, conn, "persistent://public/default/deps", "deps"))
+    let producer = SingleProducer::create(
+      group, conn, "persistent://public/default/deps",
+    )
+    let consumer = Consumer::single(
+      SingleConsumer::create(
+        group, conn, "persistent://public/default/deps", "deps",
+      ),
+    )
     ignore(producer.send(ProducerMessage::new(b"roundtrip")))
     let message = consumer.receive()
     assert_eq(message.payload(), b"roundtrip")
@@ -73,26 +87,46 @@ async test "native dependency base TCP RSA and Zlib" {
 async test "native dependency missing ECIES" {
   let key = @fs.read_file("testdata/encryption/ec_public.pem").binary()
   for _ in 0..<2 {
-    let result : Result[EncryptionPublicKey, Error] = Ok(EncryptionPublicKey::from_pem(key)) catch { e => Err(e) }
-    assert_true(result is Err(InvalidFrame(message)) && message.contains("ECIES unavailable: OpenSSL 3 library unavailable"))
+    let result : Result[EncryptionPublicKey, Error] = Ok(
+      EncryptionPublicKey::from_pem(key),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      result is Err(InvalidFrame(message)) &&
+      message.contains("ECIES unavailable: OpenSSL 3 library unavailable"),
+    )
   }
 }
 
 ///|
 async test "native dependency missing TLS after TCP connect" {
   @async.with_task_group(async fn(group) {
-    let server = @socket.TcpServer::TcpServer(@socket.Addr::parse("127.0.0.1:0"))
+    let server = @socket.TcpServer::TcpServer(
+      @socket.Addr::parse("127.0.0.1:0"),
+    )
     defer server.close()
-    let accepted : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(kind=@aqueue.Kind::Unbounded)
+    let accepted : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
+      kind=@aqueue.Kind::Unbounded,
+    )
     group.spawn_bg(async fn() {
       let (tcp, _) = server.accept()
       defer tcp.close()
       accepted.put(())
       @async.sleep(1000)
     })
-    let result : Result[Client, Error] = Ok(Client::connect_with_options(group,
-      ClientOptions::new("pulsar+ssl://\{server.addr}", tls_min_version=TLS12))) catch { e => Err(e) }
-    assert_true(result is Err(ConnectFailed(message)) && message.contains("OpenSSL 3 library unavailable"))
+    let result : Result[Client, Error] = Ok(
+      Client::connect_with_options(
+        group,
+        ClientOptions::new("pulsar+ssl://\{server.addr}", tls_min_version=TLS12),
+      ),
+    ) catch {
+      e => Err(e)
+    }
+    assert_true(
+      result is Err(ConnectFailed(message)) &&
+      message.contains("OpenSSL 3 library unavailable"),
+    )
     accepted.get()
   })
 }
