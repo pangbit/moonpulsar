@@ -216,7 +216,15 @@ async fn Connection::connect_with_memory(
       }) catch {
         e => raise ConnectFailed("TLS handshake with \{addr} failed: \{e}")
       }
-      (tls_conn, tls_conn, fn() { tls_conn.close() })
+      (
+        tls_conn,
+        tls_conn,
+        fn() {
+          // Tls::close releases SSL resources but leaves its TCP open.
+          tls_conn.close()
+          tcp.close()
+        },
+      )
     }
   } else {
     (tcp, tcp, fn() { tcp.close() })
