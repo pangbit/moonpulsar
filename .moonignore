@@ -17,3 +17,8 @@
 /docs/lifecycle-linux*
 /docs/next-stage-*
 /docs/producer-lifecycle-*
+
+# Private administrative documents belong outside the repository.
+*申报书*
+*申请书*
+*申报材料*

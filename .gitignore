@@ -5,3 +5,8 @@ target
 .mooncakes/
 .moonagent/
 .codegraph/
+
+# Private administrative documents belong outside the repository.
+*申报书*
+*申请书*
+*申报材料*
