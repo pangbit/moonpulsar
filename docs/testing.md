@@ -84,3 +84,22 @@ alongside its report. The [release process](releasing.md) requires validation
 of the exact candidate commit.
 
 The release link gate uses `--public --archive` to check exactly the Markdown files included in that ZIP, both in the checkout and inside the archive. Omit `--public` for the separate full-checkout audit, which includes historical machine-specific evidence. Public scope does not claim that all historical archive links are portable or valid.
+
+## Producer replay regressions
+
+The root tests cover admission during replay, retry after a partial write and
+close during registration/replay. The memory and TCP fixtures share whitebox
+helpers; keep those dependencies with the tests. For the TCP cases, select
+indices 0, 1 and 2 separately when reproducing the historical bounded run:
+
+```sh
+moon test --frozen --target native -j 1 --no-parallelize --index 0 producer_replay_tcp_wbtest.mbt
+moon test --frozen --target native -j 1 --no-parallelize --index 1 producer_replay_tcp_wbtest.mbt
+moon test --frozen --target native -j 1 --no-parallelize --index 2 producer_replay_tcp_wbtest.mbt
+```
+
+Normal full-suite debug/release execution remains required for the final
+candidate. Separate index passes do not prove that combined invocation.
+The [relay fixture](https://github.com/pangbit/moonpulsar/blob/main/examples/pending_replay/README.md)
+has opt-in local file/TCP and native-entry checks. Its Python controller cannot
+launch or validate a real Broker. Keep generated evidence outside the checkout.

@@ -27,3 +27,5 @@ and [OpenSSL ABI](../native_support/README.md).
 Keep summaries in the README, configuration semantics in the client guide, verification scope in the capability matrix, and evidence with its run. Historical results apply only to their recorded versions and environments. Examples, scripts, archives and performance results are excluded from the published library; consult them in the [source repository](https://github.com/pangbit/moonpulsar).
 
 English is the default for bilingual documents. Use the language link at the top of each page to switch to Chinese.
+
+[October 2026 maintenance verification](https://github.com/pangbit/moonpulsar/blob/main/docs/archive/maintenance-2026-10/README.md) records source-bound results and remaining candidate checks.

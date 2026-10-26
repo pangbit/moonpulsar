@@ -63,3 +63,14 @@ protoc --mbt_out=. --mbt_opt=project_name=proto proto/PulsarApi.proto
 每次新验收应记录源码提交、工具链、平台、Broker 版本与配置、确切命令、结果和跳过的场景，并与报告一同保存。[发布流程](releasing.zh-CN.md)要求验证确切候选提交。
 
 发布链接门槛使用 `--public --archive`，检查确切 ZIP 中 Markdown 文件的工作区版本与包内版本。省略 `--public` 可另行审计全部工作区，包括历史机器相关证据；公开文档检查通过不表示历史归档链接均可移植或有效。
+
+## Producer 重放回归
+
+根包回归覆盖重放期间接纳消息、部分写入失败后的重试，以及注册/重放期间关闭。
+内存和 TCP 用例依赖共享白盒辅助代码，整理时需一起保留。复现历史 TCP 检查时，
+分别用 `--index 0`、`--index 1`、`--index 2` 选择
+`producer_replay_tcp_wbtest.mbt`；完整命令见[英文说明](testing.md)。
+独立用例通过不能替代最终候选的常规全量 debug/release 执行。
+[relay 夹具](https://github.com/pangbit/moonpulsar/blob/main/examples/pending_replay/README.md)
+提供可选的本地文件/TCP 与原生入口检查；Python 控制器不能启动或验证真实 Broker。
+生成的验收记录应保存在仓库外。

@@ -22,3 +22,5 @@
 [Athenz 夹具](https://github.com/pangbit/moonpulsar/blob/main/testdata/athenz_cert/README.md)、[OpenSSL ABI](../native_support/README.md)。
 
 维护约定：README 保留摘要；配置语义在客户端指南维护，验证范围在能力矩阵维护，具体运行证据保留在所属批次。历史报告的通过结论仅适用于报告记录的版本与环境。仓库中的示例、脚本、归档及性能结果不随库发布；这些资料可从[源码仓库](https://github.com/pangbit/moonpulsar)查阅。
+
+[2026 年 10 月维护验证](https://github.com/pangbit/moonpulsar/blob/main/docs/archive/maintenance-2026-10/README.md) 记录与源码绑定的历史结果及最终候选仍需完成的检查。
