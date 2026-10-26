@@ -66,6 +66,10 @@ typedef struct bignum_ctx BN_CTX;
   X(EVP_PKEY *, PEM_read_bio_PUBKEY, (BIO *, EVP_PKEY **, int (*)(char *, int, int, void *), void *)) \
   X(EVP_PKEY *, PEM_read_bio_PrivateKey, (BIO *, EVP_PKEY **, int (*)(char *, int, int, void *), void *)) \
   X(void, EVP_PKEY_free, (EVP_PKEY *)) \
+  X(int, EVP_PKEY_is_a, (const EVP_PKEY *, const char *)) \
+  X(int, ERR_set_mark, (void)) \
+  X(int, ERR_pop_to_mark, (void)) \
+  X(void, ERR_clear_error, (void)) \
   X(EC_KEY *, EVP_PKEY_get1_EC_KEY, (EVP_PKEY *)) \
   X(void, EC_KEY_free, (EC_KEY *)) \
   X(const EC_GROUP *, EC_KEY_get0_group, (const EC_KEY *)) \

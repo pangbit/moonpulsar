@@ -79,6 +79,43 @@ test fixtures, interop tools and examples. Public Markdown links are checked
 against both the current checkout and exact ZIP; historical checkout documents
 remain available for a separate audit.
 
+## ECIES and TLS error isolation
+
+The ECIES adapter rejects non-EC keys before invoking the EC getter. Its
+synchronous calls translate failures to false/empty results while removing
+their own OpenSSL diagnostics. Existing caller records and marks are retained
+within the bounded queue on the verified runtime combinations below. This
+does not clear a connection's error state or change the TLS implementation.
+
+The adapter source SHA-256 is
+`b6ad4dbfa5a8a70b9e99d3c72de9812db3ea8e920992c12083fce35142705941`.
+The final C fixture SHA-256 is
+`ce5ff1594cda1d94522f9ac4b98509347f23ea2a4a7be7a4697de235e058a256`.
+
+| Historical environment | Source-bound result |
+| --- | --- |
+| macOS, OpenSSL 3.6.3 | 68 ECIES checks in each of debug/release, ASan/UBSan; leak detection excluded |
+| Ubuntu 24.04, GCC 13.3, isolated OpenSSL 3.0.20 | Revised C fixture: 68/68 in each mode; TLS/ownership/Athenz/message crypto selection: 26/26 in each mode |
+| OpenSSL 3.0.13 | Independent mark contract: six of ten cases failed in each mode |
+
+The original GCC release C fixture failed a fortified array-bounds check before
+execution. The revised fixture uses a fixed-size C scratch buffer for the same
+invalid point and retains the rejection/error-state assertions. Both the initial
+failure and the OpenSSL 3.0.13 failures remain failures.
+
+The loader accepts OpenSSL major 3; it does not enforce the tested patch versions.
+Error-mark behavior must be checked for the actual runtime, including distribution
+backports. No universal minimum patch version is established. Reproduce with
+`moon run scripts/verify-ecies-errors.mbtx`; an explicit `--openssl-prefix` selects
+the reference runtime. This maintainer script is available in the source repository.
+
+The pinned async ordinary-TLS binding has a separate per-I/O error-queue concern
+under the [OpenSSL contract](https://docs.openssl.org/3.0/man3/SSL_get_error/#description).
+The controlled ECIES contamination mechanism does not establish the historical
+CI reconnect failure's cause. No upstream dependency was patched or upgraded.
+These focused results do not certify the reorganized candidate, stock CI runtime,
+complete workspace, live Broker matrix or final package consumer.
+
 ## Remaining release gates
 
 - Record the final candidate's affected native regressions and exact-ZIP

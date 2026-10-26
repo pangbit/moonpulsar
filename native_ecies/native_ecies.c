@@ -51,6 +51,7 @@ moonbit_bytes_t moonpulsar_ecies_load_error(void) {
 #define PEM_read_bio_PUBKEY dyn_PEM_read_bio_PUBKEY
 #define PEM_read_bio_PrivateKey dyn_PEM_read_bio_PrivateKey
 #define EVP_PKEY_free dyn_EVP_PKEY_free
+#define EVP_PKEY_is_a dyn_EVP_PKEY_is_a
 #define EVP_PKEY_get1_EC_KEY dyn_EVP_PKEY_get1_EC_KEY
 #define EC_KEY_free dyn_EC_KEY_free
 #define EC_KEY_get0_group dyn_EC_KEY_get0_group
@@ -70,6 +71,18 @@ moonbit_bytes_t moonpulsar_ecies_load_error(void) {
 #define EVP_sha1 dyn_EVP_sha1
 #define OPENSSL_cleanse dyn_OPENSSL_cleanse
 
+/* These synchronous adapters translate OpenSSL failures to false/empty.
+ * Scope their diagnostics to that call: retain the caller's records and
+ * marks, and discard only our new errors after translating the result.
+ * OpenSSL 3 marks nest, including multiple marks on the same record.
+ * An unmarked entry queue is empty; only that case permits clearing it.
+ * No asynchronous suspension or user callback occurs inside the scope.
+ */
+static void finish_crypto_errors(int marked) {
+  if (marked) dyn_ERR_pop_to_mark();
+  else dyn_ERR_clear_error();
+}
+
 static EC_KEY *read_ec_key(const unsigned char *pem, int len, int private_key) {
   if (crypto_status() != 1 || len <= 0) return NULL;
   BIO *bio = BIO_new_mem_buf(pem, len);
@@ -79,26 +92,32 @@ static EC_KEY *read_ec_key(const unsigned char *pem, int len, int private_key) {
       : PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
   BIO_free(bio);
   if (!pkey) return NULL;
-  EC_KEY *ec = EVP_PKEY_get1_EC_KEY(pkey);
+  /* A non-EC key is a type mismatch, not a failed EC getter. */
+  EC_KEY *ec = EVP_PKEY_is_a(pkey, "EC") == 1
+      ? EVP_PKEY_get1_EC_KEY(pkey) : NULL;
   EVP_PKEY_free(pkey);
   return ec;
 }
 
 MOONBIT_FFI_EXPORT
 int moonpulsar_ecies_public_valid(const unsigned char *pem, int len) {
+  if (crypto_status() != 1) return 0;
+  int marked = dyn_ERR_set_mark();
   EC_KEY *key = read_ec_key(pem, len, 0);
-  if (!key) return 0;
-  int valid = EC_KEY_get0_group(key) != NULL && EC_KEY_get0_public_key(key) != NULL;
-  EC_KEY_free(key);
+  int valid = key && EC_KEY_get0_group(key) != NULL && EC_KEY_get0_public_key(key) != NULL;
+  if (key) EC_KEY_free(key);
+  finish_crypto_errors(marked);
   return valid;
 }
 
 MOONBIT_FFI_EXPORT
 int moonpulsar_ecies_private_valid(const unsigned char *pem, int len) {
+  if (crypto_status() != 1) return 0;
+  int marked = dyn_ERR_set_mark();
   EC_KEY *key = read_ec_key(pem, len, 1);
-  if (!key) return 0;
-  int valid = EC_KEY_get0_group(key) != NULL && EC_KEY_get0_private_key(key) != NULL;
-  EC_KEY_free(key);
+  int valid = key && EC_KEY_get0_group(key) != NULL && EC_KEY_get0_private_key(key) != NULL;
+  if (key) EC_KEY_free(key);
+  finish_crypto_errors(marked);
   return valid;
 }
 
@@ -143,9 +162,13 @@ static int mac_ciphertext(const unsigned char stream[48],
 MOONBIT_FFI_EXPORT
 moonbit_bytes_t moonpulsar_ecies_wrap(const unsigned char *pem, int pem_len,
                                       const unsigned char *key, int key_len) {
-  if (key_len != 32) return empty_bytes();
+  if (key_len != 32 || crypto_status() != 1) return empty_bytes();
+  int marked = dyn_ERR_set_mark();
   EC_KEY *recipient = read_ec_key(pem, pem_len, 0);
-  if (!recipient) return empty_bytes();
+  if (!recipient) {
+    finish_crypto_errors(marked);
+    return empty_bytes();
+  }
   const EC_GROUP *group = EC_KEY_get0_group(recipient);
   EC_KEY *ephemeral = NULL;
   moonbit_bytes_t result = empty_bytes();
@@ -173,20 +196,27 @@ moonbit_bytes_t moonpulsar_ecies_wrap(const unsigned char *pem, int pem_len,
     EC_KEY_free(recipient);
     OPENSSL_cleanse(secret, sizeof(secret));
     OPENSSL_cleanse(stream, sizeof(stream));
+    finish_crypto_errors(marked);
     return result;
   } while (0);
   if (ephemeral) EC_KEY_free(ephemeral);
   EC_KEY_free(recipient);
   OPENSSL_cleanse(secret, sizeof(secret));
   OPENSSL_cleanse(stream, sizeof(stream));
+  finish_crypto_errors(marked);
   return empty_bytes();
 }
 
 MOONBIT_FFI_EXPORT
 moonbit_bytes_t moonpulsar_ecies_unwrap(const unsigned char *pem, int pem_len,
                                         const unsigned char *wrapped, int wrapped_len) {
+  if (crypto_status() != 1) return empty_bytes();
+  int marked = dyn_ERR_set_mark();
   EC_KEY *recipient = read_ec_key(pem, pem_len, 1);
-  if (!recipient) return empty_bytes();
+  if (!recipient) {
+    finish_crypto_errors(marked);
+    return empty_bytes();
+  }
   const EC_GROUP *group = EC_KEY_get0_group(recipient);
   EC_POINT *ephemeral = NULL;
   unsigned char secret[1024] = {0};
@@ -215,5 +245,6 @@ moonbit_bytes_t moonpulsar_ecies_unwrap(const unsigned char *pem, int pem_len,
   EC_KEY_free(recipient);
   OPENSSL_cleanse(secret, sizeof(secret));
   OPENSSL_cleanse(stream, sizeof(stream));
+  finish_crypto_errors(marked);
   return result;
 }

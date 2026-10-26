@@ -1,0 +1,131 @@
+// Deterministic ECIES adapter checks, without a broker or TLS connection.
+
+///|
+import {
+  "moonbitlang/async@0.22.1",
+  "moonbitlang/async@0.22.1/fs",
+  "moonbitlang/async@0.22.1/shell",
+  "moonbitlang/core/env",
+}
+
+///|
+async fn checked(label : String, cmd : @shell.Cmd, report : String) -> Unit {
+  let output = cmd.output(timeout_ms=60000)
+  @fs.write_file("\{report}/\{label}.log", output.stdout() + output.stderr())
+  output.check()
+  println("PASS \{label}")
+}
+
+///|
+async fn main {
+  let args = @env.args()
+  let mut report = ""
+  let mut prefix = ""
+  for i = 1; i < args.length(); {
+    match args[i] {
+      "--" => continue i + 1
+      "--report-dir" if i + 1 < args.length() => {
+        report = args[i + 1]
+        continue i + 2
+      }
+      "--openssl-prefix" if i + 1 < args.length() => {
+        prefix = args[i + 1]
+        continue i + 2
+      }
+      _ => fail("unknown or incomplete argument: \{args[i]}")
+    }
+  }
+  if report.is_empty() {
+    report = @fs.tmpdir(prefix="moonpulsar-ecies-errors-")
+  } else {
+    @fs.mkdir(report, recursive=true)
+  }
+  let platform = @shell.Cmd("uname", ["-s"]).output()
+  platform.check()
+  let mac = platform.stdout().contains("Darwin")
+  if prefix.is_empty() {
+    prefix = if mac {
+      if @fs.exists("/opt/homebrew/opt/openssl@3/include/openssl/err.h") {
+        "/opt/homebrew/opt/openssl@3"
+      } else {
+        "/usr/local/opt/openssl@3"
+      }
+    } else {
+      "/usr"
+    }
+  }
+  let home = @env.get_env_var("MOON_HOME").unwrap_or(
+    @env.get_env_var("HOME").unwrap() + "/.moon",
+  )
+  let compiler = @env.get_env_var("CC").unwrap_or("cc")
+  checked("compiler", @shell.Cmd(compiler, ["--version"]), report)
+  checked("sdk", @shell.Cmd("moon", ["version", "--all"]), report)
+  checked(
+    "source-sha256",
+    @shell.Cmd(
+      if mac {
+        "shasum"
+      } else {
+        "sha256sum"
+      },
+      [
+        ..if mac {
+          ["-a", "256"]
+        } else {
+          []
+        },
+        "native_ecies/native_ecies.c",
+        "native_support/openssl_abi.h",
+        "scripts/native-deps/ecies_error_check.c",
+        "\{home}/lib/runtime/runtime.c",
+        "\{home}/lib/runtime/backtrace.c",
+      ],
+    ),
+    report,
+  )
+  for (mode, optimization) in [("debug", "-O0"), ("release", "-O2")] {
+    let flags = [
+      "-std=c11",
+      "-Wall",
+      "-Werror",
+      "-g",
+      optimization,
+      "-fwrapv",
+      "-fno-strict-aliasing",
+      "-fsanitize=address,undefined",
+      "-I\{home}/include",
+      "-I\{prefix}/include",
+      "scripts/native-deps/ecies_error_check.c",
+      // Use the installed SDK's unchanged byte allocator, not a test substitute.
+      "\{home}/lib/runtime/runtime.c",
+      "\{home}/lib/runtime/backtrace.c",
+      "-L\{prefix}/lib",
+      "-lcrypto",
+      "-Wl,-rpath,\{prefix}/lib",
+      "-o",
+      "\{report}/ecies-\{mode}",
+    ]
+    flags.push(if mac { "-Wl,-dead_strip" } else { "-Wl,--gc-sections" })
+    if !mac {
+      flags.push("-ffunction-sections")
+      flags.push("-fdata-sections")
+      flags.push("-ldl")
+    }
+    checked("build-\{mode}", @shell.Cmd(compiler, flags), report)
+    let result = @shell.Cmd(
+      "\{report}/ecies-\{mode}",
+      ["testdata/encryption"],
+      env={ "ASAN_OPTIONS": "detect_leaks=0" },
+    ).output(timeout_ms=15000)
+    @fs.write_file(
+      "\{report}/run-\{mode}.log",
+      result.stdout() + result.stderr(),
+    )
+    result.check()
+    assert_true(result.stdout().contains("PASS 68 ECIES boundary checks"))
+    println(
+      "PASS \{mode}: 68 adapter checks, ASan/UBSan (leak detection excluded)",
+    )
+  }
+  println("PASS owned ECIES error boundary; report: \{report}")
+}

@@ -43,6 +43,13 @@ CI 固定版本只控制本仓库的运行环境。应用由自身环境选定�
 
 Linux 动态库需要能被系统动态库加载器找到。macOS 的 OpenSSL 3 适配层查找 `/opt/homebrew/opt/openssl@3/lib` 或 `/usr/local/opt/openssl@3/lib`。这些动态库需要安装在**运行应用的机器上**，只在构建机器安装不够。
 
+ECIES 调用方错误状态保留回归已在 Linux OpenSSL **3.0.20** 和 macOS
+OpenSSL **3.6.3** 上验证。OpenSSL **3.0.13** 未通过独立的错误标记合同检查，
+不能假定所有 OpenSSL 3 构建都能保留调用方已有标记。这些是已验证组合，
+不是最低补丁版本保证；加载器仅检查主版本 3。发行版回移和其他构建仍需验证。
+`moonbitlang/async@0.22.1` 普通 TLS 的独立错误队列边界仍是上游限制。
+详见[验证范围](docs/verification-0.1.2.md)。
+
 ### 测试与示例
 
 - `moon test --target native` 包含 TLS 和 ECIES 测试，因此需要上表中的 TLS 动态库，包括 OpenSSL **3**。测试使用进程内 mock broker，不需要外部 Broker 或 Docker。

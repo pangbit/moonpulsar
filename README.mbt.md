@@ -43,6 +43,15 @@ Requirements depend on the features your application uses:
 
 Linux libraries must be discoverable by the system dynamic loader. The macOS OpenSSL 3 adapters look under `/opt/homebrew/opt/openssl@3/lib` or `/usr/local/opt/openssl@3/lib`. These shared libraries are needed on the **machine running the application**, not just the build machine.
 
+The ECIES caller-error preservation regression has been verified with Linux
+OpenSSL **3.0.20** and macOS OpenSSL **3.6.3**. OpenSSL **3.0.13** failed the
+independent error-mark contract checks; do not assume that every OpenSSL 3
+build preserves an existing caller mark. These are tested combinations, not
+a minimum patch-version guarantee, and the loader checks only major version 3.
+Distribution backports and other builds require verification. The independent
+error-queue boundary in `moonbitlang/async@0.22.1` ordinary TLS remains an upstream
+limitation. See [verification scope](docs/verification-0.1.2.md).
+
 ### Tests and examples
 
 - `moon test --target native` includes TLS and ECIES tests, so it needs the TLS libraries above, including OpenSSL **3**. It uses in-process mock brokers: no external broker or Docker is required.
