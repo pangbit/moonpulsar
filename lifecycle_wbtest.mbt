@@ -8,6 +8,7 @@ fn lifecycle_memory_connection(
   reject? : Bool = false,
   blocked? : (String, @aqueue.Queue[Unit]),
   close_calls? : Ref[Int],
+  transport_closed? : Ref[Bool],
   wrap_writer? : (&@io.Writer) -> &@io.Writer,
   observe? : (IncomingFrame) -> Unit,
 ) -> (Connection, @io.PipeWrite) {
@@ -25,6 +26,9 @@ fn lifecycle_memory_connection(
     close_transport: fn() {
       if close_calls is Some(calls) {
         calls.val += 1
+      }
+      if transport_closed is Some(state) {
+        state.val = true
       }
       // Closing a PipeRead before a pending/future read violates its contract.
       // Close write ends so both background readers finish through EOF.

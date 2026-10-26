@@ -2,6 +2,11 @@
 
 ## 0.1.2 — Unreleased
 
+- Close the TCP transport owned by an ordinary TLS connection when TLS resources are released.
+- Isolate ECIES adapter errors from existing caller OpenSSL state on verified runtimes; document known error-mark compatibility limits.
+- Drain messages admitted during producer replay without resending a frame within the same registration epoch.
+- Honor producer close while replacement registration or replay is pending, preserving `ProducerClosed` for retired sends.
+
 - Reduce the CRC32-C dependency chain with portable slicing-by-eight and independent polynomial regression tests.
 - Preserve receive-window capacity across reconnects with buffered messages.
 - Wake blocked receivers before waiting for the Broker's close response.

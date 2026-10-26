@@ -81,6 +81,7 @@ priv struct PendingFrame {
   entries : Array[(PendingSend, Int)]
   mut remaining : Int
   chunk_waiter : @aqueue.Queue[SendReceipt]?
+  mut write_epoch : UInt64?
   mut write_task : Ref[@async.Task[Unit]?]
 }
 
@@ -463,11 +464,17 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
     let conn = provider()
     self.attach(conn)
     errdefer self.detach_connection()
+    // Close and broker-close dispatch must target the active registration,
+    // including while its PRODUCER_SUCCESS response is still pending.
+    self.conn = conn
     let request_id = conn.next_request_id()
     self.epoch += 1UL
     let reply = conn.request(self.producer_command(request_id))
     guard reply.producer_success is Some(success) else {
       raise UnexpectedResponse("expected PRODUCER_SUCCESS")
+    }
+    if self.closed {
+      raise ProducerClosed
     }
     self.topic_epoch = success.topic_epoch
     self.name = success.producer_name
@@ -482,16 +489,29 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
         self.sequence_id = confirmed + 1UL
       }
     }
-    // swap the connection, then replay unconfirmed messages in order
-    self.conn = conn
-    let seqs = self.payloads.keys().collect()
-    seqs.sort()
-    for seq in seqs {
-      if self.payloads.get(seq) is Some(bytes) {
-        self.write_pending_frame(conn, seq, bytes)
-        if conn.is_closed() {
-          raise ConnectionClosed
+    // Drain frames admitted during replay too. Receipts may still be pending,
+    // so track writes by registration epoch rather than waiting for an empty
+    // payload map. A later chunk can reuse a sequence id with a fresh frame.
+    while true {
+      let seqs = self.payloads.keys().collect()
+      seqs.sort()
+      let mut wrote = false
+      for seq in seqs {
+        if self.pending.get(seq) is Some(frame) &&
+          frame.write_epoch != Some(self.epoch) &&
+          self.payloads.get(seq) is Some(bytes) {
+          wrote = true
+          self.write_pending_frame(conn, seq, bytes)
+          if self.closed {
+            raise ProducerClosed
+          }
+          if conn.is_closed() {
+            raise ConnectionClosed
+          }
         }
+      }
+      if !wrote {
+        break
       }
     }
   }
@@ -512,6 +532,11 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
     }
   }
   let result : Result[Unit, Error] = Ok(run()) catch { e => Err(e) }
+  if result is Err(_) {
+    self.fail_all(if self.closed { ProducerClosed } else { ConnectionClosed })
+  }
+  // Complete the handoff before user callbacks can schedule another send.
+  self.reconnecting.val = false
   if self.span_recorder is Some(recorder) && span is Some(start) {
     recorder.finish_result(start, result)
     span_done.val = true
@@ -519,11 +544,6 @@ async fn SingleProducer::reconnect(self : SingleProducer) -> Unit {
   if self.on_event is Some(sink) {
     sink(ClientEvent::ProducerReconnected(self.topic, result))
   }
-  if result is Err(_) {
-    self.closed = true
-    self.fail_all(ConnectionClosed)
-  }
-  self.reconnecting.val = false
 }
 
 ///|
@@ -802,6 +822,7 @@ async fn SingleProducer::send_encoded(
     entries: live,
     remaining: live.length(),
     chunk_waiter,
+    write_epoch: None,
     write_task: { val: None, },
   }
   for (entry, _) in live {
@@ -824,6 +845,7 @@ async fn SingleProducer::write_pending_frame(
   bytes : Bytes,
 ) -> Unit {
   guard self.pending.get(sequence_id) is Some(frame) else { return }
+  frame.write_epoch = Some(self.epoch)
   let slot : Ref[@async.Task[Unit]?] = { val: None, }
   frame.write_task = slot
   defer {

@@ -121,13 +121,21 @@ async test "send deadline ends a call blocked on the connection write lock" {
 }
 
 ///|
+suberror LifecycleTransportError {
+  ClosedTransport
+} derive(Debug)
+
+///|
 struct LifecycleBWriter {
   inner : &@io.Writer
+  transport_closed : Ref[Bool]?
   started : @aqueue.Queue[Unit]
   unblock : @aqueue.Queue[Unit]
   mut active : Int
   mut prefix_bytes : Int
   mut armed : Bool
+  mut injected_errors : Int
+  mut last_failed_offset : Int?
 }
 
 ///|
@@ -137,6 +145,14 @@ impl @io.Writer for LifecycleBWriter with fn write_once(
   offset~,
   len~,
 ) {
+  // PipeWrite asserts after its own write end is closed. A closed transport
+  // instead fails the next write with an I/O error, just as Tcp's invalid-fd
+  // path does. Preserve the accepted prefix and Writer::write's offset loop.
+  if self.transport_closed is Some(state) && state.val {
+    self.injected_errors += 1
+    self.last_failed_offset = Some(offset)
+    raise LifecycleTransportError::ClosedTransport
+  }
   if self.armed &&
     offset == 0 &&
     decode_frame_body(bytes[4:].to_owned()).cmd.send is Some(_) {
@@ -156,14 +172,20 @@ impl @io.Writer for LifecycleBWriter with fn write_once(
 }
 
 ///|
-fn LifecycleBWriter::new(inner : &@io.Writer) -> LifecycleBWriter {
+fn LifecycleBWriter::new(
+  inner : &@io.Writer,
+  transport_closed? : Ref[Bool],
+) -> LifecycleBWriter {
   {
     inner,
+    transport_closed,
     started: @aqueue.Queue::Queue(kind=Blocking(1)),
     unblock: @aqueue.Queue::Queue(kind=Blocking(1)),
     active: 0,
     prefix_bytes: 0,
     armed: true,
+    injected_errors: 0,
+    last_failed_offset: None,
   }
 }
 
