@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "pangbit/moonpulsar_examples/pending_replay"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+type FixtureError derive(@debug.Debug)
+
+// Types and methods
+type AttemptState
+
+type CommandLedger
+
+type FixtureRuntime
+
+type FrameDecoder
+
+type Journal
+
+type RelayDecision derive(@debug.Debug)
+
+type RelayGate
+
+type RelayTag derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
