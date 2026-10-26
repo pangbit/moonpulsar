@@ -40,6 +40,13 @@ system. Pure controller tests open no sockets or child processes:
 python3 -B scripts/pending_replay_controller_test.py
 ```
 
+Portable entry-plan checks use temporary files without running the native
+fixture or opening sockets:
+
+```sh
+python3 -B scripts/pending_replay_entry_plan_test.py
+```
+
 The file follower tests create owned temporary files and one Python child per
 case. They check ordering, replay-byte identity, deadlines and cleanup:
 
