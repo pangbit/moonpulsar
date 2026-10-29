@@ -20,7 +20,7 @@ The public API and pinned dependencies are unchanged. These notes were prepared 
 
 The October 29 source-bound checks on Pulsar 4.2.4 passed ten-message send/receive/confirmed-ACK and a separate real Writer replay with concurrent admission of a second send. Both original receipt futures completed; the initial A was also delivered, so this is not a deduplication or exactly-once guarantee. Retaining an unconfirmed send's original future across a Broker restart is deferred beyond 0.1.2 and remains unverified.
 
-See [development and verification](docs/testing.md) for reproducible checks and [candidate verification](docs/verification-0.1.2.md) for October contributions and source-specific evidence boundaries. SEND timeouts can leave broker acceptance unknown; the existing user-supplied sequence-ID limitation remains documented in the client guide.
+See [development and verification](docs/testing.md) for reproducible checks and [verification records](docs/verification-0.1.2.md) for maintenance changes and source-specific evidence boundaries. SEND timeouts can leave broker acceptance unknown; the existing user-supplied sequence-ID limitation remains documented in the client guide.
 
 ## 0.1.1 — 2026-09-29
 

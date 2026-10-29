@@ -1,19 +1,24 @@
-# 0.1.2 candidate verification
+# 0.1.2 verification record
 
-This is a development candidate, not a publication record. Each result below
-applies to its named source and environment. A package ZIP, its external
-consumer and later source changes require their own recorded identities.
+The released baseline is [v0.1.2](https://github.com/pangbit/moonpulsar/releases/tag/v0.1.2)
+at source `a2078609310194b6d4de255b6303eee242561d7a`. All five jobs in its
+[final CI](https://github.com/pangbit/moonpulsar/actions/runs/40816404835) passed.
+The registry checksum matches the 268,623-byte, 74-file archive:
+`1e23e461dc84b8f0a9b428135fcff3e289cf53f49afb15610f2300a618e3c7c7`.
+A fresh registry consumer built for native on macOS, with all 74 installed file
+hashes matching that archive; the consumer was built, not executed.
+
+Each historical result below applies to its named source and environment.
+Later documentation changes do not change the released package or tag.
 
 The public interfaces, pinned dependencies, Apache-2.0 license and NOTICE are
 unchanged from 0.1.1. The native backend is required. See
 [runtime requirements](../README.md), [current behavior and limitations](client-guide.md),
 and the [release checklist](releasing.md).
 
-## October contributions
+## Maintenance changes
 
-The October work extends an existing native MoonBit Pulsar client. The earlier
-feature inventory is not presented as new work for this period. The following
-maintenance changes are traceable in the repository history:
+The following maintenance changes are traceable in the repository history:
 
 | Commit date | Contribution | Commits |
 | --- | --- | --- |
@@ -182,7 +187,11 @@ CI reconnect failure's cause. No upstream dependency was patched or upgraded.
 These focused results do not certify the reorganized candidate, stock CI runtime,
 complete workspace, live Broker matrix or final package consumer.
 
-## Remaining release gates
+## Release acceptance checklist
+
+The final CI and publication records above identify the accepted 0.1.2 source
+and archive. The checklist describes the release process; historical results
+alone do not certify a later candidate.
 
 - Freeze the final reviewed commit and freshly generated ZIP. Confirm the
   version, advertised identity, unchanged public interfaces and documentation

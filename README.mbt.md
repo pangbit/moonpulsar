@@ -8,7 +8,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 
 ## 0.1.2 scope
 
-This maintenance release fixes transport cleanup, bounded recovery and producer replay when another send arrives during reconnection. It keeps the public API and pinned dependencies unchanged. The [October contribution and verification record](docs/verification-0.1.2.md#october-contributions) identifies the implementation commits and their test scope.
+This maintenance release fixes transport cleanup, bounded recovery and producer replay when another send arrives during reconnection. It keeps the public API and pinned dependencies unchanged. The [maintenance changes and verification record](docs/verification-0.1.2.md#maintenance-changes) identifies the implementation commits and their test scope.
 
 On the recorded source snapshot, Pulsar 4.2.4 completed ten sends, ten matching receives and ten confirmed ACKs. A separate live Writer case completed both original receipt futures when a second send arrived during replay; it received and acknowledged the initial A, replayed A and B. Duplicate delivery is possible. Retaining an unconfirmed send's original future across a Broker restart remains unverified and is deferred beyond 0.1.2. These focused results do not replace the final candidate's CI; see [verification boundaries](docs/verification-0.1.2.md#live-verification-on-2026-10-29).
 

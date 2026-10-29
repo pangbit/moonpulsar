@@ -14,7 +14,7 @@ Start with the project [README](../README.md) for installation and a minimal exa
 | Bug reports and usage questions | [GitHub Issues](https://github.com/pangbit/moonpulsar/issues) |
 | Security reports | [Security](../SECURITY.md) |
 | Version history and release steps | [Changelog](../CHANGELOG.md) / [Release process](releasing.md) |
-| October project, published release and minimal demo | [2026 October verification summary](competition/2026-10.md) |
+| 0.1.2 release verification and limits | [Verification record](verification-0.1.2.md) |
 | Native dependency plans and historical acceptance | [September 2026 archive](https://github.com/pangbit/moonpulsar/blob/main/docs/archive/native-deps-2026-09/README.md) (Chinese and English source records) |
 
 Local instructions remain beside their programs and fixtures:
