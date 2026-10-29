@@ -6,6 +6,12 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 
 [Source repository](https://github.com/pangbit/moonpulsar) | [Documentation](docs/README.md)
 
+## 0.1.2 scope
+
+This maintenance release fixes transport cleanup, bounded recovery and producer replay when another send arrives during reconnection. It keeps the public API and pinned dependencies unchanged. The [October contribution and verification record](docs/verification-0.1.2.md#october-contributions) identifies the implementation commits and their test scope.
+
+On the recorded source snapshot, Pulsar 4.2.4 completed ten sends, ten matching receives and ten confirmed ACKs. A separate live Writer case completed both original receipt futures when a second send arrived during replay; it received and acknowledged the initial A, replayed A and B. Duplicate delivery is possible. Retaining an unconfirmed send's original future across a Broker restart remains unverified and is deferred beyond 0.1.2. These focused results do not replace the final candidate's CI; see [verification boundaries](docs/verification-0.1.2.md#live-verification-on-2026-10-29).
+
 ## Requirements
 
 ### Build environment
@@ -72,24 +78,29 @@ If `0.1.2` is unavailable, or to run repository examples and tests, use the sour
 git clone https://github.com/pangbit/moonpulsar.git
 cd moonpulsar
 moon update
-moon check --target native
-moon test --target native
 ```
 
 To run a roundtrip, use a disposable local Pulsar 4.2.4 broker. In a separate terminal:
 
 ```sh
-docker run --rm --name moonpulsar-demo -p 6650:6650 -p 8080:8080 \
+docker run --rm --name moonpulsar-demo \
+  -p 127.0.0.1:6650:6650 -p 127.0.0.1:8080:8080 \
   apachepulsar/pulsar:4.2.4 bin/pulsar standalone -a 127.0.0.1
 ```
 
-After the broker is ready, run from the repository root:
+Wait for standalone namespace initialization. This request must succeed and include `public/default` before running the client:
+
+```sh
+curl --fail --silent --show-error http://127.0.0.1:8080/admin/v2/namespaces/public
+```
+
+Then run from the repository root:
 
 ```sh
 moon run examples/roundtrip --target native
 ```
 
-A successful run prints `roundtrip OK`. Stop the disposable container after use with `docker stop moonpulsar-demo`.
+A successful run checks ten payloads, prints ten `verified:` lines followed by `roundtrip OK`, and closes the client. Stop the disposable container after use with `docker stop moonpulsar-demo`. This minimal example demonstrates ordinary send/receive; the separate Writer result above used a controlled test fixture. For development checks, see [testing](docs/testing.md).
 
 Once registry availability is confirmed, a separate executable can declare `"pangbit/moonpulsar@0.1.2"` and `"moonbitlang/async@0.22.1"` in `moon.mod`, set `preferred_target = "native"`, and use this `moon.pkg`:
 

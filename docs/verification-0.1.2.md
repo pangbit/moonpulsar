@@ -9,6 +9,72 @@ unchanged from 0.1.1. The native backend is required. See
 [runtime requirements](../README.md), [current behavior and limitations](client-guide.md),
 and the [release checklist](releasing.md).
 
+## October contributions
+
+The October work extends an existing native MoonBit Pulsar client. The earlier
+feature inventory is not presented as new work for this period. The following
+maintenance changes are traceable in the repository history:
+
+| Commit date | Contribution | Commits |
+| --- | --- | --- |
+| 2026-10-21 | Faster portable CRC32-C; preserve receive capacity and recover producers after Broker close commands | `26507f4`, `eabba10`, `c3674f6` |
+| 2026-10-21 | Release terminal handles; bound admission, writes and keepalive; make recovery example outcomes explicit | `d8d7149`, `e69792e`, `8ad69f7`, `f3a7534` |
+| 2026-10-21 | Align module/wire identity, pin the verified SDK and repair CI archive selection | `dad875e`, `4302410`, `3d7eacc` |
+| 2026-10-26 | Close the TCP transport owned by ordinary TLS; isolate ECIES errors on the documented runtimes | `f27fede`, `a477249` |
+| 2026-10-26 | Drain sends admitted during replay and honor close during reconnection; retain portable relay/TCP regressions | `893784b`, `42d9dcf`, `e3fcdbb`, `7693f23`, `1cf6e84`, `832b431` |
+
+The library's public interfaces and dependency versions remain unchanged. The
+[README demonstration](../README.md#installation) reuses the existing ten-message
+example: start a fresh local Pulsar 4.2.4 standalone, confirm `public/default`
+initialization, then run `examples/roundtrip`. Expected output is ten checked
+payloads and `roundtrip OK`. This ordinary example does not inject a Writer fault.
+The project remains Apache-2.0; [NOTICE](../NOTICE) identifies the vendored Apache
+Pulsar protocol source and generated bindings.
+
+## Live verification on 2026-10-29
+
+These two separate runs used product inputs at
+`832b43116b50339260070be90061ed1a87af9359`, the supported SDK below and an isolated
+Pulsar 4.2.4 Broker. The executables were built for Linux x86-64; the Writer case
+used a selected debug build for behavior validation, not a release-performance
+measurement. No library source or public API was changed for either run.
+
+| Case | Observed result | Boundary |
+| --- | --- | --- |
+| Ten-message roundtrip | 10 successful sends, 10 matching receives, 10 ACKs awaited from the Broker; natural exit 0 | Synthetic data and a dedicated namespace; no fault or restart |
+| Writer replay with concurrent admission | Full initial A sent, its genuine receipt withheld, original future retained; after client-transport reconnection, replay A paused in the actual Writer after one byte while B was admitted; release completed both original futures from replacement receipts | Exact retained frames and original deadlines checked; same Broker throughout |
+
+The Writer case received and individually confirmed ACKs for **three** deliveries:
+initial A, replayed A and B. It checked two distinct application payloads totaling
+23 bytes, one reconnect, drained owners and zero retained send bytes, then exited
+naturally with status 0. The extra A delivery was allowed by the fixture contract.
+This is not a deduplication or exactly-once result.
+
+Both windows used 1 CPU, 4 GiB memory, no swap and a 256-task limit, with a
+non-root, read-only, network-isolated container. The recorded resource-limit/OOM
+event counters were zero. Task-owned children, containers and temporary files
+were cleaned up and absence was independently checked. The roundtrip window took
+38.10 seconds and the Writer window 46.27 seconds, including cleanup; these are
+test-environment durations, not application recovery guarantees.
+
+Retained receipt-manifest SHA-256 values identify the private maintainer evidence:
+
+- Roundtrip: `38319f507d3cdabd3bb775ef84b7807e9ffed394efeb8ad21c475585f1bd5ece`.
+- Writer: `faed8d127b5432beb6ea5e5d2641a8690e78ce217066a6bdcb507c4c6656435e`.
+
+These identifiers are audit references, not public downloads. The live whitebox
+fixture and machine-specific execution harness are outside the library package;
+the public example reproduces the ordinary roundtrip, not the controlled replay
+checkpoint. Earlier setup/build/transfer failures remain recorded as failures.
+
+**Deferred beyond 0.1.2:** retaining one unconfirmed SEND's original future across
+a Broker process restart has not been run. The successful Writer case replaced
+only the client transport. It does not establish Broker persistence, deployed
+TLS/mTLS recovery, encrypted replay or a recovery SLA. Existing historical
+interop evidence below retains its own source/environment scope. The final
+release commit, changed documentation archive and required CI still need their
+own acceptance; these runs do not certify a later package automatically.
+
 ## Supported toolchain
 
 For the 0.1.2 maintenance line, the supported, verified combination is `moon` and `moonrun` 0.1.20260920 (`914d7da`), `moonc v0.10.14+7d59c7ec9`, and `moonbitlang/protobuf@0.1.3`. This is not a lower-bound claim for every newer SDK. The library and examples already declare the runtime dependency; minimal version selection can choose a higher version if an application's dependency graph requires one, so that combination needs its own verification.
@@ -118,13 +184,20 @@ complete workspace, live Broker matrix or final package consumer.
 
 ## Remaining release gates
 
-- Record the final candidate's affected native regressions and exact-ZIP
-  external-consumer results, including the advertised identity on a broker.
-- Confirm the exact remote candidate's required CI checks and registry version
-  availability before a maintainer publishes.
+- Freeze the final reviewed commit and freshly generated ZIP. Confirm the
+  version, advertised identity, unchanged public interfaces and documentation
+  links against that candidate, then record its external-consumer build.
+- Run the existing required CI jobs for that exact remote commit, including
+  native debug/release tests and the existing Broker matrix. Reuse the focused
+  live results above while their product inputs remain unchanged; do not repeat
+  them solely because release prose changed. A failure on an older public commit
+  neither passes nor fails the final candidate.
+- Confirm registry availability and publisher identity, publish the accepted
+  candidate, then verify a fresh registry install/build and matching tag/Release.
 - Review the public source history separately from the package contents.
 
-Synthetic replay tests do not prove broker persistence, deduplication or
-exactly-once delivery. A timed-out SEND can have an unknown broker outcome.
+The deferred original-future/Broker-restart experiment is not a 0.1.2 release
+gate. Neither synthetic replay tests nor the live case above prove exactly-once
+delivery. A timed-out SEND can have an unknown Broker outcome.
 User sequence-ID enhancements are a separate feature decision; the present
 limitation is described in the client guide.

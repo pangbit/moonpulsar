@@ -60,7 +60,7 @@ It is not the reorganized candidate package.
 - The historical CI reconnect cause and whole-workspace release timeout remain
   unresolved. Later focused passes do not retroactively repair those outcomes.
 
-## Remaining candidate checks
+## Candidate checks recorded on 2026-10-26
 
 Use [development checks](../../testing.md) and the
 [release checklist](../../releasing.md). Recheck generated interfaces, formatting,
@@ -72,3 +72,20 @@ Real Broker pending-SEND replay, deployed TLS/mTLS, encrypted interoperability,
 chunk/queue/seek Broker gates and exact remote CI remain independent requirements
 for their stated release scope. No recovery SLA, deduplication or application
 retry idempotency follows from these focused checks.
+
+## October 29 follow-up
+
+The earlier pending list is historical. On product snapshot
+`832b43116b50339260070be90061ed1a87af9359`, separate isolated Pulsar 4.2.4 runs
+subsequently passed ten-message send/receive/confirmed-ACK and real Writer replay
+with a second send admitted at the replay checkpoint. Both original futures
+completed. Three deliveries were received and ACK-confirmed (initial A, replay A
+and B); duplicate delivery was allowed. Both clients exited naturally and cleanup
+was independently confirmed. The source binding, receipt identifiers and limits
+are in the [updated candidate verification](../../verification-0.1.2.md#live-verification-on-2026-10-29).
+
+The Writer run kept the Broker running. Retaining an unconfirmed SEND's original
+future across Broker restart remains unverified and is deferred beyond 0.1.2,
+rather than required for this release. The final commit/package and its existing
+required CI still need acceptance. None of these later results changes an earlier
+failure or expands historical TLS, encryption or performance claims.

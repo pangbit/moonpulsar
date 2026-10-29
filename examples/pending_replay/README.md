@@ -128,3 +128,11 @@ Real Broker pending-SEND replay, deployed TLS/mTLS, chunked replay and admission
 of a second SEND during a live Broker replay remain separate acceptance cases.
 The root `producer_replay_tcp_wbtest.mbt` covers second admission over local TCP
 protocol peers; it does not supply live Broker evidence.
+
+A separate October 29 live whitebox fixture has since verified second-send
+admission during actual Writer replay against Pulsar 4.2.4, with both original
+futures completed and all three deliveries ACK-confirmed. That fixture kept the
+Broker running; it is distinct from this relay executable and its local mocks.
+See the [source-bound result](../../docs/verification-0.1.2.md#live-verification-on-2026-10-29).
+Retaining an unconfirmed send's original future across Broker restart remains
+unverified and is deferred beyond the 0.1.2 release scope.

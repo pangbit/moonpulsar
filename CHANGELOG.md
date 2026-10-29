@@ -1,12 +1,11 @@
 # Changelog
 
-## 0.1.2 — Unreleased
+## 0.1.2 — 2026-10-30 (planned)
 
 - Close the TCP transport owned by an ordinary TLS connection when TLS resources are released.
 - Isolate ECIES adapter errors from existing caller OpenSSL state on verified runtimes; document known error-mark compatibility limits.
 - Drain messages admitted during producer replay without resending a frame within the same registration epoch.
 - Honor producer close while replacement registration or replay is pending, preserving `ProducerClosed` for retired sends.
-
 - Reduce the CRC32-C dependency chain with portable slicing-by-eight and independent polynomial regression tests.
 - Preserve receive-window capacity across reconnects with buffered messages.
 - Wake blocked receivers before waiting for the Broker's close response.
@@ -17,7 +16,11 @@
 - Retire silent connections after bounded keepalive probes, including blocked PING writes; complete incoming commands clear the pending probe.
 - Use the module's 0.1.2 identity consistently in CONNECT and AUTH_RESPONSE. Keep internal maintenance plans and raw evidence out of the published archive.
 
-The public API is unchanged. This is a maintenance candidate, not a publication record. See [development and verification](docs/testing.md) for reproducible checks and [candidate verification](docs/verification-0.1.2.md) for source-specific evidence boundaries. SEND timeouts can leave broker acceptance unknown; the existing user-supplied sequence-ID limitation remains documented in the client guide.
+The public API and pinned dependencies are unchanged. This is a maintenance candidate with an intended release date, not a publication record. Confirm registry availability before installation.
+
+The October 29 source-bound checks on Pulsar 4.2.4 passed ten-message send/receive/confirmed-ACK and a separate real Writer replay with concurrent admission of a second send. Both original receipt futures completed; the initial A was also delivered, so this is not a deduplication or exactly-once guarantee. Retaining an unconfirmed send's original future across a Broker restart is deferred beyond 0.1.2 and remains unverified.
+
+See [development and verification](docs/testing.md) for reproducible checks and [candidate verification](docs/verification-0.1.2.md) for October contributions and source-specific evidence boundaries. SEND timeouts can leave broker acceptance unknown; the existing user-supplied sequence-ID limitation remains documented in the client guide.
 
 ## 0.1.1 — 2026-09-29
 

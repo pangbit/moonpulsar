@@ -6,6 +6,12 @@
 
 [源码仓库](https://github.com/pangbit/moonpulsar) | [文档索引](docs/README.zh-CN.md)
 
+## 0.1.2 范围
+
+本次维护版本修复传输资源清理、有界恢复，以及重连回放期间接纳新发送的问题；公开 API 和固定依赖保持不变。[十月贡献与验证记录](docs/verification-0.1.2.md#october-contributions) 列出了实现提交及各自的验证范围。
+
+记录中的源码快照已在 Pulsar 4.2.4 完成十次发送、十次匹配接收和十次确认 ACK。另一项真实 Writer 用例在回放期间接纳第二次发送后，完成两份原始回执 Future，并接收、确认初次 A、回放 A 和 B；消息可能重复投递。保留未确认发送的原始 Future 并跨越 Broker 重启仍未验证，延期至 0.1.2 之后。这些定点结果不能替代最终候选 CI，详见[验证边界](docs/verification-0.1.2.md#live-verification-on-2026-10-29)。
+
 ## 环境要求
 
 ### 构建环境
@@ -70,24 +76,29 @@ moon view pangbit/moonpulsar --versions --json
 git clone https://github.com/pangbit/moonpulsar.git
 cd moonpulsar
 moon update
-moon check --target native
-moon test --target native
 ```
 
 运行收发示例需要一次性本地 Pulsar 4.2.4 Broker，在另一个终端启动：
 
 ```sh
-docker run --rm --name moonpulsar-demo -p 6650:6650 -p 8080:8080 \
+docker run --rm --name moonpulsar-demo \
+  -p 127.0.0.1:6650:6650 -p 127.0.0.1:8080:8080 \
   apachepulsar/pulsar:4.2.4 bin/pulsar standalone -a 127.0.0.1
 ```
 
-Broker 就绪后，在仓库根目录运行：
+等待 standalone 完成命名空间初始化；以下请求须成功且包含 `public/default`，再运行客户端：
+
+```sh
+curl --fail --silent --show-error http://127.0.0.1:8080/admin/v2/namespaces/public
+```
+
+然后在仓库根目录运行：
 
 ```sh
 moon run examples/roundtrip --target native
 ```
 
-成功时输出 `roundtrip OK`。使用完毕后执行 `docker stop moonpulsar-demo` 停止该一次性容器。
+成功时检查十条消息内容，输出十行 `verified:`，随后输出 `roundtrip OK` 并关闭客户端。使用完毕后执行 `docker stop moonpulsar-demo` 停止该一次性容器。这个最小示例演示普通收发；上文独立的 Writer 结果使用了受控测试夹具。开发检查见[测试说明](docs/testing.zh-CN.md)。
 
 确认注册表版本可用后，独立的可执行项目可在 `moon.mod` 中声明 `"pangbit/moonpulsar@0.1.2"` 和 `"moonbitlang/async@0.22.1"`，设置 `preferred_target = "native"`，并使用如下 `moon.pkg`：
 
