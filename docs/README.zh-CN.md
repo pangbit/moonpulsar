@@ -14,6 +14,7 @@
 | Bug 反馈与使用求助 | [GitHub Issues](https://github.com/pangbit/moonpulsar/issues) |
 | 安全报告 | [安全说明](../SECURITY.md) |
 | 版本变化与发布步骤 | [变更说明](../CHANGELOG.md) / [发布流程](releasing.zh-CN.md) |
+| 十月项目、已发布版本与最小演示 | [2026 年十月验收说明（English）](competition/2026-10.md) |
 | 原生依赖调整的方案与验收历史 | [2026-09 归档](https://github.com/pangbit/moonpulsar/blob/main/docs/archive/native-deps-2026-09/README.md) |
 
 互通程序、测试夹具和原生 ABI 的局部说明保留在对应目录：
