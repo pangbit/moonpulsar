@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.2 — 2026-10-30 (planned)
+## 0.1.2 — 2026-10-29
 
 - Close the TCP transport owned by an ordinary TLS connection when TLS resources are released.
 - Isolate ECIES adapter errors from existing caller OpenSSL state on verified runtimes; document known error-mark compatibility limits.
@@ -16,7 +16,7 @@
 - Retire silent connections after bounded keepalive probes, including blocked PING writes; complete incoming commands clear the pending probe.
 - Use the module's 0.1.2 identity consistently in CONNECT and AUTH_RESPONSE. Keep internal maintenance plans and raw evidence out of the published archive.
 
-The public API and pinned dependencies are unchanged. This is a maintenance candidate with an intended release date, not a publication record. Confirm registry availability before installation.
+The public API and pinned dependencies are unchanged. These notes were prepared for publication on the date above; confirm registry availability before installation. Actual publication is recorded in the matching GitHub Release.
 
 The October 29 source-bound checks on Pulsar 4.2.4 passed ten-message send/receive/confirmed-ACK and a separate real Writer replay with concurrent admission of a second send. Both original receipt futures completed; the initial A was also delivered, so this is not a deduplication or exactly-once guarantee. Retaining an unconfirmed send's original future across a Broker restart is deferred beyond 0.1.2 and remains unverified.
 
