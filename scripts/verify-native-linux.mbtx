@@ -1,4 +1,4 @@
-///|
+----
 import {
   "moonbitlang/async@0.22.1",
   "moonbitlang/async@0.22.1/fs",
@@ -6,13 +6,14 @@ import {
   "moonbitlang/core/env",
   "moonbitlang/core/json",
 }
+----
 
 ///|
 async fn check(
   name : String,
   cmd : @shell.Cmd,
   report : String,
-  results? : Int,
+  results? : Int32,
 ) -> Unit {
   let output = cmd.output(timeout_ms=600000, max_output_bytes=16000000)
   let log = output.stdout() + output.stderr()
@@ -39,7 +40,7 @@ fn builder(
   image : String,
   work : String,
   args : Array[String],
-  offline? : Bool = true,
+  offline~ : Bool = true,
 ) -> @shell.Cmd {
   let flags = [
     "run",

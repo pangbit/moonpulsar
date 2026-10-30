@@ -821,7 +821,7 @@ async fn main {
       string_message.ack(await_response=true)
       string_consumer.close()
       string_producer.close()
-      let json_codec : @pulsar.SchemaCodec[Map[String, Int]] = @pulsar.SchemaCodec::json(
+      let json_codec : @pulsar.SchemaCodec[Map[String, Int32]] = @pulsar.SchemaCodec::json(
         b"{\"type\":\"record\",\"name\":\"Count\",\"fields\":[{\"name\":\"count\",\"type\":\"int\"}]}",
       )
       let json_producer = client.create_producer(
@@ -834,7 +834,7 @@ async fn main {
         initial_position=Earliest,
         schema=json_codec.info(),
       )
-      let value : Map[String, Int] = { "count": 7 }
+      let value : Map[String, Int32] = { "count": 7 }
       ignore(
         json_producer.send(
           @pulsar.ProducerMessage::new(json_codec.encode(value)),

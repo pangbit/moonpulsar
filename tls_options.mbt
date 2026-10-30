@@ -6,7 +6,7 @@ pub(all) enum TlsVersion {
 }
 
 ///|
-fn TlsVersion::native_value(self : TlsVersion) -> Int {
+fn TlsVersion::native_value(self : TlsVersion) -> Int32 {
   match self {
     TLS12 => 0x0303
     TLS13 => 0x0304

@@ -6,7 +6,7 @@ async test "keepalive timeout retires shared sends slot admission and consumer c
   @async.with_timeout(5000, () => {
     @async.with_task_group(group => {
       let limiter = ClientMemoryLimiter::new(65536)
-      let closes : Ref[Int] = { val: 0, }
+      let closes : Ref[Int32] = { val: 0, }
       let sent : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(kind=Unbounded)
       let frames : Array[IncomingFrame] = []
       let (conn, _) = lifecycle_memory_connection(
@@ -116,7 +116,7 @@ async fn keepalive_shared_rebuild(reject : Bool) -> Unit {
   @async.with_timeout(5000, () => {
     @async.with_task_group(group => {
       let limiter = ClientMemoryLimiter::new(65536)
-      let closes : Ref[Int] = { val: 0, }
+      let closes : Ref[Int32] = { val: 0, }
       let sent : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(kind=Unbounded)
       let original : Array[IncomingFrame] = []
       let replacement : Array[IncomingFrame] = []

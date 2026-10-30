@@ -102,7 +102,7 @@ async test "table view replays keys and follows updates and tombstones" {
     let copy = view.entries()
     copy["other"] = b"outside"
     assert_true(!view.contains_key("other"))
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     view.for_each_and_listen(fn(_key, _value) { calls.val += 1 })
     assert_eq(calls.val, 2)
     proceed.put(true)
@@ -204,7 +204,7 @@ async test "typed table view decodes values and reports malformed live updates" 
     assert_true(checked.get())
     assert_eq(view.get("key"), Some(7))
     assert_eq(view.entries().get("key"), Some(7))
-    let updates : @aqueue.Queue[Result[Int?, PulsarError]] = @aqueue.Queue::Queue(
+    let updates : @aqueue.Queue[Result[Int32?, PulsarError]] = @aqueue.Queue::Queue(
       kind=@aqueue.Kind::Unbounded,
     )
     view.for_each_and_listen(fn(_key, value) {
@@ -246,7 +246,7 @@ async test "typed table view reports broker schema incompatibility" {
       peer.send_command(reply)
     })
     let client = Client::connect(group, "pulsar://\{addr}")
-    let result : Result[TypedTableView[Int], Error] = Ok(
+    let result : Result[TypedTableView[Int32], Error] = Ok(
       client.create_typed_table_view(
         "persistent://public/default/incompatible-table",
         SchemaCodec::int32(),
@@ -318,7 +318,7 @@ async test "typed table view rejects a malformed initial snapshot" {
       }
     })
     let client = Client::connect(group, "pulsar://\{addr}")
-    let result : Result[TypedTableView[Int], Error] = Ok(
+    let result : Result[TypedTableView[Int32], Error] = Ok(
       @async.with_timeout(3000, async fn() {
         client.create_typed_table_view(
           "persistent://public/default/malformed-table",

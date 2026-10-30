@@ -18,9 +18,9 @@ fn live_chunk_acknowledged(stats : Json, subscription : String) -> Bool raise {
 async fn send_live_chunk(
   producer : SingleProducer,
   uuid : String,
-  index : Int,
-  count : Int,
-  total_size : Int,
+  index : Int32,
+  count : Int32,
+  total_size : Int32,
   payload : Bytes,
   sequence_id : UInt64,
 ) -> Unit {

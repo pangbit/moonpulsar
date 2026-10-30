@@ -6,7 +6,7 @@ suberror FixtureError {
 } derive(Debug)
 
 ///|
-const MAX_FRAME : Int = 65536
+const MAX_FRAME : Int32 = 65536
 
 ///|
 fn loopback_endpoint(value : String) -> String raise {
@@ -47,7 +47,7 @@ fn join_bytes(left : Bytes, right : Bytes) -> Bytes {
 }
 
 ///|
-fn total_size(raw : Bytes) -> Int raise FixtureError {
+fn total_size(raw : Bytes) -> Int32 raise FixtureError {
   guard raw.length() >= 4 else {
     raise FixtureError::Rejected("truncated frame prefix")
   }

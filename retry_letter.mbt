@@ -23,8 +23,8 @@ fn Consumer::set_retry_letter(
 pub async fn Consumer::reconsume_later(
   self : Consumer,
   message : Message,
-  delay_ms? : Int = 0,
-  custom_properties? : Map[String, String] = {},
+  delay_ms~ : Int32 = 0,
+  custom_properties~ : Map[String, String] = {},
 ) -> Unit {
   guard delay_ms >= 0 else {
     raise InvalidFrame("retry delay must not be negative")

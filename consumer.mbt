@@ -1,7 +1,7 @@
 // SingleConsumer: subscribes to a topic and receives messages with flow control.
 
 ///|
-const COMPOSITE_CONSUMER_QUEUE_CAPACITY : Int = 1000
+const COMPOSITE_CONSUMER_QUEUE_CAPACITY : Int32 = 1000
 
 ///|
 /// Subscription mode, mirroring `CommandSubscribe.SubType`.
@@ -28,13 +28,13 @@ fn SubscriptionType::to_proto(
 /// Broker-side dispatch policy for a KeyShared subscription.
 pub struct KeySharedPolicy {
   priv mode : @proto.KeySharedMode
-  priv ranges : Array[(Int, Int)]
+  priv ranges : Array[(Int32, Int32)]
   priv allow_out_of_order_delivery : Bool
 }
 
 ///|
 pub fn KeySharedPolicy::auto_split(
-  allow_out_of_order_delivery? : Bool = false,
+  allow_out_of_order_delivery~ : Bool = false,
 ) -> KeySharedPolicy {
   {
     mode: @proto.KeySharedMode::AUTO_SPLIT,
@@ -46,13 +46,13 @@ pub fn KeySharedPolicy::auto_split(
 ///|
 /// Reserve non-overlapping inclusive hash ranges within 0..65535.
 pub fn KeySharedPolicy::sticky(
-  ranges : Array[(Int, Int)],
-  allow_out_of_order_delivery? : Bool = false,
+  ranges : Array[(Int32, Int32)],
+  allow_out_of_order_delivery~ : Bool = false,
 ) -> KeySharedPolicy raise PulsarError {
   guard !ranges.is_empty() else {
     raise InvalidFrame("sticky KeyShared requires hash ranges")
   }
-  let checked : Array[(Int, Int)] = []
+  let checked : Array[(Int32, Int32)] = []
   for i, range in ranges {
     let (start, end) = range
     guard start >= 0 && start < end && end <= 65535 else {
@@ -98,14 +98,14 @@ pub(all) enum SubscriptionInitialPosition {
 ///|
 /// Exponential delay before redelivering negatively acknowledged messages.
 pub struct NackBackoff {
-  priv initial_ms : Int
-  priv max_ms : Int
+  priv initial_ms : Int32
+  priv max_ms : Int32
 }
 
 ///|
 pub fn NackBackoff::new(
-  initial_ms : Int,
-  max_ms : Int,
+  initial_ms : Int32,
+  max_ms : Int32,
 ) -> NackBackoff raise PulsarError {
   guard initial_ms > 0 && max_ms >= initial_ms else {
     raise InvalidFrame("invalid negative-acknowledgment backoff")
@@ -122,8 +122,8 @@ pub fn NackBackoff::default() -> NackBackoff {
 ///|
 pub fn NackBackoff::delay_ms(
   self : NackBackoff,
-  redelivery_count : UInt,
-) -> Int {
+  redelivery_count : UInt32,
+) -> Int32 {
   let mut delay = self.initial_ms
   let mut remaining = redelivery_count
   while remaining > 0U && delay < self.max_ms {
@@ -138,13 +138,13 @@ pub fn NackBackoff::delay_ms(
 /// application deliveries. For example, one delivery permits the initial
 /// attempt and routes the next redelivery.
 pub struct DeadLetterPolicy {
-  priv max_deliveries : UInt
+  priv max_deliveries : UInt32
   priv topic : String
 }
 
 ///|
 pub fn DeadLetterPolicy::new(
-  max_deliveries : UInt,
+  max_deliveries : UInt32,
   topic : String,
 ) -> DeadLetterPolicy raise PulsarError {
   guard max_deliveries > 0U && topic != "" else {
@@ -161,7 +161,7 @@ pub fn DeadLetterPolicy::topic(self : DeadLetterPolicy) -> String {
 }
 
 ///|
-pub fn DeadLetterPolicy::max_deliveries(self : DeadLetterPolicy) -> UInt {
+pub fn DeadLetterPolicy::max_deliveries(self : DeadLetterPolicy) -> UInt32 {
   self.max_deliveries
 }
 
@@ -181,27 +181,27 @@ pub struct SingleConsumer {
   priv decryption_failure_action : DecryptionFailureAction
   priv consumer_name : String?
   priv initial_position : SubscriptionInitialPosition
-  priv priority_level : Int
+  priv priority_level : Int32
   priv durable : Bool
   priv read_compacted : Bool
   priv properties : Map[String, String]
   priv subscription_properties : Map[String, String]
   priv messages : @aqueue.Queue[Message]
-  priv mut buffered_messages : Int
-  priv receiver_permits : Int
+  priv mut buffered_messages : Int32
+  priv receiver_permits : Int32
   priv auto_scaled_receiver_queue : Bool
-  priv mut current_receiver_permits : Int
+  priv mut current_receiver_permits : Int32
   priv mut scale_receiver_hint : Bool
-  priv mut available_permits : Int
+  priv mut available_permits : Int32
   priv mut demand_active : Bool
-  priv mut waiting_receives : Int
-  priv ack_timeout_ms : Int
+  priv mut waiting_receives : Int32
+  priv ack_timeout_ms : Int32
   priv nack_backoff : NackBackoff?
-  priv nack_epoch : Ref[Int]
-  priv ack_pending : Map[MessageId, Int]
+  priv nack_epoch : Ref[Int32]
+  priv ack_pending : Map[MessageId, Int32]
   priv batch_acks : BatchAckTracker
   priv ack_dispatcher : AckDispatcher
-  priv mut next_ack_token : Int
+  priv mut next_ack_token : Int32
   priv chunks : ChunkAssembler
   priv chunk_sweeper_stop : @aqueue.Queue[Unit]
   priv chunk_acks : Map[MessageId, Array[MessageId]]
@@ -225,27 +225,27 @@ pub async fn SingleConsumer::create(
   conn : Connection,
   topic : String,
   subscription : String,
-  sub_type? : SubscriptionType = Exclusive,
+  sub_type~ : SubscriptionType = Exclusive,
   key_shared_policy? : KeySharedPolicy,
   consumer_name? : String,
-  initial_position? : SubscriptionInitialPosition = Latest,
-  priority_level? : Int = 0,
-  durable? : Bool = true,
-  read_compacted? : Bool = false,
-  properties? : Map[String, String] = {},
-  subscription_properties? : Map[String, String] = {},
-  receiver_queue_size? : Int = 1000,
-  ack_timeout_ms? : Int = 0,
+  initial_position~ : SubscriptionInitialPosition = Latest,
+  priority_level~ : Int32 = 0,
+  durable~ : Bool = true,
+  read_compacted~ : Bool = false,
+  properties~ : Map[String, String] = {},
+  subscription_properties~ : Map[String, String] = {},
+  receiver_queue_size~ : Int32 = 1000,
+  ack_timeout_ms~ : Int32 = 0,
   nack_backoff? : NackBackoff,
   reconnect_with? : async () -> Connection,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
-  decryption_failure_action? : DecryptionFailureAction = Fail,
-  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
+  decryption_failure_action~ : DecryptionFailureAction = Fail,
+  reconnect_policy~ : RetryPolicy = RetryPolicy::default(),
   chunk_policy? : ChunkAssemblyPolicy,
-  enable_batch_index_ack? : Bool = false,
+  enable_batch_index_ack~ : Bool = false,
   ack_grouping? : AckGroupingOptions,
-  auto_scaled_receiver_queue? : Bool = false,
+  auto_scaled_receiver_queue~ : Bool = false,
   on_event? : (ClientEvent) -> Unit,
 ) -> SingleConsumer {
   SingleConsumer::create_with_memory(
@@ -284,27 +284,27 @@ async fn SingleConsumer::create_with_memory(
   conn : Connection,
   topic : String,
   subscription : String,
-  sub_type? : SubscriptionType = Exclusive,
+  sub_type~ : SubscriptionType = Exclusive,
   key_shared_policy? : KeySharedPolicy,
   consumer_name? : String,
-  initial_position? : SubscriptionInitialPosition = Latest,
-  priority_level? : Int = 0,
-  durable? : Bool = true,
-  read_compacted? : Bool = false,
-  properties? : Map[String, String] = {},
-  subscription_properties? : Map[String, String] = {},
-  receiver_queue_size? : Int = 1000,
-  ack_timeout_ms? : Int = 0,
+  initial_position~ : SubscriptionInitialPosition = Latest,
+  priority_level~ : Int32 = 0,
+  durable~ : Bool = true,
+  read_compacted~ : Bool = false,
+  properties~ : Map[String, String] = {},
+  subscription_properties~ : Map[String, String] = {},
+  receiver_queue_size~ : Int32 = 1000,
+  ack_timeout_ms~ : Int32 = 0,
   nack_backoff? : NackBackoff,
   reconnect_with? : async () -> Connection,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
-  decryption_failure_action? : DecryptionFailureAction = Fail,
-  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
+  decryption_failure_action~ : DecryptionFailureAction = Fail,
+  reconnect_policy~ : RetryPolicy = RetryPolicy::default(),
   chunk_policy? : ChunkAssemblyPolicy,
-  enable_batch_index_ack? : Bool = false,
+  enable_batch_index_ack~ : Bool = false,
   ack_grouping? : AckGroupingOptions,
-  auto_scaled_receiver_queue? : Bool = false,
+  auto_scaled_receiver_queue~ : Bool = false,
   on_event? : (ClientEvent) -> Unit,
   memory_limiter? : ClientMemoryLimiter,
 ) -> SingleConsumer {
@@ -639,7 +639,7 @@ fn SingleConsumer::on_connection_closed(
 ///|
 async fn SingleConsumer::send_flow(
   self : SingleConsumer,
-  permits : Int,
+  permits : Int32,
 ) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::FLOW
@@ -659,7 +659,7 @@ async fn SingleConsumer::reset_flow(self : SingleConsumer) -> Unit {
       self.request_one()
     }
   } else {
-    let permits = Int::max(
+    let permits = Int32::max(
       0,
       self.current_receiver_permits - self.buffered_messages,
     )
@@ -854,7 +854,7 @@ fn SingleConsumer::dispatch_message(
         decompress(
           CompressionCodec::from_proto(t),
           assembled,
-          uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt) {
+          uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt32) {
             u.reinterpret_as_int()
           }),
         )
@@ -908,13 +908,13 @@ fn SingleConsumer::dispatch_message(
 fn SingleConsumer::push_message(
   self : SingleConsumer,
   base_id : MessageId,
-  batch_index : Int,
+  batch_index : Int32,
   metadata : @proto.MessageMetadata,
   single : @proto.SingleMessageMetadata?,
   payload : Bytes,
-  redelivery_count : UInt,
+  redelivery_count : UInt32,
   chunk_ids? : Array[MessageId],
-  decryption_failed? : Bool = false,
+  decryption_failed~ : Bool = false,
 ) -> Unit raise {
   let scheduler : ((Message) -> Unit)? = match self.nack_backoff {
     Some(_) => Some(fn(m) { self.schedule_nack(m) })
@@ -969,17 +969,17 @@ fn build_message(
   consumer_id : UInt64,
   topic : String,
   base_id : MessageId,
-  batch_index : Int,
+  batch_index : Int32,
   metadata : @proto.MessageMetadata,
   single : @proto.SingleMessageMetadata?,
   payload : Bytes,
-  redelivery_count : UInt,
+  redelivery_count : UInt32,
   subscription? : String,
-  ack_tracker? : Map[MessageId, Int],
+  ack_tracker? : Map[MessageId, Int32],
   batch_ack_tracker? : BatchAckTracker,
   ack_dispatcher? : AckDispatcher,
   chunk_ids? : Array[MessageId],
-  decryption_failed? : Bool = false,
+  decryption_failed~ : Bool = false,
   chunk_tracker? : Map[MessageId, Array[MessageId]],
   on_delivery? : (Message) -> Unit,
   nack_scheduler? : (Message) -> Unit,
@@ -1140,7 +1140,7 @@ fn message_id_at_or_before(a : MessageId, b : MessageId) -> Bool {
 /// Split a batched payload into per-message metadata and payload.
 fn split_batch_payload(
   payload : Bytes,
-  expected : Int,
+  expected : Int32,
 ) -> Array[(@proto.SingleMessageMetadata, Bytes)] raise {
   let result = []
   let mut offset = 0
@@ -1280,7 +1280,7 @@ pub fn SingleConsumer::try_receive(self : SingleConsumer) -> Message? raise {
 pub async fn SingleConsumer::ack(
   self : SingleConsumer,
   id : MessageId,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   if id.batch_index >= 0 {
     self.batch_acks.ack(
@@ -1309,7 +1309,7 @@ pub async fn SingleConsumer::ack(
 pub async fn SingleConsumer::ack_ids(
   self : SingleConsumer,
   ids : Array[MessageId],
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   let ordinary : Array[MessageId] = []
   for id in ids {
@@ -1341,7 +1341,7 @@ pub async fn SingleConsumer::ack_ids(
 pub async fn SingleConsumer::ack_cumulative(
   self : SingleConsumer,
   id : MessageId,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   if id.batch_index >= 0 {
     self.batch_acks.ack(
@@ -1368,7 +1368,7 @@ pub async fn SingleConsumer::ack_txn(
   self : SingleConsumer,
   txn : Transaction,
   id : MessageId,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   txn.add_subscription(self.topic, self.subscription)
   if id.batch_index >= 0 {
@@ -1539,7 +1539,7 @@ pub async fn SingleConsumer::close(self : SingleConsumer) -> Unit {
 /// Remove this subscription from the broker and close the consumer.
 pub async fn SingleConsumer::unsubscribe(
   self : SingleConsumer,
-  force? : Bool = false,
+  force~ : Bool = false,
 ) -> Unit {
   if self.closed.val {
     raise ConsumerClosed
@@ -1594,9 +1594,9 @@ priv enum ConsumerImpl {
 priv struct PartitionedConsumerState {
   consumers : Array[Consumer]
   reconnect_on_broker_close : Ref[Bool]
-  source_ids : Array[Int]
-  mut next_source_id : Int
-  active_sources : Map[Int, Bool]
+  source_ids : Array[Int32]
+  mut next_source_id : Int32
+  active_sources : Map[Int32, Bool]
   queue : @aqueue.Queue[ForwardedMessage]
   closed : Ref[Bool]
   topic_label : String
@@ -1605,7 +1605,7 @@ priv struct PartitionedConsumerState {
 
 ///|
 priv struct ForwardedMessage {
-  source_id : Int
+  source_id : Int32
   message : Message
 }
 
@@ -1747,7 +1747,7 @@ priv struct DeadLetterState {
   policy : DeadLetterPolicy
   producer : Producer
   group : @async.TaskGroup[Unit]
-  nacked : Map[(String, MessageId), UInt]
+  nacked : Map[(String, MessageId), UInt32]
 }
 
 ///|
@@ -2127,7 +2127,7 @@ fn Consumer::try_receive_raw(self : Consumer) -> Message? raise {
 pub async fn Consumer::ack(
   self : Consumer,
   id : MessageId,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   let span = self.span_recorder.map(fn(recorder) {
     recorder.begin(Ack, self.topic(), message_id=id)
@@ -2157,7 +2157,7 @@ pub async fn Consumer::ack(
 pub async fn Consumer::ack_ids(
   self : Consumer,
   ids : Array[MessageId],
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   match self.inner {
     ConsumerImpl::Single(c) => {
@@ -2234,7 +2234,7 @@ async fn Consumer::ack_raw(
 pub async fn Consumer::ack_cumulative(
   self : Consumer,
   id : MessageId,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   let span = self.span_recorder.map(fn(recorder) {
     recorder.begin(Ack, self.topic(), message_id=id)
@@ -2296,7 +2296,7 @@ pub async fn Consumer::ack_txn(
   self : Consumer,
   txn : Transaction,
   id : MessageId,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   let span = self.span_recorder.map(fn(recorder) {
     recorder.begin(Ack, self.topic(), message_id=id)
@@ -2469,7 +2469,7 @@ pub async fn Consumer::close(self : Consumer) -> Unit {
 /// Remove the subscription from every source topic and close the consumer.
 pub async fn Consumer::unsubscribe(
   self : Consumer,
-  force? : Bool = false,
+  force~ : Bool = false,
 ) -> Unit {
   let mut failure : Error? = None
   try {

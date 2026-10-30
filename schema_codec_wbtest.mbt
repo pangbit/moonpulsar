@@ -11,21 +11,23 @@ test "string schema codec roundtrips Unicode and rejects malformed UTF-8" {
 
 ///|
 test "JSON schema codec roundtrips values and rejects invalid payloads" {
-  let codec : SchemaCodec[Map[String, Int]] = SchemaCodec::json(
+  let codec : SchemaCodec[Map[String, Int32]] = SchemaCodec::json(
     b"{\"type\":\"record\",\"name\":\"Count\",\"fields\":[{\"name\":\"count\",\"type\":\"int\"}]}",
   )
   assert_eq(codec.info().type_, @proto.Schema_Type::Json)
-  let value : Map[String, Int] = { "count": 7 }
+  let value : Map[String, Int32] = { "count": 7 }
   assert_eq(codec.decode(codec.encode(value)), value)
-  let invalid_json : Result[Map[String, Int], Error] = Ok(codec.decode(b"{")) catch {
+  let invalid_json : Result[Map[String, Int32], Error] = Ok(codec.decode(b"{")) catch {
     e => Err(e)
   }
   assert_true(invalid_json is Err(InvalidFrame(_)))
-  let invalid_utf8 : Result[Map[String, Int], Error] = Ok(codec.decode(b"\xff")) catch {
+  let invalid_utf8 : Result[Map[String, Int32], Error] = Ok(
+    codec.decode(b"\xff"),
+  ) catch {
     e => Err(e)
   }
   assert_true(invalid_utf8 is Err(InvalidFrame(_)))
-  let wrong_type : Result[Map[String, Int], Error] = Ok(
+  let wrong_type : Result[Map[String, Int32], Error] = Ok(
     codec.decode(b"{\"count\":\"seven\"}"),
   ) catch {
     e => Err(e)
@@ -91,7 +93,7 @@ test "primitive codecs reject out-of-range values and malformed payloads" {
     e => Err(e)
   }
   assert_true(too_small is Err(InvalidFrame(_)))
-  let wrong_length : Result[Int, Error] = Ok(
+  let wrong_length : Result[Int32, Error] = Ok(
     SchemaCodec::int32().decode(b"\x00"),
   ) catch {
     e => Err(e)

@@ -5,9 +5,9 @@
 fn lifecycle_memory_connection(
   group : @async.TaskGroup[Unit],
   limiter : ClientMemoryLimiter,
-  reject? : Bool = false,
+  reject~ : Bool = false,
   blocked? : (String, @aqueue.Queue[Unit]),
-  close_calls? : Ref[Int],
+  close_calls? : Ref[Int32],
   transport_closed? : Ref[Bool],
   wrap_writer? : (&@io.Writer) -> &@io.Writer,
   observe? : (IncomingFrame) -> Unit,
@@ -249,7 +249,7 @@ async test "lifecycle failed constructor leaves no close callback or ghost recon
     let limiter = ClientMemoryLimiter::new(65536)
     let (conn, _) = lifecycle_memory_connection(group, limiter, reject=true)
     defer conn.close()
-    let reconnects : Ref[Int] = { val: 0, }
+    let reconnects : Ref[Int32] = { val: 0, }
     let provider = async fn() -> Connection {
       @async.pause()
       reconnects.val += 1
@@ -324,7 +324,7 @@ async test "lifecycle initial auth failure rolls back manager while task group s
 ///|
 fn lifecycle_delivery(
   consumer_id : UInt64,
-  incomplete? : Bool = false,
+  incomplete~ : Bool = false,
 ) -> IncomingFrame raise {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::MESSAGE
@@ -353,13 +353,13 @@ fn lifecycle_delivery(
 ///|
 async test "lifecycle close notification supports ordered removal reentry and closed subscriptions" {
   @async.with_task_group(async fn(group) {
-    let close_calls : Ref[Int] = { val: 0, }
+    let close_calls : Ref[Int32] = { val: 0, }
     let (conn, _) = lifecycle_memory_connection(
       group,
       ClientMemoryLimiter::new(65536),
       close_calls~,
     )
-    let calls : Array[Int] = []
+    let calls : Array[Int32] = []
     let removed : Ref[UInt64?] = { val: None, }
     ignore(
       conn.add_close_handler(fn(_) {
@@ -585,7 +585,7 @@ async test "lifecycle owner retirement preserves other owners and public close o
       ClientMemoryLimiter::new(65536),
     )
     defer conn.close()
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     conn.on_close(fn(_) { calls.val += 1 })
     let producer = SingleProducer::create(
       group, conn, "persistent://public/default/lifecycle",
@@ -733,7 +733,7 @@ async test "lifecycle rejected producer does not attempt ghost reconnect" {
   @async.with_task_group(async fn(group) {
     let limiter = ClientMemoryLimiter::new(65536)
     let (conn, _) = lifecycle_memory_connection(group, limiter, reject=true)
-    let reconnects : Ref[Int] = { val: 0, }
+    let reconnects : Ref[Int32] = { val: 0, }
     let result : Result[SingleProducer, Error] = Ok(
       SingleProducer::create(
         group,

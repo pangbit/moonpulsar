@@ -1,4 +1,4 @@
-///|
+----
 import {
   "moonbitlang/async@0.22.1",
   "moonbitlang/async@0.22.1/fs",
@@ -9,6 +9,7 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/core/string",
 }
+----
 
 ///|
 fn field(j : Json, key : String) -> Json raise {
@@ -203,8 +204,8 @@ fn validate_samples(samples : Array[Json], expected_s : Double) -> Json raise {
 ///|
 fn validate_roles(
   samples : Array[Json],
-  warmup : Int,
-  duration : Int,
+  warmup : Int32,
+  duration : Int32,
 ) -> Unit raise {
   let window = samples.filter(s => {
     number(s, "elapsed_ms") >= (warmup + 5000).to_double() &&
@@ -219,7 +220,7 @@ fn validate_roles(
     let mut previous_ticks = -1.0
     for sample in window {
       let processes = array(field(sample, "processes")).filter(p => {
-        field(p, "role") == role.to_json()
+        field(p, "role") == Json(role)
       })
       guard processes.length() <= 1 else { fail("multiple processes for role") }
       if processes.length() == 1 {
@@ -242,7 +243,7 @@ fn validate_roles(
 }
 
 ///|
-async fn preflight(dir : String, seconds : Int) -> Unit {
+async fn preflight(dir : String, seconds : Int32) -> Unit {
   let clock = @bench.monotonic_clock_start()
   let initial = host()
   for i in 0..<seconds {
@@ -595,8 +596,8 @@ async fn run(c : Json) -> Unit {
   let warmup = number(c, "warmup_ms").to_int()
   let duration = number(c, "duration_ms").to_int()
   let done : Ref[Bool] = { val: false, }
-  let pexit : Ref[Int] = { val: -1, }
-  let cexit : Ref[Int] = { val: -1, }
+  let pexit : Ref[Int32] = { val: -1, }
+  let cexit : Ref[Int32] = { val: -1, }
   phase.val = "load"
   checkpoint(dir, "running", phase.val, id)
   @async.with_task_group(async fn(group) {
@@ -650,7 +651,7 @@ async fn run(c : Json) -> Unit {
   })
   @fs.write_file(
     dir + "/exits.json",
-    { "producer": pexit.val, "consumer": cexit.val }.to_json(),
+    Json({ "producer": pexit.val, "consumer": cexit.val }),
   )
   phase.val = "verification"
   checkpoint(dir, "running", phase.val, id)

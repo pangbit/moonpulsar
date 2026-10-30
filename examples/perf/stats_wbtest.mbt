@@ -33,11 +33,11 @@ test "warmup and drain are excluded from measurements" {
 ///|
 test "configuration bounds reject invalid durations and sizes" {
   assert_eq(bounded_int("warmup", "0", 0, 100), 0)
-  let invalid : Result[Int, Error] = Ok(bounded_int("duration", "0", 1, 100)) catch {
+  let invalid : Result[Int32, Error] = Ok(bounded_int("duration", "0", 1, 100)) catch {
     e => Err(e)
   }
   assert_true(invalid is Err(_))
-  let oversized : Result[Int, Error] = Ok(bounded_int("size", "101", 1, 100)) catch {
+  let oversized : Result[Int32, Error] = Ok(bounded_int("size", "101", 1, 100)) catch {
     e => Err(e)
   }
   assert_true(oversized is Err(_))

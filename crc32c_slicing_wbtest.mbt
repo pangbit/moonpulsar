@@ -1,6 +1,6 @@
 ///|
 // Independent bit-at-a-time polynomial oracle; no production lookup tables.
-fn crc32c_bitwise(data : BytesView) -> UInt {
+fn crc32c_bitwise(data : BytesView) -> UInt32 {
   let mut crc = 0xffffffffU
   for byte in data {
     crc = crc ^ byte.to_uint()

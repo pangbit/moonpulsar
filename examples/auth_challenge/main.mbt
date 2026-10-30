@@ -5,7 +5,7 @@
 async fn main {
   let url = @env.get_env_var("PULSAR_URL").unwrap_or("pulsar://127.0.0.1:7665")
   @async.with_task_group(async fn(group) {
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     let client = @pulsar.Client::connect_with_options(
       group,
       @pulsar.ClientOptions::new(url, auth_provider=fn() {
@@ -15,7 +15,7 @@ async fn main {
     )
     assert_eq(calls.val, 2)
     client.close()
-    let rejected_calls : Ref[Int] = { val: 0, }
+    let rejected_calls : Ref[Int32] = { val: 0, }
     let rejected : Result[Unit, Error] = Ok(
       @pulsar.Client::connect_with_options(
         group,

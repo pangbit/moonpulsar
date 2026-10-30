@@ -2,7 +2,7 @@
 // Indexed heap: completed sends are removed immediately, not left as tombstones.
 priv struct SendDeadlines {
   heap : Array[(UInt64, Int64)]
-  positions : Map[UInt64, Int]
+  positions : Map[UInt64, Int32]
   clock : @bench.Timestamp
 }
 
@@ -17,7 +17,7 @@ fn SendDeadlines::now(self : SendDeadlines) -> Int64 {
 }
 
 ///|
-fn SendDeadlines::swap(self : SendDeadlines, a : Int, b : Int) -> Unit {
+fn SendDeadlines::swap(self : SendDeadlines, a : Int32, b : Int32) -> Unit {
   let value = self.heap[a]
   self.heap[a] = self.heap[b]
   self.heap[b] = value
@@ -26,7 +26,7 @@ fn SendDeadlines::swap(self : SendDeadlines, a : Int, b : Int) -> Unit {
 }
 
 ///|
-fn SendDeadlines::up(self : SendDeadlines, start : Int) -> Unit {
+fn SendDeadlines::up(self : SendDeadlines, start : Int32) -> Unit {
   let mut i = start
   while i > 0 {
     let parent = (i - 1) / 2

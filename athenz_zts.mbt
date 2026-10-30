@@ -14,11 +14,11 @@ pub(all) struct AthenzZtsOptions {
   key_id : String
   role : String
   principal_header : String
-  min_expiry_secs : Int
-  max_expiry_secs : Int
-  refresh_before_ms : Int
-  max_retries : Int
-  retry_delay_ms : Int
+  min_expiry_secs : Int32
+  max_expiry_secs : Int32
+  refresh_before_ms : Int32
+  max_retries : Int32
+  retry_delay_ms : Int32
 }
 
 ///|
@@ -30,14 +30,14 @@ pub fn AthenzZtsOptions::new(
   private_key_file : String,
   certificate_file? : String,
   ca_pem_file? : String,
-  key_id? : String = "0",
-  role? : String = "",
-  principal_header? : String = "Athenz-Principal-Auth",
-  min_expiry_secs? : Int = 7200,
-  max_expiry_secs? : Int = 86400,
-  refresh_before_ms? : Int = 600000,
-  max_retries? : Int = 2,
-  retry_delay_ms? : Int = 100,
+  key_id~ : String = "0",
+  role~ : String = "",
+  principal_header~ : String = "Athenz-Principal-Auth",
+  min_expiry_secs~ : Int32 = 7200,
+  max_expiry_secs~ : Int32 = 86400,
+  refresh_before_ms~ : Int32 = 600000,
+  max_retries~ : Int32 = 2,
+  retry_delay_ms~ : Int32 = 100,
 ) -> AthenzZtsOptions raise PulsarError {
   guard zts_url != "" &&
     provider_domain != "" &&

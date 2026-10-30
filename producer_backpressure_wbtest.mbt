@@ -274,7 +274,7 @@ async test "producer rejects invalid queue and timeout settings" {
 ///|
 async test "batch message timeout removes it before flush and releases capacity" {
   @async.with_task_group(async fn(group) {
-    let sent : @aqueue.Queue[Int?] = @aqueue.Queue::Queue(
+    let sent : @aqueue.Queue[Int32?] = @aqueue.Queue::Queue(
       kind=@aqueue.Kind::Blocking(1),
     )
     let addr = start_mock_broker(group, async fn(_addr, peer) {

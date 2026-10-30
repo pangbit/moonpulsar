@@ -8,7 +8,7 @@ pub(all) suberror PulsarError {
   /// Failed to establish the TCP connection or protocol handshake.
   ConnectFailed(String)
   /// The broker answered a request with a `CommandError`.
-  ServerError(code~ : Int, message~ : String)
+  ServerError(code~ : Int32, message~ : String)
   /// The broker answered with an unexpected command.
   UnexpectedResponse(String)
   /// Topic lookup failed.

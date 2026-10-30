@@ -75,6 +75,29 @@ pub impl ToJson for CompressionType with fn to_json(self : CompressionType) -> J
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CompressionType with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CompressionType with Eq::{not_equal}
+
+///|
+pub extend CompressionType with Debug::{to_repr}
+
+///|
+pub extend CompressionType with Default::{default}
+
+///|
+pub extend CompressionType with @lib.Sized::{size_of}
+
+///|
+pub extend CompressionType with ToJson::{to_json}
+
+///|
+pub extend CompressionType with @json.FromJson::{from_json}
+
+///|
 pub(all) enum ProducerAccessMode {
   Shared
   Exclusive
@@ -147,6 +170,29 @@ pub impl ToJson for ProducerAccessMode with fn to_json(
     ProducerAccessMode::ExclusiveWithFencing => "ExclusiveWithFencing"
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend ProducerAccessMode with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend ProducerAccessMode with Eq::{not_equal}
+
+///|
+pub extend ProducerAccessMode with Debug::{to_repr}
+
+///|
+pub extend ProducerAccessMode with Default::{default}
+
+///|
+pub extend ProducerAccessMode with @lib.Sized::{size_of}
+
+///|
+pub extend ProducerAccessMode with ToJson::{to_json}
+
+///|
+pub extend ProducerAccessMode with @json.FromJson::{from_json}
 
 ///|
 pub(all) enum ServerError {
@@ -357,6 +403,29 @@ pub impl ToJson for ServerError with fn to_json(self : ServerError) -> Json {
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend ServerError with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend ServerError with Eq::{not_equal}
+
+///|
+pub extend ServerError with Debug::{to_repr}
+
+///|
+pub extend ServerError with Default::{default}
+
+///|
+pub extend ServerError with @lib.Sized::{size_of}
+
+///|
+pub extend ServerError with ToJson::{to_json}
+
+///|
+pub extend ServerError with @json.FromJson::{from_json}
+
+///|
 pub(all) enum AuthMethod {
   AuthMethodNone
   AuthMethodYcaV1
@@ -419,6 +488,29 @@ pub impl ToJson for AuthMethod with fn to_json(self : AuthMethod) -> Json {
     AuthMethod::AuthMethodAthens => "AuthMethodAthens"
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend AuthMethod with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend AuthMethod with Eq::{not_equal}
+
+///|
+pub extend AuthMethod with Debug::{to_repr}
+
+///|
+pub extend AuthMethod with Default::{default}
+
+///|
+pub extend AuthMethod with @lib.Sized::{size_of}
+
+///|
+pub extend AuthMethod with ToJson::{to_json}
+
+///|
+pub extend AuthMethod with @json.FromJson::{from_json}
 
 ///|
 pub(all) enum ProtocolVersion {
@@ -599,6 +691,29 @@ pub impl ToJson for ProtocolVersion with fn to_json(self : ProtocolVersion) -> J
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend ProtocolVersion with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend ProtocolVersion with Eq::{not_equal}
+
+///|
+pub extend ProtocolVersion with Debug::{to_repr}
+
+///|
+pub extend ProtocolVersion with Default::{default}
+
+///|
+pub extend ProtocolVersion with @lib.Sized::{size_of}
+
+///|
+pub extend ProtocolVersion with ToJson::{to_json}
+
+///|
+pub extend ProtocolVersion with @json.FromJson::{from_json}
+
+///|
 pub(all) enum KeySharedMode {
   AUTO_SPLIT
   STICKY
@@ -657,6 +772,29 @@ pub impl ToJson for KeySharedMode with fn to_json(self : KeySharedMode) -> Json 
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend KeySharedMode with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend KeySharedMode with Eq::{not_equal}
+
+///|
+pub extend KeySharedMode with Debug::{to_repr}
+
+///|
+pub extend KeySharedMode with Default::{default}
+
+///|
+pub extend KeySharedMode with @lib.Sized::{size_of}
+
+///|
+pub extend KeySharedMode with ToJson::{to_json}
+
+///|
+pub extend KeySharedMode with @json.FromJson::{from_json}
+
+///|
 pub(all) enum SegmentState {
   ACTIVE
   SEALED
@@ -713,6 +851,29 @@ pub impl ToJson for SegmentState with fn to_json(self : SegmentState) -> Json {
     SegmentState::SEALED => "SEALED"
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend SegmentState with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend SegmentState with Eq::{not_equal}
+
+///|
+pub extend SegmentState with Debug::{to_repr}
+
+///|
+pub extend SegmentState with Default::{default}
+
+///|
+pub extend SegmentState with @lib.Sized::{size_of}
+
+///|
+pub extend SegmentState with ToJson::{to_json}
+
+///|
+pub extend SegmentState with @json.FromJson::{from_json}
 
 ///|
 pub(all) enum ScalableConsumerType {
@@ -777,6 +938,29 @@ pub impl ToJson for ScalableConsumerType with fn to_json(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend ScalableConsumerType with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend ScalableConsumerType with Eq::{not_equal}
+
+///|
+pub extend ScalableConsumerType with Debug::{to_repr}
+
+///|
+pub extend ScalableConsumerType with Default::{default}
+
+///|
+pub extend ScalableConsumerType with @lib.Sized::{size_of}
+
+///|
+pub extend ScalableConsumerType with ToJson::{to_json}
+
+///|
+pub extend ScalableConsumerType with @json.FromJson::{from_json}
+
+///|
 pub(all) enum TxnAction {
   COMMIT
   ABORT
@@ -833,6 +1017,29 @@ pub impl ToJson for TxnAction with fn to_json(self : TxnAction) -> Json {
     TxnAction::ABORT => "ABORT"
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend TxnAction with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend TxnAction with Eq::{not_equal}
+
+///|
+pub extend TxnAction with Debug::{to_repr}
+
+///|
+pub extend TxnAction with Default::{default}
+
+///|
+pub extend TxnAction with @lib.Sized::{size_of}
+
+///|
+pub extend TxnAction with ToJson::{to_json}
+
+///|
+pub extend TxnAction with @json.FromJson::{from_json}
 
 ///|
 pub(all) enum Schema_Type {
@@ -1019,6 +1226,29 @@ pub impl ToJson for Schema_Type with fn to_json(self : Schema_Type) -> Json {
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend Schema_Type with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend Schema_Type with Eq::{not_equal}
+
+///|
+pub extend Schema_Type with Debug::{to_repr}
+
+///|
+pub extend Schema_Type with Default::{default}
+
+///|
+pub extend Schema_Type with @lib.Sized::{size_of}
+
+///|
+pub extend Schema_Type with ToJson::{to_json}
+
+///|
+pub extend Schema_Type with @json.FromJson::{from_json}
+
+///|
 pub(all) struct Schema {
   mut name : String
   mut schema_data : Bytes
@@ -1104,7 +1334,7 @@ pub impl ToJson for Schema with fn to_json(self) {
     json["name"] = ToJson::to_json(self.name)
   }
   if self.schema_data != Default::default() {
-    json["schemaData"] = @lib.base64_encode(self.schema_data).to_json()
+    json["schemaData"] = Json(@lib.base64_encode(self.schema_data))
   }
   if self.type_ != Default::default() {
     json["type"] = ToJson::to_json(self.type_)
@@ -1178,13 +1408,42 @@ pub impl @lib.AsyncWrite for Schema with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend Schema with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend Schema with Eq::{not_equal}
+
+///|
+pub extend Schema with Debug::{to_repr}
+
+///|
+pub extend Schema with Default::{default}
+
+///|
+pub extend Schema with @lib.Sized::{size_of}
+
+///|
+pub extend Schema with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend Schema with @lib.Write::{write}
+
+///|
+pub extend Schema with ToJson::{to_json}
+
+///|
+pub extend Schema with @json.FromJson::{from_json}
+
+///|
 pub(all) struct MessageIdData {
   mut ledger_id : UInt64
   mut entry_id : UInt64
-  mut partition : Int?
-  mut batch_index : Int?
+  mut partition : Int32?
+  mut batch_index : Int32?
   mut ack_set : Array[Int64]
-  mut batch_size : Int?
+  mut batch_size : Int32?
   mut first_chunk_message_id : MessageIdData?
 } derive(Eq, Debug)
 
@@ -1229,10 +1488,10 @@ pub impl Default for MessageIdData with fn default() -> MessageIdData {
 pub fn MessageIdData::MessageIdData(
   ledger_id : UInt64,
   entry_id : UInt64,
-  partition? : Int,
-  batch_index? : Int,
+  partition? : Int32,
+  batch_index? : Int32,
   ack_set : Array[Int64],
-  batch_size? : Int,
+  batch_size? : Int32,
   first_chunk_message_id? : MessageIdData,
 ) -> MessageIdData {
   MessageIdData::{
@@ -1426,6 +1685,35 @@ pub impl @lib.AsyncWrite for MessageIdData with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend MessageIdData with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend MessageIdData with Eq::{not_equal}
+
+///|
+pub extend MessageIdData with Debug::{to_repr}
+
+///|
+pub extend MessageIdData with Default::{default}
+
+///|
+pub extend MessageIdData with @lib.Sized::{size_of}
+
+///|
+pub extend MessageIdData with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend MessageIdData with @lib.Write::{write}
+
+///|
+pub extend MessageIdData with ToJson::{to_json}
+
+///|
+pub extend MessageIdData with @json.FromJson::{from_json}
+
+///|
 pub(all) struct KeyValue {
   mut key : String
   mut value : String
@@ -1533,6 +1821,35 @@ pub impl @lib.AsyncWrite for KeyValue with fn write(
   writer |> @lib.async_write_varint(18UL)
   writer |> @lib.async_write_string(self.value)
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend KeyValue with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend KeyValue with Eq::{not_equal}
+
+///|
+pub extend KeyValue with Debug::{to_repr}
+
+///|
+pub extend KeyValue with Default::{default}
+
+///|
+pub extend KeyValue with @lib.Sized::{size_of}
+
+///|
+pub extend KeyValue with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend KeyValue with @lib.Write::{write}
+
+///|
+pub extend KeyValue with ToJson::{to_json}
+
+///|
+pub extend KeyValue with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct KeyLongValue {
@@ -1644,9 +1961,38 @@ pub impl @lib.AsyncWrite for KeyLongValue with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend KeyLongValue with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend KeyLongValue with Eq::{not_equal}
+
+///|
+pub extend KeyLongValue with Debug::{to_repr}
+
+///|
+pub extend KeyLongValue with Default::{default}
+
+///|
+pub extend KeyLongValue with @lib.Sized::{size_of}
+
+///|
+pub extend KeyLongValue with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend KeyLongValue with @lib.Write::{write}
+
+///|
+pub extend KeyLongValue with ToJson::{to_json}
+
+///|
+pub extend KeyLongValue with @json.FromJson::{from_json}
+
+///|
 pub(all) struct IntRange {
-  mut start : Int
-  mut end : Int
+  mut start : Int32
+  mut end : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -1664,7 +2010,7 @@ pub impl Default for IntRange with fn default() -> IntRange {
 
 ///|
 #alias(new, deprecated)
-pub fn IntRange::IntRange(start : Int, end : Int) -> IntRange {
+pub fn IntRange::IntRange(start : Int32, end : Int32) -> IntRange {
   IntRange::{ start, end, }
 }
 
@@ -1753,6 +2099,35 @@ pub impl @lib.AsyncWrite for IntRange with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend IntRange with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend IntRange with Eq::{not_equal}
+
+///|
+pub extend IntRange with Debug::{to_repr}
+
+///|
+pub extend IntRange with Default::{default}
+
+///|
+pub extend IntRange with @lib.Sized::{size_of}
+
+///|
+pub extend IntRange with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend IntRange with @lib.Write::{write}
+
+///|
+pub extend IntRange with ToJson::{to_json}
+
+///|
+pub extend IntRange with @json.FromJson::{from_json}
+
+///|
 pub(all) struct EncryptionKeys {
   mut key : String
   mut value : Bytes
@@ -1828,7 +2203,7 @@ pub impl ToJson for EncryptionKeys with fn to_json(self) {
     json["key"] = ToJson::to_json(self.key)
   }
   if self.value != Default::default() {
-    json["value"] = @lib.base64_encode(self.value).to_json()
+    json["value"] = Json(@lib.base64_encode(self.value))
   }
   if self.metadata != Default::default() {
     json["metadata"] = ToJson::to_json(self.metadata)
@@ -1894,6 +2269,35 @@ pub impl @lib.AsyncWrite for EncryptionKeys with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend EncryptionKeys with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend EncryptionKeys with Eq::{not_equal}
+
+///|
+pub extend EncryptionKeys with Debug::{to_repr}
+
+///|
+pub extend EncryptionKeys with Default::{default}
+
+///|
+pub extend EncryptionKeys with @lib.Sized::{size_of}
+
+///|
+pub extend EncryptionKeys with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend EncryptionKeys with @lib.Write::{write}
+
+///|
+pub extend EncryptionKeys with ToJson::{to_json}
+
+///|
+pub extend EncryptionKeys with @json.FromJson::{from_json}
+
+///|
 pub(all) struct MessageMetadata {
   mut producer_name : String
   mut sequence_id : UInt64
@@ -1903,8 +2307,8 @@ pub(all) struct MessageMetadata {
   mut partition_key : String?
   mut replicate_to : Array[String]
   mut compression : CompressionType?
-  mut uncompressed_size : UInt?
-  mut num_messages_in_batch : Int?
+  mut uncompressed_size : UInt32?
+  mut num_messages_in_batch : Int32?
   mut event_time : UInt64?
   mut encryption_keys : Array[EncryptionKeys]
   mut encryption_algo : String?
@@ -1913,20 +2317,20 @@ pub(all) struct MessageMetadata {
   mut partition_key_b64_encoded : Bool?
   mut ordering_key : Bytes?
   mut deliver_at_time : Int64?
-  mut marker_type : Int?
+  mut marker_type : Int32?
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut highest_sequence_id : UInt64?
   mut null_value : Bool?
   mut uuid : String?
-  mut num_chunks_from_msg : Int?
-  mut total_chunk_msg_size : Int?
-  mut chunk_id : Int?
+  mut num_chunks_from_msg : Int32?
+  mut total_chunk_msg_size : Int32?
+  mut chunk_id : Int32?
   mut null_partition_key : Bool?
-  mut compacted_batch_indexes : Array[Int]
+  mut compacted_batch_indexes : Array[Int32]
   mut schema_id : Bytes?
-  mut entry_hash_min : UInt?
-  mut entry_hash_max : UInt?
+  mut entry_hash_min : UInt32?
+  mut entry_hash_max : UInt32?
 } derive(Eq, Debug)
 
 ///|
@@ -2077,8 +2481,8 @@ pub fn MessageMetadata::MessageMetadata(
   partition_key? : String,
   replicate_to : Array[String],
   compression? : CompressionType,
-  uncompressed_size? : UInt,
-  num_messages_in_batch? : Int,
+  uncompressed_size? : UInt32,
+  num_messages_in_batch? : Int32,
   event_time? : UInt64,
   encryption_keys : Array[EncryptionKeys],
   encryption_algo? : String,
@@ -2087,20 +2491,20 @@ pub fn MessageMetadata::MessageMetadata(
   partition_key_b64_encoded? : Bool,
   ordering_key? : Bytes,
   deliver_at_time? : Int64,
-  marker_type? : Int,
+  marker_type? : Int32,
   txnid_least_bits? : UInt64,
   txnid_most_bits? : UInt64,
   highest_sequence_id? : UInt64,
   null_value? : Bool,
   uuid? : String,
-  num_chunks_from_msg? : Int,
-  total_chunk_msg_size? : Int,
-  chunk_id? : Int,
+  num_chunks_from_msg? : Int32,
+  total_chunk_msg_size? : Int32,
+  chunk_id? : Int32,
   null_partition_key? : Bool,
-  compacted_batch_indexes : Array[Int],
+  compacted_batch_indexes : Array[Int32],
   schema_id? : Bytes,
-  entry_hash_min? : UInt,
-  entry_hash_max? : UInt,
+  entry_hash_min? : UInt32,
+  entry_hash_max? : UInt32,
 ) -> MessageMetadata {
   MessageMetadata::{
     producer_name,
@@ -2377,11 +2781,11 @@ pub impl ToJson for MessageMetadata with fn to_json(self) {
     _ => ()
   }
   match self.encryption_param {
-    Some(v) => json["encryptionParam"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["encryptionParam"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   match self.schema_version {
-    Some(v) => json["schemaVersion"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["schemaVersion"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   match self.partition_key_b64_encoded {
@@ -2389,7 +2793,7 @@ pub impl ToJson for MessageMetadata with fn to_json(self) {
     _ => ()
   }
   match self.ordering_key {
-    Some(v) => json["orderingKey"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["orderingKey"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   match self.deliver_at_time {
@@ -2442,7 +2846,7 @@ pub impl ToJson for MessageMetadata with fn to_json(self) {
     )
   }
   match self.schema_id {
-    Some(v) => json["schemaId"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["schemaId"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   match self.entry_hash_min {
@@ -2756,10 +3160,39 @@ pub impl @lib.AsyncWrite for MessageMetadata with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend MessageMetadata with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend MessageMetadata with Eq::{not_equal}
+
+///|
+pub extend MessageMetadata with Debug::{to_repr}
+
+///|
+pub extend MessageMetadata with Default::{default}
+
+///|
+pub extend MessageMetadata with @lib.Sized::{size_of}
+
+///|
+pub extend MessageMetadata with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend MessageMetadata with @lib.Write::{write}
+
+///|
+pub extend MessageMetadata with ToJson::{to_json}
+
+///|
+pub extend MessageMetadata with @json.FromJson::{from_json}
+
+///|
 pub(all) struct SingleMessageMetadata {
   mut properties : Array[KeyValue]
   mut partition_key : String?
-  mut payload_size : Int
+  mut payload_size : Int32
   mut compacted_out : Bool?
   mut event_time : UInt64?
   mut partition_key_b64_encoded : Bool?
@@ -2824,7 +3257,7 @@ pub impl Default for SingleMessageMetadata with fn default() -> SingleMessageMet
 pub fn SingleMessageMetadata::SingleMessageMetadata(
   properties : Array[KeyValue],
   partition_key? : String,
-  payload_size : Int,
+  payload_size : Int32,
   compacted_out? : Bool,
   event_time? : UInt64,
   partition_key_b64_encoded? : Bool,
@@ -2943,7 +3376,7 @@ pub impl ToJson for SingleMessageMetadata with fn to_json(self) {
     _ => ()
   }
   match self.ordering_key {
-    Some(v) => json["orderingKey"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["orderingKey"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   match self.sequence_id {
@@ -3077,6 +3510,35 @@ pub impl @lib.AsyncWrite for SingleMessageMetadata with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend SingleMessageMetadata with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend SingleMessageMetadata with Eq::{not_equal}
+
+///|
+pub extend SingleMessageMetadata with Debug::{to_repr}
+
+///|
+pub extend SingleMessageMetadata with Default::{default}
+
+///|
+pub extend SingleMessageMetadata with @lib.Sized::{size_of}
+
+///|
+pub extend SingleMessageMetadata with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend SingleMessageMetadata with @lib.Write::{write}
+
+///|
+pub extend SingleMessageMetadata with ToJson::{to_json}
+
+///|
+pub extend SingleMessageMetadata with @json.FromJson::{from_json}
+
+///|
 pub(all) struct BrokerEntryMetadata {
   mut broker_timestamp : UInt64?
   mut index : UInt64?
@@ -3207,12 +3669,41 @@ pub impl @lib.AsyncWrite for BrokerEntryMetadata with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend BrokerEntryMetadata with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend BrokerEntryMetadata with Eq::{not_equal}
+
+///|
+pub extend BrokerEntryMetadata with Debug::{to_repr}
+
+///|
+pub extend BrokerEntryMetadata with Default::{default}
+
+///|
+pub extend BrokerEntryMetadata with @lib.Sized::{size_of}
+
+///|
+pub extend BrokerEntryMetadata with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend BrokerEntryMetadata with @lib.Write::{write}
+
+///|
+pub extend BrokerEntryMetadata with ToJson::{to_json}
+
+///|
+pub extend BrokerEntryMetadata with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandConnect {
   mut client_version : String
   mut auth_method : AuthMethod?
   mut auth_method_name : String?
   mut auth_data : Bytes?
-  mut protocol_version : Int?
+  mut protocol_version : Int32?
   mut proxy_to_broker_url : String?
   mut original_principal : String?
   mut original_auth_data : String?
@@ -3285,7 +3776,7 @@ pub fn CommandConnect::CommandConnect(
   auth_method? : AuthMethod,
   auth_method_name? : String,
   auth_data? : Bytes,
-  protocol_version? : Int,
+  protocol_version? : Int32,
   proxy_to_broker_url? : String,
   original_principal? : String,
   original_auth_data? : String,
@@ -3402,7 +3893,7 @@ pub impl ToJson for CommandConnect with fn to_json(self) {
     _ => ()
   }
   match self.auth_data {
-    Some(v) => json["authData"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["authData"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   match self.protocol_version {
@@ -3563,6 +4054,35 @@ pub impl @lib.AsyncWrite for CommandConnect with fn write(
     writer |> @lib.async_write_string(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandConnect with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandConnect with Eq::{not_equal}
+
+///|
+pub extend CommandConnect with Debug::{to_repr}
+
+///|
+pub extend CommandConnect with Default::{default}
+
+///|
+pub extend CommandConnect with @lib.Sized::{size_of}
+
+///|
+pub extend CommandConnect with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandConnect with @lib.Write::{write}
+
+///|
+pub extend CommandConnect with ToJson::{to_json}
+
+///|
+pub extend CommandConnect with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct FeatureFlags {
@@ -3910,10 +4430,39 @@ pub impl @lib.AsyncWrite for FeatureFlags with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend FeatureFlags with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend FeatureFlags with Eq::{not_equal}
+
+///|
+pub extend FeatureFlags with Debug::{to_repr}
+
+///|
+pub extend FeatureFlags with Default::{default}
+
+///|
+pub extend FeatureFlags with @lib.Sized::{size_of}
+
+///|
+pub extend FeatureFlags with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend FeatureFlags with @lib.Write::{write}
+
+///|
+pub extend FeatureFlags with ToJson::{to_json}
+
+///|
+pub extend FeatureFlags with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandConnected {
   mut server_version : String
-  mut protocol_version : Int?
-  mut max_message_size : Int?
+  mut protocol_version : Int32?
+  mut max_message_size : Int32?
   mut feature_flags : FeatureFlags?
 } derive(Eq, Debug)
 
@@ -3950,8 +4499,8 @@ pub impl Default for CommandConnected with fn default() -> CommandConnected {
 #alias(new, deprecated)
 pub fn CommandConnected::CommandConnected(
   server_version : String,
-  protocol_version? : Int,
-  max_message_size? : Int,
+  protocol_version? : Int32,
+  max_message_size? : Int32,
   feature_flags? : FeatureFlags,
 ) -> CommandConnected {
   CommandConnected::{
@@ -4092,10 +4641,39 @@ pub impl @lib.AsyncWrite for CommandConnected with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandConnected with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandConnected with Eq::{not_equal}
+
+///|
+pub extend CommandConnected with Debug::{to_repr}
+
+///|
+pub extend CommandConnected with Default::{default}
+
+///|
+pub extend CommandConnected with @lib.Sized::{size_of}
+
+///|
+pub extend CommandConnected with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandConnected with @lib.Write::{write}
+
+///|
+pub extend CommandConnected with ToJson::{to_json}
+
+///|
+pub extend CommandConnected with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandAuthResponse {
   mut client_version : String?
   mut response : AuthData?
-  mut protocol_version : Int?
+  mut protocol_version : Int32?
 } derive(Eq, Debug)
 
 ///|
@@ -4127,7 +4705,7 @@ pub impl Default for CommandAuthResponse with fn default() -> CommandAuthRespons
 pub fn CommandAuthResponse::CommandAuthResponse(
   client_version? : String,
   response? : AuthData,
-  protocol_version? : Int,
+  protocol_version? : Int32,
 ) -> CommandAuthResponse {
   CommandAuthResponse::{ client_version, response, protocol_version, }
 }
@@ -4249,10 +4827,39 @@ pub impl @lib.AsyncWrite for CommandAuthResponse with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandAuthResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAuthResponse with Eq::{not_equal}
+
+///|
+pub extend CommandAuthResponse with Debug::{to_repr}
+
+///|
+pub extend CommandAuthResponse with Default::{default}
+
+///|
+pub extend CommandAuthResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAuthResponse with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandAuthResponse with @lib.Write::{write}
+
+///|
+pub extend CommandAuthResponse with ToJson::{to_json}
+
+///|
+pub extend CommandAuthResponse with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandAuthChallenge {
   mut server_version : String?
   mut challenge : AuthData?
-  mut protocol_version : Int?
+  mut protocol_version : Int32?
 } derive(Eq, Debug)
 
 ///|
@@ -4284,7 +4891,7 @@ pub impl Default for CommandAuthChallenge with fn default() -> CommandAuthChalle
 pub fn CommandAuthChallenge::CommandAuthChallenge(
   server_version? : String,
   challenge? : AuthData,
-  protocol_version? : Int,
+  protocol_version? : Int32,
 ) -> CommandAuthChallenge {
   CommandAuthChallenge::{ server_version, challenge, protocol_version, }
 }
@@ -4406,6 +5013,35 @@ pub impl @lib.AsyncWrite for CommandAuthChallenge with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandAuthChallenge with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAuthChallenge with Eq::{not_equal}
+
+///|
+pub extend CommandAuthChallenge with Debug::{to_repr}
+
+///|
+pub extend CommandAuthChallenge with Default::{default}
+
+///|
+pub extend CommandAuthChallenge with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAuthChallenge with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandAuthChallenge with @lib.Write::{write}
+
+///|
+pub extend CommandAuthChallenge with ToJson::{to_json}
+
+///|
+pub extend CommandAuthChallenge with @json.FromJson::{from_json}
+
+///|
 pub(all) struct AuthData {
   mut auth_method_name : String?
   mut auth_data : Bytes?
@@ -4475,7 +5111,7 @@ pub impl ToJson for AuthData with fn to_json(self) {
     _ => ()
   }
   match self.auth_data {
-    Some(v) => json["authData"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["authData"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   Json::object(json)
@@ -4537,6 +5173,35 @@ pub impl @lib.AsyncWrite for AuthData with fn write(
     writer |> @lib.async_write_bytes(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend AuthData with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend AuthData with Eq::{not_equal}
+
+///|
+pub extend AuthData with Debug::{to_repr}
+
+///|
+pub extend AuthData with Default::{default}
+
+///|
+pub extend AuthData with @lib.Sized::{size_of}
+
+///|
+pub extend AuthData with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend AuthData with @lib.Write::{write}
+
+///|
+pub extend AuthData with ToJson::{to_json}
+
+///|
+pub extend AuthData with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct KeySharedMeta {
@@ -4727,6 +5392,35 @@ pub impl @lib.AsyncWrite for KeySharedMeta with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend KeySharedMeta with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend KeySharedMeta with Eq::{not_equal}
+
+///|
+pub extend KeySharedMeta with Debug::{to_repr}
+
+///|
+pub extend KeySharedMeta with Default::{default}
+
+///|
+pub extend KeySharedMeta with @lib.Sized::{size_of}
+
+///|
+pub extend KeySharedMeta with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend KeySharedMeta with @lib.Write::{write}
+
+///|
+pub extend KeySharedMeta with ToJson::{to_json}
+
+///|
+pub extend KeySharedMeta with @json.FromJson::{from_json}
+
+///|
 pub(all) enum CommandSubscribe_SubType {
   Exclusive
   Shared
@@ -4805,6 +5499,29 @@ pub impl ToJson for CommandSubscribe_SubType with fn to_json(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandSubscribe_SubType with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandSubscribe_SubType with Eq::{not_equal}
+
+///|
+pub extend CommandSubscribe_SubType with Debug::{to_repr}
+
+///|
+pub extend CommandSubscribe_SubType with Default::{default}
+
+///|
+pub extend CommandSubscribe_SubType with @lib.Sized::{size_of}
+
+///|
+pub extend CommandSubscribe_SubType with ToJson::{to_json}
+
+///|
+pub extend CommandSubscribe_SubType with @json.FromJson::{from_json}
+
+///|
 pub(all) enum CommandSubscribe_InitialPosition {
   Latest
   Earliest
@@ -4871,6 +5588,29 @@ pub impl ToJson for CommandSubscribe_InitialPosition with fn to_json(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandSubscribe_InitialPosition with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandSubscribe_InitialPosition with Eq::{not_equal}
+
+///|
+pub extend CommandSubscribe_InitialPosition with Debug::{to_repr}
+
+///|
+pub extend CommandSubscribe_InitialPosition with Default::{default}
+
+///|
+pub extend CommandSubscribe_InitialPosition with @lib.Sized::{size_of}
+
+///|
+pub extend CommandSubscribe_InitialPosition with ToJson::{to_json}
+
+///|
+pub extend CommandSubscribe_InitialPosition with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandSubscribe {
   mut topic : String
   mut subscription : String
@@ -4878,7 +5618,7 @@ pub(all) struct CommandSubscribe {
   mut consumer_id : UInt64
   mut request_id : UInt64
   mut consumer_name : String?
-  mut priority_level : Int?
+  mut priority_level : Int32?
   mut durable : Bool?
   mut start_message_id : MessageIdData?
   mut metadata : Array[KeyValue]
@@ -4983,7 +5723,7 @@ pub fn CommandSubscribe::CommandSubscribe(
   consumer_id : UInt64,
   request_id : UInt64,
   consumer_name? : String,
-  priority_level? : Int,
+  priority_level? : Int32,
   durable? : Bool,
   start_message_id? : MessageIdData,
   metadata : Array[KeyValue],
@@ -5415,6 +6155,35 @@ pub impl @lib.AsyncWrite for CommandSubscribe with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandSubscribe with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandSubscribe with Eq::{not_equal}
+
+///|
+pub extend CommandSubscribe with Debug::{to_repr}
+
+///|
+pub extend CommandSubscribe with Default::{default}
+
+///|
+pub extend CommandSubscribe with @lib.Sized::{size_of}
+
+///|
+pub extend CommandSubscribe with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandSubscribe with @lib.Write::{write}
+
+///|
+pub extend CommandSubscribe with ToJson::{to_json}
+
+///|
+pub extend CommandSubscribe with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandPartitionedTopicMetadata {
   mut topic : String
   mut request_id : UInt64
@@ -5637,6 +6406,38 @@ pub impl @lib.AsyncWrite for CommandPartitionedTopicMetadata with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandPartitionedTopicMetadata with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandPartitionedTopicMetadata with Eq::{not_equal}
+
+///|
+pub extend CommandPartitionedTopicMetadata with Debug::{to_repr}
+
+///|
+pub extend CommandPartitionedTopicMetadata with Default::{default}
+
+///|
+pub extend CommandPartitionedTopicMetadata with @lib.Sized::{size_of}
+
+///|
+pub extend CommandPartitionedTopicMetadata with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandPartitionedTopicMetadata with @lib.Write::{write}
+
+///|
+pub extend CommandPartitionedTopicMetadata with ToJson::{to_json}
+
+///|
+pub extend CommandPartitionedTopicMetadata with @json.FromJson::{from_json}
+
+///|
 pub(all) enum CommandPartitionedTopicMetadataResponse_LookupType {
   Success
   Failed
@@ -5705,8 +6506,43 @@ pub impl ToJson for CommandPartitionedTopicMetadataResponse_LookupType with fn t
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandPartitionedTopicMetadataResponse_LookupType with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandPartitionedTopicMetadataResponse_LookupType with Eq::{
+  not_equal,
+}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse_LookupType with Debug::{
+  to_repr,
+}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse_LookupType with Default::{
+  default,
+}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse_LookupType with @lib.Sized::{
+  size_of,
+}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse_LookupType with ToJson::{
+  to_json,
+}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse_LookupType with @json.FromJson::{
+  from_json,
+}
+
+///|
 pub(all) struct CommandPartitionedTopicMetadataResponse {
-  mut partitions : UInt?
+  mut partitions : UInt32?
   mut request_id : UInt64
   mut response : CommandPartitionedTopicMetadataResponse_LookupType?
   mut error : ServerError?
@@ -5748,7 +6584,7 @@ pub impl Default for CommandPartitionedTopicMetadataResponse with fn default() -
 ///|
 #alias(new, deprecated)
 pub fn CommandPartitionedTopicMetadataResponse::CommandPartitionedTopicMetadataResponse(
-  partitions? : UInt,
+  partitions? : UInt32,
   request_id : UInt64,
   response? : CommandPartitionedTopicMetadataResponse_LookupType,
   error? : ServerError,
@@ -5915,6 +6751,40 @@ pub impl @lib.AsyncWrite for CommandPartitionedTopicMetadataResponse with fn wri
     writer |> @lib.async_write_varint(42UL)
     writer |> @lib.async_write_string(v)
   }
+}
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandPartitionedTopicMetadataResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandPartitionedTopicMetadataResponse with Eq::{not_equal}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse with Debug::{to_repr}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse with Default::{default}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse with @lib.Write::{write}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse with ToJson::{to_json}
+
+///|
+pub extend CommandPartitionedTopicMetadataResponse with @json.FromJson::{
+  from_json,
 }
 
 ///|
@@ -6184,6 +7054,35 @@ pub impl @lib.AsyncWrite for CommandLookupTopic with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandLookupTopic with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandLookupTopic with Eq::{not_equal}
+
+///|
+pub extend CommandLookupTopic with Debug::{to_repr}
+
+///|
+pub extend CommandLookupTopic with Default::{default}
+
+///|
+pub extend CommandLookupTopic with @lib.Sized::{size_of}
+
+///|
+pub extend CommandLookupTopic with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandLookupTopic with @lib.Write::{write}
+
+///|
+pub extend CommandLookupTopic with ToJson::{to_json}
+
+///|
+pub extend CommandLookupTopic with @json.FromJson::{from_json}
+
+///|
 pub(all) enum CommandLookupTopicResponse_LookupType {
   Redirect
   Connect
@@ -6253,6 +7152,31 @@ pub impl ToJson for CommandLookupTopicResponse_LookupType with fn to_json(
     CommandLookupTopicResponse_LookupType::Connect => "Connect"
     CommandLookupTopicResponse_LookupType::Failed => "Failed"
   }
+}
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandLookupTopicResponse_LookupType with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandLookupTopicResponse_LookupType with Eq::{not_equal}
+
+///|
+pub extend CommandLookupTopicResponse_LookupType with Debug::{to_repr}
+
+///|
+pub extend CommandLookupTopicResponse_LookupType with Default::{default}
+
+///|
+pub extend CommandLookupTopicResponse_LookupType with @lib.Sized::{size_of}
+
+///|
+pub extend CommandLookupTopicResponse_LookupType with ToJson::{to_json}
+
+///|
+pub extend CommandLookupTopicResponse_LookupType with @json.FromJson::{
+  from_json,
 }
 
 ///|
@@ -6537,6 +7461,35 @@ pub impl @lib.AsyncWrite for CommandLookupTopicResponse with fn write(
     writer |> @lib.async_write_bool(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandLookupTopicResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandLookupTopicResponse with Eq::{not_equal}
+
+///|
+pub extend CommandLookupTopicResponse with Debug::{to_repr}
+
+///|
+pub extend CommandLookupTopicResponse with Default::{default}
+
+///|
+pub extend CommandLookupTopicResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandLookupTopicResponse with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandLookupTopicResponse with @lib.Write::{write}
+
+///|
+pub extend CommandLookupTopicResponse with ToJson::{to_json}
+
+///|
+pub extend CommandLookupTopicResponse with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandProducer {
@@ -6926,10 +7879,39 @@ pub impl @lib.AsyncWrite for CommandProducer with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandProducer with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandProducer with Eq::{not_equal}
+
+///|
+pub extend CommandProducer with Debug::{to_repr}
+
+///|
+pub extend CommandProducer with Default::{default}
+
+///|
+pub extend CommandProducer with @lib.Sized::{size_of}
+
+///|
+pub extend CommandProducer with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandProducer with @lib.Write::{write}
+
+///|
+pub extend CommandProducer with ToJson::{to_json}
+
+///|
+pub extend CommandProducer with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandSend {
   mut producer_id : UInt64
   mut sequence_id : UInt64
-  mut num_messages : Int?
+  mut num_messages : Int32?
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut highest_sequence_id : UInt64?
@@ -6987,7 +7969,7 @@ pub impl Default for CommandSend with fn default() -> CommandSend {
 pub fn CommandSend::CommandSend(
   producer_id : UInt64,
   sequence_id : UInt64,
-  num_messages? : Int,
+  num_messages? : Int32,
   txnid_least_bits? : UInt64,
   txnid_most_bits? : UInt64,
   highest_sequence_id? : UInt64,
@@ -7211,6 +8193,35 @@ pub impl @lib.AsyncWrite for CommandSend with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandSend with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandSend with Eq::{not_equal}
+
+///|
+pub extend CommandSend with Debug::{to_repr}
+
+///|
+pub extend CommandSend with Default::{default}
+
+///|
+pub extend CommandSend with @lib.Sized::{size_of}
+
+///|
+pub extend CommandSend with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandSend with @lib.Write::{write}
+
+///|
+pub extend CommandSend with ToJson::{to_json}
+
+///|
+pub extend CommandSend with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandSendReceipt {
   mut producer_id : UInt64
   mut sequence_id : UInt64
@@ -7383,6 +8394,35 @@ pub impl @lib.AsyncWrite for CommandSendReceipt with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandSendReceipt with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandSendReceipt with Eq::{not_equal}
+
+///|
+pub extend CommandSendReceipt with Debug::{to_repr}
+
+///|
+pub extend CommandSendReceipt with Default::{default}
+
+///|
+pub extend CommandSendReceipt with @lib.Sized::{size_of}
+
+///|
+pub extend CommandSendReceipt with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandSendReceipt with @lib.Write::{write}
+
+///|
+pub extend CommandSendReceipt with ToJson::{to_json}
+
+///|
+pub extend CommandSendReceipt with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandSendError {
   mut producer_id : UInt64
   mut sequence_id : UInt64
@@ -7531,10 +8571,39 @@ pub impl @lib.AsyncWrite for CommandSendError with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandSendError with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandSendError with Eq::{not_equal}
+
+///|
+pub extend CommandSendError with Debug::{to_repr}
+
+///|
+pub extend CommandSendError with Default::{default}
+
+///|
+pub extend CommandSendError with @lib.Sized::{size_of}
+
+///|
+pub extend CommandSendError with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandSendError with @lib.Write::{write}
+
+///|
+pub extend CommandSendError with ToJson::{to_json}
+
+///|
+pub extend CommandSendError with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandMessage {
   mut consumer_id : UInt64
   mut message_id : MessageIdData
-  mut redelivery_count : UInt?
+  mut redelivery_count : UInt32?
   mut ack_set : Array[Int64]
   mut consumer_epoch : UInt64?
 } derive(Eq, Debug)
@@ -7572,7 +8641,7 @@ pub impl Default for CommandMessage with fn default() -> CommandMessage {
 pub fn CommandMessage::CommandMessage(
   consumer_id : UInt64,
   message_id : MessageIdData,
-  redelivery_count? : UInt,
+  redelivery_count? : UInt32,
   ack_set : Array[Int64],
   consumer_epoch? : UInt64,
 ) -> CommandMessage {
@@ -7731,6 +8800,35 @@ pub impl @lib.AsyncWrite for CommandMessage with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandMessage with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandMessage with Eq::{not_equal}
+
+///|
+pub extend CommandMessage with Debug::{to_repr}
+
+///|
+pub extend CommandMessage with Default::{default}
+
+///|
+pub extend CommandMessage with @lib.Sized::{size_of}
+
+///|
+pub extend CommandMessage with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandMessage with @lib.Write::{write}
+
+///|
+pub extend CommandMessage with ToJson::{to_json}
+
+///|
+pub extend CommandMessage with @json.FromJson::{from_json}
+
+///|
 pub(all) enum CommandAck_AckType {
   Individual
   Cumulative
@@ -7791,6 +8889,29 @@ pub impl ToJson for CommandAck_AckType with fn to_json(
     CommandAck_AckType::Cumulative => "Cumulative"
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandAck_AckType with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAck_AckType with Eq::{not_equal}
+
+///|
+pub extend CommandAck_AckType with Debug::{to_repr}
+
+///|
+pub extend CommandAck_AckType with Default::{default}
+
+///|
+pub extend CommandAck_AckType with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAck_AckType with ToJson::{to_json}
+
+///|
+pub extend CommandAck_AckType with @json.FromJson::{from_json}
 
 ///|
 pub(all) enum CommandAck_ValidationError {
@@ -7879,6 +9000,29 @@ pub impl ToJson for CommandAck_ValidationError with fn to_json(
     CommandAck_ValidationError::DecryptionError => "DecryptionError"
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandAck_ValidationError with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAck_ValidationError with Eq::{not_equal}
+
+///|
+pub extend CommandAck_ValidationError with Debug::{to_repr}
+
+///|
+pub extend CommandAck_ValidationError with Default::{default}
+
+///|
+pub extend CommandAck_ValidationError with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAck_ValidationError with ToJson::{to_json}
+
+///|
+pub extend CommandAck_ValidationError with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandAck {
@@ -8159,6 +9303,35 @@ pub impl @lib.AsyncWrite for CommandAck with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandAck with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAck with Eq::{not_equal}
+
+///|
+pub extend CommandAck with Debug::{to_repr}
+
+///|
+pub extend CommandAck with Default::{default}
+
+///|
+pub extend CommandAck with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAck with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandAck with @lib.Write::{write}
+
+///|
+pub extend CommandAck with ToJson::{to_json}
+
+///|
+pub extend CommandAck with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandAckResponse {
   mut consumer_id : UInt64
   mut txnid_least_bits : UInt64?
@@ -8385,6 +9558,35 @@ pub impl @lib.AsyncWrite for CommandAckResponse with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandAckResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAckResponse with Eq::{not_equal}
+
+///|
+pub extend CommandAckResponse with Debug::{to_repr}
+
+///|
+pub extend CommandAckResponse with Default::{default}
+
+///|
+pub extend CommandAckResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAckResponse with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandAckResponse with @lib.Write::{write}
+
+///|
+pub extend CommandAckResponse with ToJson::{to_json}
+
+///|
+pub extend CommandAckResponse with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandActiveConsumerChange {
   mut consumer_id : UInt64
   mut is_active : Bool?
@@ -8511,9 +9713,38 @@ pub impl @lib.AsyncWrite for CommandActiveConsumerChange with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandActiveConsumerChange with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandActiveConsumerChange with Eq::{not_equal}
+
+///|
+pub extend CommandActiveConsumerChange with Debug::{to_repr}
+
+///|
+pub extend CommandActiveConsumerChange with Default::{default}
+
+///|
+pub extend CommandActiveConsumerChange with @lib.Sized::{size_of}
+
+///|
+pub extend CommandActiveConsumerChange with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandActiveConsumerChange with @lib.Write::{write}
+
+///|
+pub extend CommandActiveConsumerChange with ToJson::{to_json}
+
+///|
+pub extend CommandActiveConsumerChange with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandFlow {
   mut consumer_id : UInt64
-  mut message_permits : UInt
+  mut message_permits : UInt32
 } derive(Eq, Debug)
 
 ///|
@@ -8536,7 +9767,7 @@ pub impl Default for CommandFlow with fn default() -> CommandFlow {
 #alias(new, deprecated)
 pub fn CommandFlow::CommandFlow(
   consumer_id : UInt64,
-  message_permits : UInt,
+  message_permits : UInt32,
 ) -> CommandFlow {
   CommandFlow::{ consumer_id, message_permits, }
 }
@@ -8626,6 +9857,35 @@ pub impl @lib.AsyncWrite for CommandFlow with fn write(
   writer |> @lib.async_write_varint(16UL)
   writer |> @lib.async_write_uint32(self.message_permits)
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandFlow with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandFlow with Eq::{not_equal}
+
+///|
+pub extend CommandFlow with Debug::{to_repr}
+
+///|
+pub extend CommandFlow with Default::{default}
+
+///|
+pub extend CommandFlow with @lib.Sized::{size_of}
+
+///|
+pub extend CommandFlow with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandFlow with @lib.Write::{write}
+
+///|
+pub extend CommandFlow with ToJson::{to_json}
+
+///|
+pub extend CommandFlow with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandUnsubscribe {
@@ -8765,6 +10025,35 @@ pub impl @lib.AsyncWrite for CommandUnsubscribe with fn write(
     writer |> @lib.async_write_bool(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandUnsubscribe with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandUnsubscribe with Eq::{not_equal}
+
+///|
+pub extend CommandUnsubscribe with Debug::{to_repr}
+
+///|
+pub extend CommandUnsubscribe with Default::{default}
+
+///|
+pub extend CommandUnsubscribe with @lib.Sized::{size_of}
+
+///|
+pub extend CommandUnsubscribe with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandUnsubscribe with @lib.Write::{write}
+
+///|
+pub extend CommandUnsubscribe with ToJson::{to_json}
+
+///|
+pub extend CommandUnsubscribe with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandSeek {
@@ -8931,6 +10220,35 @@ pub impl @lib.AsyncWrite for CommandSeek with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandSeek with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandSeek with Eq::{not_equal}
+
+///|
+pub extend CommandSeek with Debug::{to_repr}
+
+///|
+pub extend CommandSeek with Default::{default}
+
+///|
+pub extend CommandSeek with @lib.Sized::{size_of}
+
+///|
+pub extend CommandSeek with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandSeek with @lib.Write::{write}
+
+///|
+pub extend CommandSeek with ToJson::{to_json}
+
+///|
+pub extend CommandSeek with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandReachedEndOfTopic {
   mut consumer_id : UInt64
 } derive(Eq, Debug)
@@ -9033,6 +10351,35 @@ pub impl @lib.AsyncWrite for CommandReachedEndOfTopic with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandReachedEndOfTopic with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandReachedEndOfTopic with Eq::{not_equal}
+
+///|
+pub extend CommandReachedEndOfTopic with Debug::{to_repr}
+
+///|
+pub extend CommandReachedEndOfTopic with Default::{default}
+
+///|
+pub extend CommandReachedEndOfTopic with @lib.Sized::{size_of}
+
+///|
+pub extend CommandReachedEndOfTopic with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandReachedEndOfTopic with @lib.Write::{write}
+
+///|
+pub extend CommandReachedEndOfTopic with ToJson::{to_json}
+
+///|
+pub extend CommandReachedEndOfTopic with @json.FromJson::{from_json}
+
+///|
 pub(all) enum CommandTopicMigrated_ResourceType {
   Producer
   Consumer
@@ -9097,6 +10444,29 @@ pub impl ToJson for CommandTopicMigrated_ResourceType with fn to_json(
     CommandTopicMigrated_ResourceType::Consumer => "Consumer"
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandTopicMigrated_ResourceType with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandTopicMigrated_ResourceType with Eq::{not_equal}
+
+///|
+pub extend CommandTopicMigrated_ResourceType with Debug::{to_repr}
+
+///|
+pub extend CommandTopicMigrated_ResourceType with Default::{default}
+
+///|
+pub extend CommandTopicMigrated_ResourceType with @lib.Sized::{size_of}
+
+///|
+pub extend CommandTopicMigrated_ResourceType with ToJson::{to_json}
+
+///|
+pub extend CommandTopicMigrated_ResourceType with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandTopicMigrated {
@@ -9274,6 +10644,35 @@ pub impl @lib.AsyncWrite for CommandTopicMigrated with fn write(
     writer |> @lib.async_write_string(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandTopicMigrated with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandTopicMigrated with Eq::{not_equal}
+
+///|
+pub extend CommandTopicMigrated with Debug::{to_repr}
+
+///|
+pub extend CommandTopicMigrated with Default::{default}
+
+///|
+pub extend CommandTopicMigrated with @lib.Sized::{size_of}
+
+///|
+pub extend CommandTopicMigrated with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandTopicMigrated with @lib.Write::{write}
+
+///|
+pub extend CommandTopicMigrated with ToJson::{to_json}
+
+///|
+pub extend CommandTopicMigrated with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandCloseProducer {
@@ -9457,6 +10856,35 @@ pub impl @lib.AsyncWrite for CommandCloseProducer with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandCloseProducer with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandCloseProducer with Eq::{not_equal}
+
+///|
+pub extend CommandCloseProducer with Debug::{to_repr}
+
+///|
+pub extend CommandCloseProducer with Default::{default}
+
+///|
+pub extend CommandCloseProducer with @lib.Sized::{size_of}
+
+///|
+pub extend CommandCloseProducer with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandCloseProducer with @lib.Write::{write}
+
+///|
+pub extend CommandCloseProducer with ToJson::{to_json}
+
+///|
+pub extend CommandCloseProducer with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandCloseConsumer {
   mut consumer_id : UInt64
   mut request_id : UInt64
@@ -9638,6 +11066,35 @@ pub impl @lib.AsyncWrite for CommandCloseConsumer with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandCloseConsumer with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandCloseConsumer with Eq::{not_equal}
+
+///|
+pub extend CommandCloseConsumer with Debug::{to_repr}
+
+///|
+pub extend CommandCloseConsumer with Default::{default}
+
+///|
+pub extend CommandCloseConsumer with @lib.Sized::{size_of}
+
+///|
+pub extend CommandCloseConsumer with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandCloseConsumer with @lib.Write::{write}
+
+///|
+pub extend CommandCloseConsumer with ToJson::{to_json}
+
+///|
+pub extend CommandCloseConsumer with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandRedeliverUnacknowledgedMessages {
   mut consumer_id : UInt64
   mut message_ids : Array[MessageIdData]
@@ -9795,6 +11252,40 @@ pub impl @lib.AsyncWrite for CommandRedeliverUnacknowledgedMessages with fn writ
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandRedeliverUnacknowledgedMessages with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandRedeliverUnacknowledgedMessages with Eq::{not_equal}
+
+///|
+pub extend CommandRedeliverUnacknowledgedMessages with Debug::{to_repr}
+
+///|
+pub extend CommandRedeliverUnacknowledgedMessages with Default::{default}
+
+///|
+pub extend CommandRedeliverUnacknowledgedMessages with @lib.Sized::{size_of}
+
+///|
+pub extend CommandRedeliverUnacknowledgedMessages with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandRedeliverUnacknowledgedMessages with @lib.Write::{write}
+
+///|
+pub extend CommandRedeliverUnacknowledgedMessages with ToJson::{to_json}
+
+///|
+pub extend CommandRedeliverUnacknowledgedMessages with @json.FromJson::{
+  from_json,
+}
+
+///|
 pub(all) struct CommandSuccess {
   mut request_id : UInt64
   mut schema : Schema?
@@ -9914,6 +11405,35 @@ pub impl @lib.AsyncWrite for CommandSuccess with fn write(
     writer |> @lib.async_write_message(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandSuccess with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandSuccess with Eq::{not_equal}
+
+///|
+pub extend CommandSuccess with Debug::{to_repr}
+
+///|
+pub extend CommandSuccess with Default::{default}
+
+///|
+pub extend CommandSuccess with @lib.Sized::{size_of}
+
+///|
+pub extend CommandSuccess with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandSuccess with @lib.Write::{write}
+
+///|
+pub extend CommandSuccess with ToJson::{to_json}
+
+///|
+pub extend CommandSuccess with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandProducerSuccess {
@@ -10040,7 +11560,7 @@ pub impl ToJson for CommandProducerSuccess with fn to_json(self) {
     _ => ()
   }
   match self.schema_version {
-    Some(v) => json["schemaVersion"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["schemaVersion"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   match self.topic_epoch {
@@ -10134,6 +11654,35 @@ pub impl @lib.AsyncWrite for CommandProducerSuccess with fn write(
     writer |> @lib.async_write_bool(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandProducerSuccess with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandProducerSuccess with Eq::{not_equal}
+
+///|
+pub extend CommandProducerSuccess with Debug::{to_repr}
+
+///|
+pub extend CommandProducerSuccess with Default::{default}
+
+///|
+pub extend CommandProducerSuccess with @lib.Sized::{size_of}
+
+///|
+pub extend CommandProducerSuccess with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandProducerSuccess with @lib.Write::{write}
+
+///|
+pub extend CommandProducerSuccess with ToJson::{to_json}
+
+///|
+pub extend CommandProducerSuccess with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandError {
@@ -10266,6 +11815,35 @@ pub impl @lib.AsyncWrite for CommandError with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandError with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandError with Eq::{not_equal}
+
+///|
+pub extend CommandError with Debug::{to_repr}
+
+///|
+pub extend CommandError with Default::{default}
+
+///|
+pub extend CommandError with @lib.Sized::{size_of}
+
+///|
+pub extend CommandError with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandError with @lib.Write::{write}
+
+///|
+pub extend CommandError with ToJson::{to_json}
+
+///|
+pub extend CommandError with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandPing {} derive(Eq, Debug)
 
 ///|
@@ -10315,6 +11893,35 @@ pub impl @lib.AsyncWrite for CommandPing with fn write(_, _) -> Unit noraise {
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandPing with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandPing with Eq::{not_equal}
+
+///|
+pub extend CommandPing with Debug::{to_repr}
+
+///|
+pub extend CommandPing with Default::{default}
+
+///|
+pub extend CommandPing with @lib.Sized::{size_of}
+
+///|
+pub extend CommandPing with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandPing with @lib.Write::{write}
+
+///|
+pub extend CommandPing with ToJson::{to_json}
+
+///|
+pub extend CommandPing with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandPong {} derive(Eq, Debug)
 
 ///|
@@ -10362,6 +11969,35 @@ pub impl @lib.AsyncRead for CommandPong with fn read_with_limit(_) -> CommandPon
 pub impl @lib.AsyncWrite for CommandPong with fn write(_, _) -> Unit noraise {
 
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandPong with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandPong with Eq::{not_equal}
+
+///|
+pub extend CommandPong with Debug::{to_repr}
+
+///|
+pub extend CommandPong with Default::{default}
+
+///|
+pub extend CommandPong with @lib.Sized::{size_of}
+
+///|
+pub extend CommandPong with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandPong with @lib.Write::{write}
+
+///|
+pub extend CommandPong with ToJson::{to_json}
+
+///|
+pub extend CommandPong with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandConsumerStats {
@@ -10480,6 +12116,35 @@ pub impl @lib.AsyncWrite for CommandConsumerStats with fn write(
   writer |> @lib.async_write_varint(32UL)
   writer |> @lib.async_write_uint64(self.consumer_id)
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandConsumerStats with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandConsumerStats with Eq::{not_equal}
+
+///|
+pub extend CommandConsumerStats with Debug::{to_repr}
+
+///|
+pub extend CommandConsumerStats with Default::{default}
+
+///|
+pub extend CommandConsumerStats with @lib.Sized::{size_of}
+
+///|
+pub extend CommandConsumerStats with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandConsumerStats with @lib.Write::{write}
+
+///|
+pub extend CommandConsumerStats with ToJson::{to_json}
+
+///|
+pub extend CommandConsumerStats with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandConsumerStatsResponse {
@@ -10954,6 +12619,35 @@ pub impl @lib.AsyncWrite for CommandConsumerStatsResponse with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandConsumerStatsResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandConsumerStatsResponse with Eq::{not_equal}
+
+///|
+pub extend CommandConsumerStatsResponse with Debug::{to_repr}
+
+///|
+pub extend CommandConsumerStatsResponse with Default::{default}
+
+///|
+pub extend CommandConsumerStatsResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandConsumerStatsResponse with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandConsumerStatsResponse with @lib.Write::{write}
+
+///|
+pub extend CommandConsumerStatsResponse with ToJson::{to_json}
+
+///|
+pub extend CommandConsumerStatsResponse with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandGetLastMessageId {
   mut consumer_id : UInt64
   mut request_id : UInt64
@@ -11070,6 +12764,35 @@ pub impl @lib.AsyncWrite for CommandGetLastMessageId with fn write(
   writer |> @lib.async_write_varint(16UL)
   writer |> @lib.async_write_uint64(self.request_id)
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandGetLastMessageId with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandGetLastMessageId with Eq::{not_equal}
+
+///|
+pub extend CommandGetLastMessageId with Debug::{to_repr}
+
+///|
+pub extend CommandGetLastMessageId with Default::{default}
+
+///|
+pub extend CommandGetLastMessageId with @lib.Sized::{size_of}
+
+///|
+pub extend CommandGetLastMessageId with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandGetLastMessageId with @lib.Write::{write}
+
+///|
+pub extend CommandGetLastMessageId with ToJson::{to_json}
+
+///|
+pub extend CommandGetLastMessageId with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandGetLastMessageIdResponse {
@@ -11230,6 +12953,38 @@ pub impl @lib.AsyncWrite for CommandGetLastMessageIdResponse with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandGetLastMessageIdResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandGetLastMessageIdResponse with Eq::{not_equal}
+
+///|
+pub extend CommandGetLastMessageIdResponse with Debug::{to_repr}
+
+///|
+pub extend CommandGetLastMessageIdResponse with Default::{default}
+
+///|
+pub extend CommandGetLastMessageIdResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandGetLastMessageIdResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandGetLastMessageIdResponse with @lib.Write::{write}
+
+///|
+pub extend CommandGetLastMessageIdResponse with ToJson::{to_json}
+
+///|
+pub extend CommandGetLastMessageIdResponse with @json.FromJson::{from_json}
+
+///|
 pub(all) enum CommandGetTopicsOfNamespace_Mode {
   PERSISTENT
   NON_PERSISTENT
@@ -11300,6 +13055,29 @@ pub impl ToJson for CommandGetTopicsOfNamespace_Mode with fn to_json(
     CommandGetTopicsOfNamespace_Mode::ALL => "ALL"
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandGetTopicsOfNamespace_Mode with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandGetTopicsOfNamespace_Mode with Eq::{not_equal}
+
+///|
+pub extend CommandGetTopicsOfNamespace_Mode with Debug::{to_repr}
+
+///|
+pub extend CommandGetTopicsOfNamespace_Mode with Default::{default}
+
+///|
+pub extend CommandGetTopicsOfNamespace_Mode with @lib.Sized::{size_of}
+
+///|
+pub extend CommandGetTopicsOfNamespace_Mode with ToJson::{to_json}
+
+///|
+pub extend CommandGetTopicsOfNamespace_Mode with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandGetTopicsOfNamespace {
@@ -11523,6 +13301,35 @@ pub impl @lib.AsyncWrite for CommandGetTopicsOfNamespace with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandGetTopicsOfNamespace with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandGetTopicsOfNamespace with Eq::{not_equal}
+
+///|
+pub extend CommandGetTopicsOfNamespace with Debug::{to_repr}
+
+///|
+pub extend CommandGetTopicsOfNamespace with Default::{default}
+
+///|
+pub extend CommandGetTopicsOfNamespace with @lib.Sized::{size_of}
+
+///|
+pub extend CommandGetTopicsOfNamespace with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandGetTopicsOfNamespace with @lib.Write::{write}
+
+///|
+pub extend CommandGetTopicsOfNamespace with ToJson::{to_json}
+
+///|
+pub extend CommandGetTopicsOfNamespace with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandGetTopicsOfNamespaceResponse {
   mut request_id : UInt64
   mut topics : Array[String]
@@ -11721,6 +13528,38 @@ pub impl @lib.AsyncWrite for CommandGetTopicsOfNamespaceResponse with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandGetTopicsOfNamespaceResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandGetTopicsOfNamespaceResponse with Eq::{not_equal}
+
+///|
+pub extend CommandGetTopicsOfNamespaceResponse with Debug::{to_repr}
+
+///|
+pub extend CommandGetTopicsOfNamespaceResponse with Default::{default}
+
+///|
+pub extend CommandGetTopicsOfNamespaceResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandGetTopicsOfNamespaceResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandGetTopicsOfNamespaceResponse with @lib.Write::{write}
+
+///|
+pub extend CommandGetTopicsOfNamespaceResponse with ToJson::{to_json}
+
+///|
+pub extend CommandGetTopicsOfNamespaceResponse with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandWatchTopicList {
   mut request_id : UInt64
   mut watcher_id : UInt64
@@ -11898,6 +13737,35 @@ pub impl @lib.AsyncWrite for CommandWatchTopicList with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchTopicList with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchTopicList with Eq::{not_equal}
+
+///|
+pub extend CommandWatchTopicList with Debug::{to_repr}
+
+///|
+pub extend CommandWatchTopicList with Default::{default}
+
+///|
+pub extend CommandWatchTopicList with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchTopicList with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandWatchTopicList with @lib.Write::{write}
+
+///|
+pub extend CommandWatchTopicList with ToJson::{to_json}
+
+///|
+pub extend CommandWatchTopicList with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandWatchTopicListSuccess {
   mut request_id : UInt64
   mut watcher_id : UInt64
@@ -12052,6 +13920,35 @@ pub impl @lib.AsyncWrite for CommandWatchTopicListSuccess with fn write(
   writer |> @lib.async_write_varint(34UL)
   writer |> @lib.async_write_string(self.topics_hash)
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchTopicListSuccess with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchTopicListSuccess with Eq::{not_equal}
+
+///|
+pub extend CommandWatchTopicListSuccess with Debug::{to_repr}
+
+///|
+pub extend CommandWatchTopicListSuccess with Default::{default}
+
+///|
+pub extend CommandWatchTopicListSuccess with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchTopicListSuccess with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandWatchTopicListSuccess with @lib.Write::{write}
+
+///|
+pub extend CommandWatchTopicListSuccess with ToJson::{to_json}
+
+///|
+pub extend CommandWatchTopicListSuccess with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandWatchTopicUpdate {
@@ -12222,6 +14119,35 @@ pub impl @lib.AsyncWrite for CommandWatchTopicUpdate with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchTopicUpdate with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchTopicUpdate with Eq::{not_equal}
+
+///|
+pub extend CommandWatchTopicUpdate with Debug::{to_repr}
+
+///|
+pub extend CommandWatchTopicUpdate with Default::{default}
+
+///|
+pub extend CommandWatchTopicUpdate with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchTopicUpdate with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandWatchTopicUpdate with @lib.Write::{write}
+
+///|
+pub extend CommandWatchTopicUpdate with ToJson::{to_json}
+
+///|
+pub extend CommandWatchTopicUpdate with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandWatchTopicListClose {
   mut request_id : UInt64
   mut watcher_id : UInt64
@@ -12339,10 +14265,39 @@ pub impl @lib.AsyncWrite for CommandWatchTopicListClose with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchTopicListClose with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchTopicListClose with Eq::{not_equal}
+
+///|
+pub extend CommandWatchTopicListClose with Debug::{to_repr}
+
+///|
+pub extend CommandWatchTopicListClose with Default::{default}
+
+///|
+pub extend CommandWatchTopicListClose with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchTopicListClose with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandWatchTopicListClose with @lib.Write::{write}
+
+///|
+pub extend CommandWatchTopicListClose with ToJson::{to_json}
+
+///|
+pub extend CommandWatchTopicListClose with @json.FromJson::{from_json}
+
+///|
 pub(all) struct SegmentInfoProto {
   mut segment_id : UInt64
-  mut hash_start : UInt
-  mut hash_end : UInt
+  mut hash_start : UInt32
+  mut hash_end : UInt32
   mut state : SegmentState
   mut parent_ids : Array[UInt64]
   mut child_ids : Array[UInt64]
@@ -12351,7 +14306,7 @@ pub(all) struct SegmentInfoProto {
   mut created_at_ms : UInt64
   mut sealed_at_ms : UInt64?
   mut legacy_topic_name : String?
-  mut entry_bucket_splits : Array[UInt]
+  mut entry_bucket_splits : Array[UInt32]
 } derive(Eq, Debug)
 
 ///|
@@ -12406,8 +14361,8 @@ pub impl Default for SegmentInfoProto with fn default() -> SegmentInfoProto {
 #alias(new, deprecated)
 pub fn SegmentInfoProto::SegmentInfoProto(
   segment_id : UInt64,
-  hash_start : UInt,
-  hash_end : UInt,
+  hash_start : UInt32,
+  hash_end : UInt32,
   state : SegmentState,
   parent_ids : Array[UInt64],
   child_ids : Array[UInt64],
@@ -12416,7 +14371,7 @@ pub fn SegmentInfoProto::SegmentInfoProto(
   created_at_ms : UInt64,
   sealed_at_ms? : UInt64,
   legacy_topic_name? : String,
-  entry_bucket_splits : Array[UInt],
+  entry_bucket_splits : Array[UInt32],
 ) -> SegmentInfoProto {
   SegmentInfoProto::{
     segment_id,
@@ -12689,6 +14644,35 @@ pub impl @lib.AsyncWrite for SegmentInfoProto with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend SegmentInfoProto with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend SegmentInfoProto with Eq::{not_equal}
+
+///|
+pub extend SegmentInfoProto with Debug::{to_repr}
+
+///|
+pub extend SegmentInfoProto with Default::{default}
+
+///|
+pub extend SegmentInfoProto with @lib.Sized::{size_of}
+
+///|
+pub extend SegmentInfoProto with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend SegmentInfoProto with @lib.Write::{write}
+
+///|
+pub extend SegmentInfoProto with ToJson::{to_json}
+
+///|
+pub extend SegmentInfoProto with @json.FromJson::{from_json}
+
+///|
 pub(all) struct SegmentBrokerAddress {
   mut segment_id : UInt64
   mut broker_url : String
@@ -12826,6 +14810,35 @@ pub impl @lib.AsyncWrite for SegmentBrokerAddress with fn write(
     writer |> @lib.async_write_string(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend SegmentBrokerAddress with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend SegmentBrokerAddress with Eq::{not_equal}
+
+///|
+pub extend SegmentBrokerAddress with Debug::{to_repr}
+
+///|
+pub extend SegmentBrokerAddress with Default::{default}
+
+///|
+pub extend SegmentBrokerAddress with @lib.Sized::{size_of}
+
+///|
+pub extend SegmentBrokerAddress with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend SegmentBrokerAddress with @lib.Write::{write}
+
+///|
+pub extend SegmentBrokerAddress with ToJson::{to_json}
+
+///|
+pub extend SegmentBrokerAddress with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct ScalableTopicDAG {
@@ -13038,6 +15051,35 @@ pub impl @lib.AsyncWrite for ScalableTopicDAG with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend ScalableTopicDAG with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend ScalableTopicDAG with Eq::{not_equal}
+
+///|
+pub extend ScalableTopicDAG with Debug::{to_repr}
+
+///|
+pub extend ScalableTopicDAG with Default::{default}
+
+///|
+pub extend ScalableTopicDAG with @lib.Sized::{size_of}
+
+///|
+pub extend ScalableTopicDAG with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend ScalableTopicDAG with @lib.Write::{write}
+
+///|
+pub extend ScalableTopicDAG with ToJson::{to_json}
+
+///|
+pub extend ScalableTopicDAG with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandScalableTopicLookup {
   mut session_id : UInt64
   mut topic : String
@@ -13175,6 +15217,35 @@ pub impl @lib.AsyncWrite for CommandScalableTopicLookup with fn write(
     writer |> @lib.async_write_bool(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandScalableTopicLookup with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandScalableTopicLookup with Eq::{not_equal}
+
+///|
+pub extend CommandScalableTopicLookup with Debug::{to_repr}
+
+///|
+pub extend CommandScalableTopicLookup with Default::{default}
+
+///|
+pub extend CommandScalableTopicLookup with @lib.Sized::{size_of}
+
+///|
+pub extend CommandScalableTopicLookup with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandScalableTopicLookup with @lib.Write::{write}
+
+///|
+pub extend CommandScalableTopicLookup with ToJson::{to_json}
+
+///|
+pub extend CommandScalableTopicLookup with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandScalableTopicUpdate {
@@ -13381,6 +15452,35 @@ pub impl @lib.AsyncWrite for CommandScalableTopicUpdate with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandScalableTopicUpdate with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandScalableTopicUpdate with Eq::{not_equal}
+
+///|
+pub extend CommandScalableTopicUpdate with Debug::{to_repr}
+
+///|
+pub extend CommandScalableTopicUpdate with Default::{default}
+
+///|
+pub extend CommandScalableTopicUpdate with @lib.Sized::{size_of}
+
+///|
+pub extend CommandScalableTopicUpdate with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandScalableTopicUpdate with @lib.Write::{write}
+
+///|
+pub extend CommandScalableTopicUpdate with ToJson::{to_json}
+
+///|
+pub extend CommandScalableTopicUpdate with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandScalableTopicClose {
   mut session_id : UInt64
 } derive(Eq, Debug)
@@ -13482,10 +15582,39 @@ pub impl @lib.AsyncWrite for CommandScalableTopicClose with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandScalableTopicClose with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandScalableTopicClose with Eq::{not_equal}
+
+///|
+pub extend CommandScalableTopicClose with Debug::{to_repr}
+
+///|
+pub extend CommandScalableTopicClose with Default::{default}
+
+///|
+pub extend CommandScalableTopicClose with @lib.Sized::{size_of}
+
+///|
+pub extend CommandScalableTopicClose with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandScalableTopicClose with @lib.Write::{write}
+
+///|
+pub extend CommandScalableTopicClose with ToJson::{to_json}
+
+///|
+pub extend CommandScalableTopicClose with @json.FromJson::{from_json}
+
+///|
 pub(all) struct ScalableAssignedSegment {
   mut segment_id : UInt64
-  mut hash_start : UInt
-  mut hash_end : UInt
+  mut hash_start : UInt32
+  mut hash_end : UInt32
   mut segment_topic : String
   mut bucket_ranges : Array[IntRange]
 } derive(Eq, Debug)
@@ -13521,8 +15650,8 @@ pub impl Default for ScalableAssignedSegment with fn default() -> ScalableAssign
 #alias(new, deprecated)
 pub fn ScalableAssignedSegment::ScalableAssignedSegment(
   segment_id : UInt64,
-  hash_start : UInt,
-  hash_end : UInt,
+  hash_start : UInt32,
+  hash_end : UInt32,
   segment_topic : String,
   bucket_ranges : Array[IntRange],
 ) -> ScalableAssignedSegment {
@@ -13660,6 +15789,35 @@ pub impl @lib.AsyncWrite for ScalableAssignedSegment with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend ScalableAssignedSegment with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend ScalableAssignedSegment with Eq::{not_equal}
+
+///|
+pub extend ScalableAssignedSegment with Debug::{to_repr}
+
+///|
+pub extend ScalableAssignedSegment with Default::{default}
+
+///|
+pub extend ScalableAssignedSegment with @lib.Sized::{size_of}
+
+///|
+pub extend ScalableAssignedSegment with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend ScalableAssignedSegment with @lib.Write::{write}
+
+///|
+pub extend ScalableAssignedSegment with ToJson::{to_json}
+
+///|
+pub extend ScalableAssignedSegment with @json.FromJson::{from_json}
+
+///|
 pub(all) struct ScalableConsumerAssignment {
   mut layout_epoch : UInt64
   mut segments : Array[ScalableAssignedSegment]
@@ -13789,6 +15947,35 @@ pub impl @lib.AsyncWrite for ScalableConsumerAssignment with fn write(
     writer |> @lib.async_write_message(item)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend ScalableConsumerAssignment with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend ScalableConsumerAssignment with Eq::{not_equal}
+
+///|
+pub extend ScalableConsumerAssignment with Debug::{to_repr}
+
+///|
+pub extend ScalableConsumerAssignment with Default::{default}
+
+///|
+pub extend ScalableConsumerAssignment with @lib.Sized::{size_of}
+
+///|
+pub extend ScalableConsumerAssignment with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend ScalableConsumerAssignment with @lib.Write::{write}
+
+///|
+pub extend ScalableConsumerAssignment with ToJson::{to_json}
+
+///|
+pub extend ScalableConsumerAssignment with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandScalableTopicSubscribe {
@@ -13987,6 +16174,35 @@ pub impl @lib.AsyncWrite for CommandScalableTopicSubscribe with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandScalableTopicSubscribe with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandScalableTopicSubscribe with Eq::{not_equal}
+
+///|
+pub extend CommandScalableTopicSubscribe with Debug::{to_repr}
+
+///|
+pub extend CommandScalableTopicSubscribe with Default::{default}
+
+///|
+pub extend CommandScalableTopicSubscribe with @lib.Sized::{size_of}
+
+///|
+pub extend CommandScalableTopicSubscribe with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandScalableTopicSubscribe with @lib.Write::{write}
+
+///|
+pub extend CommandScalableTopicSubscribe with ToJson::{to_json}
+
+///|
+pub extend CommandScalableTopicSubscribe with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandScalableTopicSubscribeResponse {
   mut request_id : UInt64
   mut error : ServerError?
@@ -14173,6 +16389,40 @@ pub impl @lib.AsyncWrite for CommandScalableTopicSubscribeResponse with fn write
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandScalableTopicSubscribeResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandScalableTopicSubscribeResponse with Eq::{not_equal}
+
+///|
+pub extend CommandScalableTopicSubscribeResponse with Debug::{to_repr}
+
+///|
+pub extend CommandScalableTopicSubscribeResponse with Default::{default}
+
+///|
+pub extend CommandScalableTopicSubscribeResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandScalableTopicSubscribeResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandScalableTopicSubscribeResponse with @lib.Write::{write}
+
+///|
+pub extend CommandScalableTopicSubscribeResponse with ToJson::{to_json}
+
+///|
+pub extend CommandScalableTopicSubscribeResponse with @json.FromJson::{
+  from_json,
+}
+
+///|
 pub(all) struct CommandScalableTopicAssignmentUpdate {
   mut consumer_id : UInt64
   mut assignment : ScalableConsumerAssignment
@@ -14298,6 +16548,38 @@ pub impl @lib.AsyncWrite for CommandScalableTopicAssignmentUpdate with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandScalableTopicAssignmentUpdate with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandScalableTopicAssignmentUpdate with Eq::{not_equal}
+
+///|
+pub extend CommandScalableTopicAssignmentUpdate with Debug::{to_repr}
+
+///|
+pub extend CommandScalableTopicAssignmentUpdate with Default::{default}
+
+///|
+pub extend CommandScalableTopicAssignmentUpdate with @lib.Sized::{size_of}
+
+///|
+pub extend CommandScalableTopicAssignmentUpdate with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandScalableTopicAssignmentUpdate with @lib.Write::{write}
+
+///|
+pub extend CommandScalableTopicAssignmentUpdate with ToJson::{to_json}
+
+///|
+pub extend CommandScalableTopicAssignmentUpdate with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandScalableTopicUnsubscribe {
   mut request_id : UInt64
   mut consumer_id : UInt64
@@ -14414,6 +16696,38 @@ pub impl @lib.AsyncWrite for CommandScalableTopicUnsubscribe with fn write(
   writer |> @lib.async_write_varint(16UL)
   writer |> @lib.async_write_uint64(self.consumer_id)
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandScalableTopicUnsubscribe with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandScalableTopicUnsubscribe with Eq::{not_equal}
+
+///|
+pub extend CommandScalableTopicUnsubscribe with Debug::{to_repr}
+
+///|
+pub extend CommandScalableTopicUnsubscribe with Default::{default}
+
+///|
+pub extend CommandScalableTopicUnsubscribe with @lib.Sized::{size_of}
+
+///|
+pub extend CommandScalableTopicUnsubscribe with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandScalableTopicUnsubscribe with @lib.Write::{write}
+
+///|
+pub extend CommandScalableTopicUnsubscribe with ToJson::{to_json}
+
+///|
+pub extend CommandScalableTopicUnsubscribe with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandWatchScalableTopics {
@@ -14585,6 +16899,35 @@ pub impl @lib.AsyncWrite for CommandWatchScalableTopics with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchScalableTopics with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchScalableTopics with Eq::{not_equal}
+
+///|
+pub extend CommandWatchScalableTopics with Debug::{to_repr}
+
+///|
+pub extend CommandWatchScalableTopics with Default::{default}
+
+///|
+pub extend CommandWatchScalableTopics with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchScalableTopics with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandWatchScalableTopics with @lib.Write::{write}
+
+///|
+pub extend CommandWatchScalableTopics with ToJson::{to_json}
+
+///|
+pub extend CommandWatchScalableTopics with @json.FromJson::{from_json}
+
+///|
 pub(all) struct ScalableTopicsSnapshot {
   mut topics : Array[String]
 } derive(Eq, Debug)
@@ -14691,6 +17034,35 @@ pub impl @lib.AsyncWrite for ScalableTopicsSnapshot with fn write(
     writer |> @lib.async_write_string(item)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend ScalableTopicsSnapshot with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend ScalableTopicsSnapshot with Eq::{not_equal}
+
+///|
+pub extend ScalableTopicsSnapshot with Debug::{to_repr}
+
+///|
+pub extend ScalableTopicsSnapshot with Default::{default}
+
+///|
+pub extend ScalableTopicsSnapshot with @lib.Sized::{size_of}
+
+///|
+pub extend ScalableTopicsSnapshot with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend ScalableTopicsSnapshot with @lib.Write::{write}
+
+///|
+pub extend ScalableTopicsSnapshot with ToJson::{to_json}
+
+///|
+pub extend ScalableTopicsSnapshot with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct ScalableTopicsDiff {
@@ -14821,6 +17193,35 @@ pub impl @lib.AsyncWrite for ScalableTopicsDiff with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend ScalableTopicsDiff with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend ScalableTopicsDiff with Eq::{not_equal}
+
+///|
+pub extend ScalableTopicsDiff with Debug::{to_repr}
+
+///|
+pub extend ScalableTopicsDiff with Default::{default}
+
+///|
+pub extend ScalableTopicsDiff with @lib.Sized::{size_of}
+
+///|
+pub extend ScalableTopicsDiff with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend ScalableTopicsDiff with @lib.Write::{write}
+
+///|
+pub extend ScalableTopicsDiff with ToJson::{to_json}
+
+///|
+pub extend ScalableTopicsDiff with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandWatchScalableTopicsUpdate {
   mut watch_id : UInt64
   mut error : ServerError?
@@ -14876,6 +17277,28 @@ pub impl ToJson for CommandWatchScalableTopicsUpdate_Event with fn to_json(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchScalableTopicsUpdate_Event with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchScalableTopicsUpdate_Event with Eq::{not_equal}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate_Event with Debug::{to_repr}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate_Event with Default::{default}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate_Event with ToJson::{to_json}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate_Event with @json.FromJson::{
+  from_json,
+}
+
+///|
 pub impl @lib.Sized for CommandWatchScalableTopicsUpdate with fn size_of(self) {
   let mut size = 0U
   size += @lib.size_of_field(1U, @lib.size_of(self.watch_id))
@@ -14910,7 +17333,7 @@ pub fn CommandWatchScalableTopicsUpdate::CommandWatchScalableTopicsUpdate(
   watch_id : UInt64,
   error? : ServerError,
   message? : String,
-  event? : CommandWatchScalableTopicsUpdate_Event = CommandWatchScalableTopicsUpdate_Event::NotSet,
+  event~ : CommandWatchScalableTopicsUpdate_Event = CommandWatchScalableTopicsUpdate_Event::NotSet,
 ) -> CommandWatchScalableTopicsUpdate {
   CommandWatchScalableTopicsUpdate::{ watch_id, error, message, event, }
 }
@@ -15070,6 +17493,38 @@ pub impl @lib.AsyncWrite for CommandWatchScalableTopicsUpdate with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchScalableTopicsUpdate with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchScalableTopicsUpdate with Eq::{not_equal}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate with Debug::{to_repr}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate with Default::{default}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate with @lib.Write::{write}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate with ToJson::{to_json}
+
+///|
+pub extend CommandWatchScalableTopicsUpdate with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandWatchScalableTopicsClose {
   mut watch_id : UInt64
 } derive(Eq, Debug)
@@ -15171,6 +17626,38 @@ pub impl @lib.AsyncWrite for CommandWatchScalableTopicsClose with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchScalableTopicsClose with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchScalableTopicsClose with Eq::{not_equal}
+
+///|
+pub extend CommandWatchScalableTopicsClose with Debug::{to_repr}
+
+///|
+pub extend CommandWatchScalableTopicsClose with Default::{default}
+
+///|
+pub extend CommandWatchScalableTopicsClose with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchScalableTopicsClose with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandWatchScalableTopicsClose with @lib.Write::{write}
+
+///|
+pub extend CommandWatchScalableTopicsClose with ToJson::{to_json}
+
+///|
+pub extend CommandWatchScalableTopicsClose with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandWatchTcAssignments {
   mut watch_id : UInt64
 } derive(Eq, Debug)
@@ -15270,6 +17757,35 @@ pub impl @lib.AsyncWrite for CommandWatchTcAssignments with fn write(
   writer |> @lib.async_write_varint(8UL)
   writer |> @lib.async_write_uint64(self.watch_id)
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchTcAssignments with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchTcAssignments with Eq::{not_equal}
+
+///|
+pub extend CommandWatchTcAssignments with Debug::{to_repr}
+
+///|
+pub extend CommandWatchTcAssignments with Default::{default}
+
+///|
+pub extend CommandWatchTcAssignments with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchTcAssignments with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandWatchTcAssignments with @lib.Write::{write}
+
+///|
+pub extend CommandWatchTcAssignments with ToJson::{to_json}
+
+///|
+pub extend CommandWatchTcAssignments with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct TcAssignment {
@@ -15420,8 +17936,37 @@ pub impl @lib.AsyncWrite for TcAssignment with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend TcAssignment with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend TcAssignment with Eq::{not_equal}
+
+///|
+pub extend TcAssignment with Debug::{to_repr}
+
+///|
+pub extend TcAssignment with Default::{default}
+
+///|
+pub extend TcAssignment with @lib.Sized::{size_of}
+
+///|
+pub extend TcAssignment with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend TcAssignment with @lib.Write::{write}
+
+///|
+pub extend TcAssignment with ToJson::{to_json}
+
+///|
+pub extend TcAssignment with @json.FromJson::{from_json}
+
+///|
 pub(all) struct TcAssignmentsSnapshot {
-  mut parallelism : UInt
+  mut parallelism : UInt32
   mut assignments : Array[TcAssignment]
 } derive(Eq, Debug)
 
@@ -15443,7 +17988,7 @@ pub impl Default for TcAssignmentsSnapshot with fn default() -> TcAssignmentsSna
 ///|
 #alias(new, deprecated)
 pub fn TcAssignmentsSnapshot::TcAssignmentsSnapshot(
-  parallelism : UInt,
+  parallelism : UInt32,
   assignments : Array[TcAssignment],
 ) -> TcAssignmentsSnapshot {
   TcAssignmentsSnapshot::{ parallelism, assignments, }
@@ -15544,6 +18089,35 @@ pub impl @lib.AsyncWrite for TcAssignmentsSnapshot with fn write(
     writer |> @lib.async_write_message(item)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend TcAssignmentsSnapshot with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend TcAssignmentsSnapshot with Eq::{not_equal}
+
+///|
+pub extend TcAssignmentsSnapshot with Debug::{to_repr}
+
+///|
+pub extend TcAssignmentsSnapshot with Default::{default}
+
+///|
+pub extend TcAssignmentsSnapshot with @lib.Sized::{size_of}
+
+///|
+pub extend TcAssignmentsSnapshot with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend TcAssignmentsSnapshot with @lib.Write::{write}
+
+///|
+pub extend TcAssignmentsSnapshot with ToJson::{to_json}
+
+///|
+pub extend TcAssignmentsSnapshot with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandWatchTcAssignmentsUpdate {
@@ -15724,6 +18298,38 @@ pub impl @lib.AsyncWrite for CommandWatchTcAssignmentsUpdate with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchTcAssignmentsUpdate with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchTcAssignmentsUpdate with Eq::{not_equal}
+
+///|
+pub extend CommandWatchTcAssignmentsUpdate with Debug::{to_repr}
+
+///|
+pub extend CommandWatchTcAssignmentsUpdate with Default::{default}
+
+///|
+pub extend CommandWatchTcAssignmentsUpdate with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchTcAssignmentsUpdate with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandWatchTcAssignmentsUpdate with @lib.Write::{write}
+
+///|
+pub extend CommandWatchTcAssignmentsUpdate with ToJson::{to_json}
+
+///|
+pub extend CommandWatchTcAssignmentsUpdate with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandWatchTcAssignmentsClose {
   mut watch_id : UInt64
 } derive(Eq, Debug)
@@ -15825,6 +18431,38 @@ pub impl @lib.AsyncWrite for CommandWatchTcAssignmentsClose with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandWatchTcAssignmentsClose with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandWatchTcAssignmentsClose with Eq::{not_equal}
+
+///|
+pub extend CommandWatchTcAssignmentsClose with Debug::{to_repr}
+
+///|
+pub extend CommandWatchTcAssignmentsClose with Default::{default}
+
+///|
+pub extend CommandWatchTcAssignmentsClose with @lib.Sized::{size_of}
+
+///|
+pub extend CommandWatchTcAssignmentsClose with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandWatchTcAssignmentsClose with @lib.Write::{write}
+
+///|
+pub extend CommandWatchTcAssignmentsClose with ToJson::{to_json}
+
+///|
+pub extend CommandWatchTcAssignmentsClose with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandGetSchema {
   mut request_id : UInt64
   mut topic : String
@@ -15902,7 +18540,7 @@ pub impl ToJson for CommandGetSchema with fn to_json(self) {
     json["topic"] = ToJson::to_json(self.topic)
   }
   match self.schema_version {
-    Some(v) => json["schemaVersion"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["schemaVersion"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   Json::object(json)
@@ -15966,6 +18604,35 @@ pub impl @lib.AsyncWrite for CommandGetSchema with fn write(
     writer |> @lib.async_write_bytes(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandGetSchema with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandGetSchema with Eq::{not_equal}
+
+///|
+pub extend CommandGetSchema with Debug::{to_repr}
+
+///|
+pub extend CommandGetSchema with Default::{default}
+
+///|
+pub extend CommandGetSchema with @lib.Sized::{size_of}
+
+///|
+pub extend CommandGetSchema with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandGetSchema with @lib.Write::{write}
+
+///|
+pub extend CommandGetSchema with ToJson::{to_json}
+
+///|
+pub extend CommandGetSchema with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandGetSchemaResponse {
@@ -16091,7 +18758,7 @@ pub impl ToJson for CommandGetSchemaResponse with fn to_json(self) {
     _ => ()
   }
   match self.schema_version {
-    Some(v) => json["schemaVersion"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["schemaVersion"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   Json::object(json)
@@ -16176,6 +18843,35 @@ pub impl @lib.AsyncWrite for CommandGetSchemaResponse with fn write(
     writer |> @lib.async_write_bytes(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandGetSchemaResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandGetSchemaResponse with Eq::{not_equal}
+
+///|
+pub extend CommandGetSchemaResponse with Debug::{to_repr}
+
+///|
+pub extend CommandGetSchemaResponse with Default::{default}
+
+///|
+pub extend CommandGetSchemaResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandGetSchemaResponse with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandGetSchemaResponse with @lib.Write::{write}
+
+///|
+pub extend CommandGetSchemaResponse with ToJson::{to_json}
+
+///|
+pub extend CommandGetSchemaResponse with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandGetOrCreateSchema {
@@ -16333,6 +19029,35 @@ pub impl @lib.AsyncWrite for CommandGetOrCreateSchema with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandGetOrCreateSchema with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandGetOrCreateSchema with Eq::{not_equal}
+
+///|
+pub extend CommandGetOrCreateSchema with Debug::{to_repr}
+
+///|
+pub extend CommandGetOrCreateSchema with Default::{default}
+
+///|
+pub extend CommandGetOrCreateSchema with @lib.Sized::{size_of}
+
+///|
+pub extend CommandGetOrCreateSchema with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandGetOrCreateSchema with @lib.Write::{write}
+
+///|
+pub extend CommandGetOrCreateSchema with ToJson::{to_json}
+
+///|
+pub extend CommandGetOrCreateSchema with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandGetOrCreateSchemaResponse {
   mut request_id : UInt64
   mut error_code : ServerError?
@@ -16439,7 +19164,7 @@ pub impl ToJson for CommandGetOrCreateSchemaResponse with fn to_json(self) {
     _ => ()
   }
   match self.schema_version {
-    Some(v) => json["schemaVersion"] = @lib.base64_encode(v).to_json()
+    Some(v) => json["schemaVersion"] = Json(@lib.base64_encode(v))
     _ => ()
   }
   Json::object(json)
@@ -16517,6 +19242,38 @@ pub impl @lib.AsyncWrite for CommandGetOrCreateSchemaResponse with fn write(
     writer |> @lib.async_write_bytes(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandGetOrCreateSchemaResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandGetOrCreateSchemaResponse with Eq::{not_equal}
+
+///|
+pub extend CommandGetOrCreateSchemaResponse with Debug::{to_repr}
+
+///|
+pub extend CommandGetOrCreateSchemaResponse with Default::{default}
+
+///|
+pub extend CommandGetOrCreateSchemaResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandGetOrCreateSchemaResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandGetOrCreateSchemaResponse with @lib.Write::{write}
+
+///|
+pub extend CommandGetOrCreateSchemaResponse with ToJson::{to_json}
+
+///|
+pub extend CommandGetOrCreateSchemaResponse with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandTcClientConnectRequest {
@@ -16656,6 +19413,35 @@ pub impl @lib.AsyncWrite for CommandTcClientConnectRequest with fn write(
     writer |> @lib.async_write_bool(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandTcClientConnectRequest with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandTcClientConnectRequest with Eq::{not_equal}
+
+///|
+pub extend CommandTcClientConnectRequest with Debug::{to_repr}
+
+///|
+pub extend CommandTcClientConnectRequest with Default::{default}
+
+///|
+pub extend CommandTcClientConnectRequest with @lib.Sized::{size_of}
+
+///|
+pub extend CommandTcClientConnectRequest with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandTcClientConnectRequest with @lib.Write::{write}
+
+///|
+pub extend CommandTcClientConnectRequest with ToJson::{to_json}
+
+///|
+pub extend CommandTcClientConnectRequest with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandTcClientConnectResponse {
@@ -16807,6 +19593,38 @@ pub impl @lib.AsyncWrite for CommandTcClientConnectResponse with fn write(
     writer |> @lib.async_write_string(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandTcClientConnectResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandTcClientConnectResponse with Eq::{not_equal}
+
+///|
+pub extend CommandTcClientConnectResponse with Debug::{to_repr}
+
+///|
+pub extend CommandTcClientConnectResponse with Default::{default}
+
+///|
+pub extend CommandTcClientConnectResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandTcClientConnectResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandTcClientConnectResponse with @lib.Write::{write}
+
+///|
+pub extend CommandTcClientConnectResponse with ToJson::{to_json}
+
+///|
+pub extend CommandTcClientConnectResponse with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandNewTxn {
@@ -16973,6 +19791,35 @@ pub impl @lib.AsyncWrite for CommandNewTxn with fn write(
     writer |> @lib.async_write_bool(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandNewTxn with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandNewTxn with Eq::{not_equal}
+
+///|
+pub extend CommandNewTxn with Debug::{to_repr}
+
+///|
+pub extend CommandNewTxn with Default::{default}
+
+///|
+pub extend CommandNewTxn with @lib.Sized::{size_of}
+
+///|
+pub extend CommandNewTxn with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandNewTxn with @lib.Write::{write}
+
+///|
+pub extend CommandNewTxn with ToJson::{to_json}
+
+///|
+pub extend CommandNewTxn with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandNewTxnResponse {
@@ -17177,6 +20024,35 @@ pub impl @lib.AsyncWrite for CommandNewTxnResponse with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandNewTxnResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandNewTxnResponse with Eq::{not_equal}
+
+///|
+pub extend CommandNewTxnResponse with Debug::{to_repr}
+
+///|
+pub extend CommandNewTxnResponse with Default::{default}
+
+///|
+pub extend CommandNewTxnResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandNewTxnResponse with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandNewTxnResponse with @lib.Write::{write}
+
+///|
+pub extend CommandNewTxnResponse with ToJson::{to_json}
+
+///|
+pub extend CommandNewTxnResponse with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandAddPartitionToTxn {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
@@ -17372,6 +20248,35 @@ pub impl @lib.AsyncWrite for CommandAddPartitionToTxn with fn write(
     writer |> @lib.async_write_bool(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandAddPartitionToTxn with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAddPartitionToTxn with Eq::{not_equal}
+
+///|
+pub extend CommandAddPartitionToTxn with Debug::{to_repr}
+
+///|
+pub extend CommandAddPartitionToTxn with Default::{default}
+
+///|
+pub extend CommandAddPartitionToTxn with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAddPartitionToTxn with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandAddPartitionToTxn with @lib.Write::{write}
+
+///|
+pub extend CommandAddPartitionToTxn with ToJson::{to_json}
+
+///|
+pub extend CommandAddPartitionToTxn with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandAddPartitionToTxnResponse {
@@ -17576,6 +20481,38 @@ pub impl @lib.AsyncWrite for CommandAddPartitionToTxnResponse with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandAddPartitionToTxnResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAddPartitionToTxnResponse with Eq::{not_equal}
+
+///|
+pub extend CommandAddPartitionToTxnResponse with Debug::{to_repr}
+
+///|
+pub extend CommandAddPartitionToTxnResponse with Default::{default}
+
+///|
+pub extend CommandAddPartitionToTxnResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAddPartitionToTxnResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandAddPartitionToTxnResponse with @lib.Write::{write}
+
+///|
+pub extend CommandAddPartitionToTxnResponse with ToJson::{to_json}
+
+///|
+pub extend CommandAddPartitionToTxnResponse with @json.FromJson::{from_json}
+
+///|
 pub(all) struct Subscription {
   mut topic : String
   mut subscription : String
@@ -17690,6 +20627,35 @@ pub impl @lib.AsyncWrite for Subscription with fn write(
   writer |> @lib.async_write_varint(18UL)
   writer |> @lib.async_write_string(self.subscription)
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend Subscription with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend Subscription with Eq::{not_equal}
+
+///|
+pub extend Subscription with Debug::{to_repr}
+
+///|
+pub extend Subscription with Default::{default}
+
+///|
+pub extend Subscription with @lib.Sized::{size_of}
+
+///|
+pub extend Subscription with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend Subscription with @lib.Write::{write}
+
+///|
+pub extend Subscription with ToJson::{to_json}
+
+///|
+pub extend Subscription with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandAddSubscriptionToTxn {
@@ -17891,6 +20857,35 @@ pub impl @lib.AsyncWrite for CommandAddSubscriptionToTxn with fn write(
     writer |> @lib.async_write_bool(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandAddSubscriptionToTxn with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAddSubscriptionToTxn with Eq::{not_equal}
+
+///|
+pub extend CommandAddSubscriptionToTxn with Debug::{to_repr}
+
+///|
+pub extend CommandAddSubscriptionToTxn with Default::{default}
+
+///|
+pub extend CommandAddSubscriptionToTxn with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAddSubscriptionToTxn with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandAddSubscriptionToTxn with @lib.Write::{write}
+
+///|
+pub extend CommandAddSubscriptionToTxn with ToJson::{to_json}
+
+///|
+pub extend CommandAddSubscriptionToTxn with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandAddSubscriptionToTxnResponse {
@@ -18097,6 +21092,38 @@ pub impl @lib.AsyncWrite for CommandAddSubscriptionToTxnResponse with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandAddSubscriptionToTxnResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandAddSubscriptionToTxnResponse with Eq::{not_equal}
+
+///|
+pub extend CommandAddSubscriptionToTxnResponse with Debug::{to_repr}
+
+///|
+pub extend CommandAddSubscriptionToTxnResponse with Default::{default}
+
+///|
+pub extend CommandAddSubscriptionToTxnResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandAddSubscriptionToTxnResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandAddSubscriptionToTxnResponse with @lib.Write::{write}
+
+///|
+pub extend CommandAddSubscriptionToTxnResponse with ToJson::{to_json}
+
+///|
+pub extend CommandAddSubscriptionToTxnResponse with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandEndTxn {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
@@ -18301,6 +21328,35 @@ pub impl @lib.AsyncWrite for CommandEndTxn with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandEndTxn with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandEndTxn with Eq::{not_equal}
+
+///|
+pub extend CommandEndTxn with Debug::{to_repr}
+
+///|
+pub extend CommandEndTxn with Default::{default}
+
+///|
+pub extend CommandEndTxn with @lib.Sized::{size_of}
+
+///|
+pub extend CommandEndTxn with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandEndTxn with @lib.Write::{write}
+
+///|
+pub extend CommandEndTxn with ToJson::{to_json}
+
+///|
+pub extend CommandEndTxn with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandEndTxnResponse {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
@@ -18501,6 +21557,35 @@ pub impl @lib.AsyncWrite for CommandEndTxnResponse with fn write(
     writer |> @lib.async_write_string(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandEndTxnResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandEndTxnResponse with Eq::{not_equal}
+
+///|
+pub extend CommandEndTxnResponse with Debug::{to_repr}
+
+///|
+pub extend CommandEndTxnResponse with Default::{default}
+
+///|
+pub extend CommandEndTxnResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandEndTxnResponse with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandEndTxnResponse with @lib.Write::{write}
+
+///|
+pub extend CommandEndTxnResponse with ToJson::{to_json}
+
+///|
+pub extend CommandEndTxnResponse with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandEndTxnOnPartition {
@@ -18739,6 +21824,35 @@ pub impl @lib.AsyncWrite for CommandEndTxnOnPartition with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandEndTxnOnPartition with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandEndTxnOnPartition with Eq::{not_equal}
+
+///|
+pub extend CommandEndTxnOnPartition with Debug::{to_repr}
+
+///|
+pub extend CommandEndTxnOnPartition with Default::{default}
+
+///|
+pub extend CommandEndTxnOnPartition with @lib.Sized::{size_of}
+
+///|
+pub extend CommandEndTxnOnPartition with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandEndTxnOnPartition with @lib.Write::{write}
+
+///|
+pub extend CommandEndTxnOnPartition with ToJson::{to_json}
+
+///|
+pub extend CommandEndTxnOnPartition with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandEndTxnOnPartitionResponse {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
@@ -18939,6 +22053,38 @@ pub impl @lib.AsyncWrite for CommandEndTxnOnPartitionResponse with fn write(
     writer |> @lib.async_write_string(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandEndTxnOnPartitionResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandEndTxnOnPartitionResponse with Eq::{not_equal}
+
+///|
+pub extend CommandEndTxnOnPartitionResponse with Debug::{to_repr}
+
+///|
+pub extend CommandEndTxnOnPartitionResponse with Default::{default}
+
+///|
+pub extend CommandEndTxnOnPartitionResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandEndTxnOnPartitionResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandEndTxnOnPartitionResponse with @lib.Write::{write}
+
+///|
+pub extend CommandEndTxnOnPartitionResponse with ToJson::{to_json}
+
+///|
+pub extend CommandEndTxnOnPartitionResponse with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct CommandEndTxnOnSubscription {
@@ -19182,6 +22328,35 @@ pub impl @lib.AsyncWrite for CommandEndTxnOnSubscription with fn write(
 }
 
 ///|
+#deprecated("Use `==` instead")
+pub extend CommandEndTxnOnSubscription with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandEndTxnOnSubscription with Eq::{not_equal}
+
+///|
+pub extend CommandEndTxnOnSubscription with Debug::{to_repr}
+
+///|
+pub extend CommandEndTxnOnSubscription with Default::{default}
+
+///|
+pub extend CommandEndTxnOnSubscription with @lib.Sized::{size_of}
+
+///|
+pub extend CommandEndTxnOnSubscription with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend CommandEndTxnOnSubscription with @lib.Write::{write}
+
+///|
+pub extend CommandEndTxnOnSubscription with ToJson::{to_json}
+
+///|
+pub extend CommandEndTxnOnSubscription with @json.FromJson::{from_json}
+
+///|
 pub(all) struct CommandEndTxnOnSubscriptionResponse {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
@@ -19384,6 +22559,38 @@ pub impl @lib.AsyncWrite for CommandEndTxnOnSubscriptionResponse with fn write(
     writer |> @lib.async_write_string(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend CommandEndTxnOnSubscriptionResponse with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend CommandEndTxnOnSubscriptionResponse with Eq::{not_equal}
+
+///|
+pub extend CommandEndTxnOnSubscriptionResponse with Debug::{to_repr}
+
+///|
+pub extend CommandEndTxnOnSubscriptionResponse with Default::{default}
+
+///|
+pub extend CommandEndTxnOnSubscriptionResponse with @lib.Sized::{size_of}
+
+///|
+pub extend CommandEndTxnOnSubscriptionResponse with @lib.Read::{
+  read,
+  read_with_limit,
+}
+
+///|
+pub extend CommandEndTxnOnSubscriptionResponse with @lib.Write::{write}
+
+///|
+pub extend CommandEndTxnOnSubscriptionResponse with ToJson::{to_json}
+
+///|
+pub extend CommandEndTxnOnSubscriptionResponse with @json.FromJson::{from_json}
 
 ///|
 pub(all) enum BaseCommand_Type {
@@ -19896,6 +23103,29 @@ pub impl ToJson for BaseCommand_Type with fn to_json(self : BaseCommand_Type) ->
     BaseCommand_Type::SCALABLE_TOPIC_UNSUBSCRIBE => "SCALABLE_TOPIC_UNSUBSCRIBE"
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend BaseCommand_Type with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend BaseCommand_Type with Eq::{not_equal}
+
+///|
+pub extend BaseCommand_Type with Debug::{to_repr}
+
+///|
+pub extend BaseCommand_Type with Default::{default}
+
+///|
+pub extend BaseCommand_Type with @lib.Sized::{size_of}
+
+///|
+pub extend BaseCommand_Type with ToJson::{to_json}
+
+///|
+pub extend BaseCommand_Type with @json.FromJson::{from_json}
 
 ///|
 pub(all) struct BaseCommand {
@@ -22041,3 +25271,32 @@ pub impl @lib.AsyncWrite for BaseCommand with fn write(
     writer |> @lib.async_write_message(v)
   }
 }
+
+///|
+#deprecated("Use `==` instead")
+pub extend BaseCommand with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead")
+pub extend BaseCommand with Eq::{not_equal}
+
+///|
+pub extend BaseCommand with Debug::{to_repr}
+
+///|
+pub extend BaseCommand with Default::{default}
+
+///|
+pub extend BaseCommand with @lib.Sized::{size_of}
+
+///|
+pub extend BaseCommand with @lib.Read::{read, read_with_limit}
+
+///|
+pub extend BaseCommand with @lib.Write::{write}
+
+///|
+pub extend BaseCommand with ToJson::{to_json}
+
+///|
+pub extend BaseCommand with @json.FromJson::{from_json}

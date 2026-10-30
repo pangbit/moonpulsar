@@ -5,7 +5,7 @@
 /// then hand over to `on_send` for each SEND frame.
 async fn expect_producer(
   peer : MockPeer,
-  producer_name? : String = "mock-producer",
+  producer_name~ : String = "mock-producer",
   last_sequence_id? : Int64,
 ) -> Unit {
   let frame = peer.next()

@@ -7,7 +7,7 @@ async fn athenz_certificate_get(
   certificate_file : String,
   private_key_file : String,
   ca_pem_file : String?,
-) -> (Int, Bytes) {
+) -> (Int32, Bytes) {
   @async.with_timeout(10000, async fn() {
     guard url.split_once("https://") is Some(("", rest)) &&
       rest.split_once("/") is Some((authority, path_tail)) &&
@@ -62,7 +62,7 @@ async fn athenz_certificate_get(
     let status = @string.parse_int(code_text) catch {
       _ => raise AuthenticationFailed("invalid Athenz ZTS HTTP status")
     }
-    let mut content_length : Int? = None
+    let mut content_length : Int32? = None
     let mut chunked = false
     for line in header.split("\r\n") {
       if line.split_once(":") is Some((name, value)) {

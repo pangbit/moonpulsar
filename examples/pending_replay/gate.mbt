@@ -12,7 +12,7 @@ enum RelayTag {
 ///|
 enum RelayDecision {
   Forward(Bytes, RelayTag)
-  Quarantine(Bytes, Int)
+  Quarantine(Bytes, Int32)
   Drop(RelayTag)
 } derive(Debug)
 
@@ -21,16 +21,16 @@ struct RelayGate {
   frontend : String
   payload : Bytes
   producer_name : String
-  epochs : Map[Int, Int]
-  live : Map[Int, Bool]
-  mut next_connection : Int
-  mut old_live : Int
+  epochs : Map[Int32, Int32]
+  live : Map[Int32, Bool]
+  mut next_connection : Int32
+  mut old_live : Int32
   mut target : (UInt64, UInt64)?
-  mut target_connection : Int?
-  mut replay_connection : Int?
+  mut target_connection : Int32?
+  mut replay_connection : Int32?
   mut original : Bytes?
-  mut held_count : Int
-  mut held_persisted : Int
+  mut held_count : Int32
+  mut held_persisted : Int32
   mut fault_armed : Bool
   mut old_gone : Bool
   mut replacement_granted : Bool
@@ -73,7 +73,7 @@ fn RelayGate::admit_backend(self : RelayGate) -> Bool {
 }
 
 ///|
-fn RelayGate::open(self : RelayGate) -> Int raise {
+fn RelayGate::open(self : RelayGate) -> Int32 raise {
   guard self.admit_backend() &&
     self.live.length() < 8 &&
     self.next_connection < 128 else {
@@ -93,7 +93,7 @@ fn RelayGate::open(self : RelayGate) -> Int raise {
 }
 
 ///|
-fn RelayGate::retire(self : RelayGate, id : Int) -> Unit {
+fn RelayGate::retire(self : RelayGate, id : Int32) -> Unit {
   if self.live.contains(id) {
     self.live.remove(id)
     if self.epochs.get(id) == Some(1) {
@@ -105,7 +105,7 @@ fn RelayGate::retire(self : RelayGate, id : Int) -> Unit {
 ///|
 fn RelayGate::client_frame(
   self : RelayGate,
-  id : Int,
+  id : Int32,
   raw : Bytes,
 ) -> RelayDecision raise {
   guard self.epochs.get(id) is Some(epoch) else {
@@ -159,7 +159,7 @@ fn RelayGate::client_frame(
 ///|
 fn RelayGate::broker_frame(
   self : RelayGate,
-  id : Int,
+  id : Int32,
   raw : Bytes,
 ) -> RelayDecision raise {
   guard self.epochs.get(id) is Some(epoch) else {
@@ -215,7 +215,7 @@ fn RelayGate::broker_frame(
 ///|
 fn RelayGate::persisted_old_receipt(
   self : RelayGate,
-  number : Int,
+  number : Int32,
 ) -> Unit raise {
   guard number == self.held_persisted + 1 && number <= self.held_count else {
     raise FixtureError::Rejected("old receipt persistence order mismatch")
@@ -225,15 +225,15 @@ fn RelayGate::persisted_old_receipt(
 
 ///|
 struct AttemptState {
-  mut attempts : Int
-  mut waits : Int
+  mut attempts : Int32
+  mut waits : Int32
   mut completed : Bool
   mut success : Bool
-  mut received : Int
-  mut acks : Int
-  mut producer_reconnects : Int
-  mut consumer_reconnects : Int
-  mut terminal_reconnect_errors : Int
+  mut received : Int32
+  mut acks : Int32
+  mut producer_reconnects : Int32
+  mut consumer_reconnects : Int32
+  mut terminal_reconnect_errors : Int32
 }
 
 ///|
@@ -258,7 +258,7 @@ fn AttemptState::pending(self : AttemptState) -> Bool {
 
 ///|
 struct CommandLedger {
-  mut index : Int
+  mut index : Int32
   mut last : String
   challenges : Map[String, Bool]
 }
@@ -271,7 +271,7 @@ fn CommandLedger::new() -> CommandLedger {
 ///|
 fn CommandLedger::apply(
   self : CommandLedger,
-  index : Int,
+  index : Int32,
   command : String,
   challenge : String,
   gate : RelayGate,

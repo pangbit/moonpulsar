@@ -222,7 +222,7 @@ async test "finite producer reconnect policy fails pending sends and closes" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let attempts : Ref[Int] = { val: 0, }
+    let attempts : Ref[Int32] = { val: 0, }
     let policy : RetryPolicy = {
       max_retries: 0,
       initial_backoff_ms: 1,
@@ -269,7 +269,7 @@ async test "finite consumer reconnect policy closes after exhausted attempt" {
     })
     let manager = ConnectionManager::new(group)
     let conn = manager.get(addr)
-    let attempts : Ref[Int] = { val: 0, }
+    let attempts : Ref[Int32] = { val: 0, }
     let policy : RetryPolicy = {
       max_retries: 0,
       initial_backoff_ms: 1,

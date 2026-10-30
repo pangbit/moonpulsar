@@ -4,7 +4,7 @@
 async test "producer discovers an added partition and routes to it" {
   @async.with_task_group(async fn(group) {
     let topic = "persistent://public/default/growing-producer"
-    let count : Ref[Int] = { val: 1, }
+    let count : Ref[Int32] = { val: 1, }
     let routed : @aqueue.Queue[String] = @aqueue.Queue::Queue(
       kind=@aqueue.Kind::Unbounded,
     )
@@ -66,7 +66,7 @@ async test "producer discovers an added partition and routes to it" {
 async test "consumer discovers an added partition without recreating it" {
   @async.with_task_group(async fn(group) {
     let topic = "persistent://public/default/growing-consumer"
-    let count : Ref[Int] = { val: 1, }
+    let count : Ref[Int32] = { val: 1, }
     let addr = start_partitioned_broker(
       group,
       1,
@@ -117,7 +117,7 @@ async test "consumer discovers an added partition without recreating it" {
 async test "reader discovers an added partition without recreating it" {
   @async.with_task_group(async fn(group) {
     let topic = "persistent://public/default/growing-reader"
-    let count : Ref[Int] = { val: 1, }
+    let count : Ref[Int32] = { val: 1, }
     let addr = start_partitioned_broker(
       group,
       1,

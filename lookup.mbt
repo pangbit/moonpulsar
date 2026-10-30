@@ -3,7 +3,7 @@
 
 ///|
 /// Maximum number of lookup redirects followed.
-const MAX_LOOKUP_REDIRECTS : Int = 20
+const MAX_LOOKUP_REDIRECTS : Int32 = 20
 
 ///|
 /// Topic kinds included in namespace discovery.
@@ -45,7 +45,7 @@ pub async fn lookup_topic(
   manager : ConnectionManager,
   addr : String,
   topic : String,
-  authoritative? : Bool = false,
+  authoritative~ : Bool = false,
 ) -> Connection {
   let tls = manager.uses_tls()
   let mut current = addr
@@ -115,7 +115,7 @@ pub async fn get_partition_count(
   manager : ConnectionManager,
   addr : String,
   topic : String,
-) -> Int {
+) -> Int32 {
   let conn = manager.get(addr)
   let req = @proto.CommandPartitionedTopicMetadata::default()
   req.topic = topic
@@ -148,7 +148,7 @@ pub async fn get_topics_of_namespace(
   addr : String,
   ns : String,
   pattern? : String,
-  mode? : NamespaceTopicMode = Persistent,
+  mode~ : NamespaceTopicMode = Persistent,
 ) -> Array[String] {
   let conn = manager.get(addr)
   let req = @proto.CommandGetTopicsOfNamespace::default()

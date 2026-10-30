@@ -1,5 +1,5 @@
 ///|
-fn send_record(publish_time? : UInt64 = 0UL) -> Bytes raise {
+fn send_record(publish_time~ : UInt64 = 0UL) -> Bytes raise {
   let command = @proto.BaseCommand::default()
   command.type_ = @proto.BaseCommand_Type::SEND
   let send = @proto.CommandSend::default()
@@ -15,8 +15,8 @@ fn send_record(publish_time? : UInt64 = 0UL) -> Bytes raise {
 
 ///|
 fn receipt_record(
-  producer? : UInt64 = 7UL,
-  sequence? : UInt64 = 23UL,
+  producer~ : UInt64 = 7UL,
+  sequence~ : UInt64 = 23UL,
 ) -> Bytes raise {
   let command = @proto.BaseCommand::default()
   command.type_ = @proto.BaseCommand_Type::SEND_RECEIPT
@@ -48,7 +48,7 @@ fn expect_rejected(action : () -> Unit raise) -> Unit raise {
 }
 
 ///|
-fn replacement_gate() -> (RelayGate, Int, CommandLedger, AttemptState) raise {
+fn replacement_gate() -> (RelayGate, Int32, CommandLedger, AttemptState) raise {
   let gate = new_gate()
   let old = gate.open()
   ignore(gate.client_frame(old, send_record()))

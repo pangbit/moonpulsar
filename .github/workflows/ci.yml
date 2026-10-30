@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  MOONBIT_INSTALL_VERSION: "0.10.14+7d59c7ec9"
+  MOONBIT_INSTALL_VERSION: "0.10.18+6c83a7f62"
 
 jobs:
   native-dependencies:
@@ -147,10 +147,15 @@ jobs:
         run: moon check --target native
 
       - name: Run native tests
-        run: moon test --target native
+        run: |
+          # Bound compiler stack for the large whitebox IR; tests keep the runner default.
+          prlimit --stack=33554432:33554432 -- moon test --target native --build-only
+          moon test --target native
 
       - name: Run release tests
-        run: moon test --release --target native
+        run: |
+          prlimit --stack=33554432:33554432 -- moon test --release --target native --build-only
+          moon test --release --target native
 
       - name: Build performance benchmarks
         run: moon bench --release --target native --build-only -p pangbit/moonpulsar -f performance_wbtest.mbt

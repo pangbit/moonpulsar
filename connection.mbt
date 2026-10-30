@@ -3,7 +3,7 @@
 
 ///|
 /// Protocol version advertised in the CONNECT command.
-const PROTOCOL_VERSION : Int = 21
+const PROTOCOL_VERSION : Int32 = 21
 
 ///|
 // Shared by CONNECT and AUTH_RESPONSE; checked against moon.mod in regression.
@@ -11,11 +11,11 @@ const CLIENT_VERSION : String = "moonpulsar 0.1.2"
 
 ///|
 /// Default keepalive probe interval and response/write timeout.
-const KEEPALIVE_INTERVAL_MS : Int = 30000
+const KEEPALIVE_INTERVAL_MS : Int32 = 30000
 
 ///|
 /// Default timeout for request/response commands.
-const DEFAULT_REQUEST_TIMEOUT_MS : Int = 60000
+const DEFAULT_REQUEST_TIMEOUT_MS : Int32 = 60000
 
 ///|
 struct PendingRequest {
@@ -39,7 +39,7 @@ pub struct Connection {
   /// producer_id -> handler for SEND_RECEIPT / SEND_ERROR / CLOSE_PRODUCER
   priv producer_handlers : Map[UInt64, (@proto.BaseCommand) -> Unit]
   /// Coordinator handles keep pooled connections alive between requests.
-  priv mut coordinator_leases : Int
+  priv mut coordinator_leases : Int32
   /// notified once when the connection breaks
   priv close_handlers : Map[UInt64, (Error?) -> Unit]
   priv mut next_close_handler_id : UInt64
@@ -49,9 +49,9 @@ pub struct Connection {
   priv stop : @aqueue.Queue[Unit]
   priv write_mu : @async.Mutex
   priv mut remote_version : String
-  priv mut remote_protocol_version : Int
-  priv mut max_message_size : Int?
-  priv request_timeout_ms : Int
+  priv mut remote_protocol_version : Int32
+  priv mut max_message_size : Int32?
+  priv request_timeout_ms : Int32
   priv memory_limiter : ClientMemoryLimiter?
 }
 
@@ -72,8 +72,8 @@ pub async fn Connection::connect(
   addr : String,
   auth? : AuthData,
   auth_provider? : () -> AuthData,
-  tls? : Bool = false,
-  tls_insecure? : Bool = false,
+  tls~ : Bool = false,
+  tls_insecure~ : Bool = false,
   tls_trust? : @tls.TrustedRoot,
   tls_identity? : TlsIdentity,
   tls_identity_provider? : async () -> TlsIdentity,
@@ -81,9 +81,9 @@ pub async fn Connection::connect(
   tls_max_version? : TlsVersion,
   tls_cipher_list? : String,
   tls13_ciphersuites? : String,
-  keepalive_interval_ms? : Int = KEEPALIVE_INTERVAL_MS,
-  timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
-  connection_timeout_ms? : Int = 10000,
+  keepalive_interval_ms~ : Int32 = KEEPALIVE_INTERVAL_MS,
+  timeout_ms~ : Int32 = DEFAULT_REQUEST_TIMEOUT_MS,
+  connection_timeout_ms~ : Int32 = 10000,
   async_auth_provider? : async () -> AuthData,
 ) -> Connection {
   Connection::connect_with_memory(
@@ -113,9 +113,9 @@ async fn Connection::connect_with_memory(
   addr : String,
   auth? : AuthData,
   auth_provider? : () -> AuthData,
-  tls? : Bool = false,
+  tls~ : Bool = false,
   /// skip certificate verification (self-signed / testing only)
-  tls_insecure? : Bool = false,
+  tls_insecure~ : Bool = false,
   tls_trust? : @tls.TrustedRoot,
   tls_identity? : TlsIdentity,
   tls_identity_provider? : async () -> TlsIdentity,
@@ -123,9 +123,9 @@ async fn Connection::connect_with_memory(
   tls_max_version? : TlsVersion,
   tls_cipher_list? : String,
   tls13_ciphersuites? : String,
-  keepalive_interval_ms? : Int = KEEPALIVE_INTERVAL_MS,
-  timeout_ms? : Int = DEFAULT_REQUEST_TIMEOUT_MS,
-  connection_timeout_ms? : Int = 10000,
+  keepalive_interval_ms~ : Int32 = KEEPALIVE_INTERVAL_MS,
+  timeout_ms~ : Int32 = DEFAULT_REQUEST_TIMEOUT_MS,
+  connection_timeout_ms~ : Int32 = 10000,
   async_auth_provider? : async () -> AuthData,
   memory_limiter? : ClientMemoryLimiter,
 ) -> Connection {
@@ -498,7 +498,7 @@ fn request_id_of(cmd : @proto.BaseCommand) -> UInt64? {
 pub async fn Connection::request(
   self : Connection,
   cmd : @proto.BaseCommand,
-  timeout_ms? : Int,
+  timeout_ms? : Int32,
 ) -> @proto.BaseCommand {
   let timeout_ms = timeout_ms.unwrap_or(self.request_timeout_ms)
   guard request_id_of(cmd) is Some(id) else {
@@ -609,13 +609,13 @@ pub fn Connection::server_version(self : Connection) -> String {
 
 ///|
 /// Protocol version reported by the broker during the handshake.
-pub fn Connection::remote_protocol_version(self : Connection) -> Int {
+pub fn Connection::remote_protocol_version(self : Connection) -> Int32 {
   self.remote_protocol_version
 }
 
 ///|
 /// Maximum frame payload announced by the broker, when available.
-pub fn Connection::max_message_size(self : Connection) -> Int? {
+pub fn Connection::max_message_size(self : Connection) -> Int32? {
   self.max_message_size
 }
 
@@ -659,7 +659,7 @@ async fn Connection::reader_loop(self : Connection) -> Unit {
 ///|
 async fn Connection::keepalive_loop(
   self : Connection,
-  interval_ms : Int,
+  interval_ms : Int32,
 ) -> Unit {
   // The stop task interrupts both the timer and a queued/blocked PING write.
   // Structured cancellation waits for the losing task to release its write lock.
@@ -698,7 +698,7 @@ async fn Connection::keepalive_loop(
 
 ///|
 /// Split "host:port" into (host, port); a missing port defaults to 6650.
-pub fn split_host_port(addr : String) -> (String, Int) raise PulsarError {
+pub fn split_host_port(addr : String) -> (String, Int32) raise PulsarError {
   match addr.split(":").collect() {
     [host, port] =>
       (

@@ -38,7 +38,7 @@ pub fn SchemaCodec::bytes() -> SchemaCodec[Bytes] {
 
 ///|
 /// INT8 values use `Int` because MoonBit has no signed eight-bit scalar.
-pub fn SchemaCodec::int8() -> SchemaCodec[Int] {
+pub fn SchemaCodec::int8() -> SchemaCodec[Int32] {
   SchemaCodec::new(
     SchemaInfo::int8(),
     value => {
@@ -64,7 +64,7 @@ pub fn SchemaCodec::int8() -> SchemaCodec[Int] {
 ///|
 /// The official Go client uses little-endian integers; pass
 /// `little_endian=true` to exchange INT16 values with it.
-pub fn SchemaCodec::int16(little_endian? : Bool = false) -> SchemaCodec[Int] {
+pub fn SchemaCodec::int16(little_endian~ : Bool = false) -> SchemaCodec[Int32] {
   SchemaCodec::new(
     SchemaInfo::int16(),
     value => {
@@ -98,7 +98,7 @@ pub fn SchemaCodec::int16(little_endian? : Bool = false) -> SchemaCodec[Int] {
 ///|
 /// The official Go client uses little-endian integers; pass
 /// `little_endian=true` to exchange INT32 values with it.
-pub fn SchemaCodec::int32(little_endian? : Bool = false) -> SchemaCodec[Int] {
+pub fn SchemaCodec::int32(little_endian~ : Bool = false) -> SchemaCodec[Int32] {
   SchemaCodec::new(
     SchemaInfo::int32(),
     fn(value) {
@@ -132,7 +132,7 @@ pub fn SchemaCodec::int32(little_endian? : Bool = false) -> SchemaCodec[Int] {
 ///|
 /// The official Go client uses little-endian integers; pass
 /// `little_endian=true` to exchange INT64 values with it.
-pub fn SchemaCodec::int64(little_endian? : Bool = false) -> SchemaCodec[Int64] {
+pub fn SchemaCodec::int64(little_endian~ : Bool = false) -> SchemaCodec[Int64] {
   SchemaCodec::new(
     SchemaInfo::int64(),
     fn(value) {

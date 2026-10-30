@@ -5,11 +5,11 @@
 ///|
 priv struct FlushBits {
   data : Bytes
-  mut pos : Int
+  mut pos : Int32
 }
 
 ///|
-fn FlushBits::read(self : FlushBits, count : Int) -> Int raise PulsarError {
+fn FlushBits::read(self : FlushBits, count : Int32) -> Int32 raise PulsarError {
   guard count <= self.data.length() * 8 - self.pos else {
     raise InvalidFrame("truncated zlib sync flush")
   }
@@ -24,8 +24,8 @@ fn FlushBits::read(self : FlushBits, count : Int) -> Int raise PulsarError {
 
 ///|
 priv struct FlushCodes {
-  counts : FixedArray[Int]
-  symbols : Array[Int]
+  counts : FixedArray[Int32]
+  symbols : Array[Int32]
 }
 
 ///|
@@ -55,7 +55,7 @@ let flush_fixed_distances : FlushCodes = {
 }
 
 ///|
-fn FlushCodes::new(lengths : Array[Int]) -> FlushCodes raise PulsarError {
+fn FlushCodes::new(lengths : Array[Int32]) -> FlushCodes raise PulsarError {
   let counts = FixedArray::make(16, 0)
   for n in lengths {
     counts[n] += 1
@@ -67,7 +67,7 @@ fn FlushCodes::new(lengths : Array[Int]) -> FlushCodes raise PulsarError {
       raise InvalidFrame("oversubscribed DEFLATE code")
     }
   }
-  let symbols : Array[Int] = []
+  let symbols : Array[Int32] = []
   for width in 1..<16 {
     for symbol, n in lengths {
       if n == width {
@@ -82,7 +82,7 @@ fn FlushCodes::new(lengths : Array[Int]) -> FlushCodes raise PulsarError {
 fn FlushCodes::decode(
   self : FlushCodes,
   bits : FlushBits,
-) -> Int raise PulsarError {
+) -> Int32 raise PulsarError {
   let mut code = 0
   let mut first = 0
   let mut index = 0
@@ -101,7 +101,7 @@ fn FlushCodes::decode(
 ///|
 fn flush_tables(
   bits : FlushBits,
-  kind : Int,
+  kind : Int32,
 ) -> (FlushCodes, FlushCodes) raise PulsarError {
   if kind == 1 {
     return (flush_fixed_literals, flush_fixed_distances)
@@ -118,7 +118,7 @@ fn flush_tables(
     lengths[order[i]] = bits.read(3)
   }
   let codes = FlushCodes::new(lengths)
-  let all : Array[Int] = []
+  let all : Array[Int32] = []
   while all.length() < literal_count + distance_count {
     let symbol = codes.decode(bits)
     if symbol < 16 {
@@ -154,7 +154,10 @@ fn flush_tables(
 }
 
 ///|
-fn zlib_flush_final_bit(payload : Bytes, size : Int) -> Int raise PulsarError {
+fn zlib_flush_final_bit(
+  payload : Bytes,
+  size : Int32,
+) -> Int32 raise PulsarError {
   guard payload.length() >= 7 && payload.length() <= 0x0fffffff else {
     raise InvalidFrame("invalid zlib sync flush size")
   }
@@ -239,7 +242,7 @@ fn zlib_flush_final_bit(payload : Bytes, size : Int) -> Int raise PulsarError {
 }
 
 ///|
-fn zlib_sync_flush(payload : Bytes, size : Int) -> Bytes raise PulsarError {
+fn zlib_sync_flush(payload : Bytes, size : Int32) -> Bytes raise PulsarError {
   guard size > 0 && size <= MAX_CHUNKED_MESSAGE_BYTES else {
     raise InvalidFrame("invalid zlib output size")
   }

@@ -8,7 +8,9 @@ Run commands from the repository root. `moon test --target native` runs local te
 
 Use a MoonBit toolchain supporting the native backend, a C compiler and the
 system SDK/libc. See the [README](../README.md) for TLS/ECIES runtime requirements.
-Run `moon update` after cloning. For a release candidate, run:
+Run `moon update` after cloning. On Linux, first compile the test executables
+with a bounded 32 MiB compiler stack as described below. For a release candidate,
+run:
 
 ```sh
 moon check --target native --deny-warn
@@ -25,6 +27,34 @@ git diff --check
 Use the candidate version's ZIP filename when preparing a different release.
 Real-Broker scripts may create, restart or delete isolated containers; read their
 instructions and run them only in an authorized test environment.
+
+### Linux compiler stack
+
+With moonc `0.10.18+6c83a7f62`, the full native debug whitebox IR reproduced a
+`link-core` stack overflow at an 8 MiB process stack and compiled successfully
+at 32 MiB using the same compiler, IR and arguments. This establishes stack
+sensitivity for that input, not a minimum stack requirement for every build or
+a confirmed regression against an older compiler.
+
+CI applies the same finite compilation budget to debug and release test builds:
+
+```sh
+prlimit --stack=33554432:33554432 -- moon test --target native --build-only
+moon test --target native
+prlimit --stack=33554432:33554432 -- moon test --release --target native --build-only
+moon test --release --target native
+```
+
+`prlimit` changes only the build subprocess and its children. The following
+test command reuses those executables with the normal process stack, preserving
+runtime stack checks. Keep the target directory and build flags identical in
+each pair. No machine-wide or persistent limit change is needed. Local Linux
+validation completed the debug suite with **398 reported passes** at an enforced
+8 MiB stack; six opt-in live-Broker bodies returned without their environment
+inputs. Release test executables also built with the finite compiler stack;
+release tests were not executed. These are SDK compatibility results. This
+workaround does not alter the protocol, generated bindings, test selection or
+assertions.
 
 ## Maintenance
 
@@ -63,11 +93,21 @@ successful refresh and wrong-response rejection.
 
 GitHub Actions runs on Linux (Ubuntu 24.04) and performs native checks, debug and release tests, formatting, generated-interface verification, documentation generation, and package creation on pushes and pull requests. The checked-in localhost TLS key and certificate are public, disposable test fixtures; never use them for a real broker. They are excluded from the Mooncakes package, along with tests and examples.
 
-The protocol layer in `proto/` is generated from `proto/PulsarApi.proto` (vendored from apache/pulsar) with `protoc-gen-mbt`:
+The protocol layer in `proto/` is generated from `proto/PulsarApi.proto` (vendored from apache/pulsar) with `protoc-gen-mbt@0.3.0` and the SDK selected in the README. The recorded regeneration used `protoc 29.3`. Generate into a separate directory so the generator's example module metadata does not replace the library configuration:
 
 ```sh
-protoc --mbt_out=. --mbt_opt=project_name=proto proto/PulsarApi.proto
+mkdir -p _build/protocol-gen
+moon install moonbitlang/protoc-gen-mbt@0.3.0 --bin _build/protocol-gen/bin
+protoc --plugin=protoc-gen-mbt=_build/protocol-gen/bin/protoc-gen-mbt --mbt_out=_build/protocol-gen --mbt_opt=project_name=proto proto/PulsarApi.proto
+cp _build/protocol-gen/proto/src/pulsar/proto/top.mbt proto/top.mbt
+cp _build/protocol-gen/proto/src/pulsar/proto/moon.pkg proto/moon.pkg
+moon fmt proto
+moon info
 ```
+
+Review the generated source and interfaces. The generator emits explicit trait
+method extensions; do not suppress warnings or edit the generated bindings to
+hide compatibility errors. Protocol generation is not needed for normal builds.
 
 ## Recorded real-Broker validation
 

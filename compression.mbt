@@ -57,7 +57,7 @@ pub fn compress(
 pub fn decompress(
   codec : CompressionCodec,
   payload : Bytes,
-  uncompressed_size? : Int,
+  uncompressed_size? : Int32,
 ) -> Bytes raise PulsarError {
   match codec {
     None => payload

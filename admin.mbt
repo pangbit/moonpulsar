@@ -64,7 +64,7 @@ async fn Admin::request(
   request_method : @http.RequestMethod,
   path : String,
   body? : Bytes,
-) -> (Int, Bytes) {
+) -> (Int32, Bytes) {
   let headers = Map([])
   if body is Some(_) {
     headers[@http.CaseInsensitiveString("Content-Type")] = "application/json"
@@ -116,7 +116,7 @@ pub async fn Admin::create_topic(self : Admin, topic : String) -> Unit {
 pub async fn Admin::create_partitioned_topic(
   self : Admin,
   topic : String,
-  partitions : Int,
+  partitions : Int32,
 ) -> Unit {
   guard partitions > 0 else {
     raise LookupFailed("partition count must be positive")
@@ -136,7 +136,7 @@ pub async fn Admin::create_partitioned_topic(
 pub async fn Admin::update_partitioned_topic(
   self : Admin,
   topic : String,
-  partitions : Int,
+  partitions : Int32,
 ) -> Unit {
   guard partitions > 0 else {
     raise LookupFailed("partition count must be positive")
@@ -153,7 +153,7 @@ pub async fn Admin::update_partitioned_topic(
 
 ///|
 /// Return the partition count, or zero for a non-partitioned topic.
-pub async fn Admin::partition_count(self : Admin, topic : String) -> Int {
+pub async fn Admin::partition_count(self : Admin, topic : String) -> Int32 {
   let name = TopicName::parse(topic)
   let (_, payload) = self.request(Get, topic_path(name) + "/partitions")
   let text = @utf8.decode(payload) catch {
@@ -176,7 +176,7 @@ pub async fn Admin::partition_count(self : Admin, topic : String) -> Int {
 pub async fn Admin::delete_partitioned_topic(
   self : Admin,
   topic : String,
-  force? : Bool = false,
+  force~ : Bool = false,
 ) -> Unit {
   let name = TopicName::parse(topic)
   let force_q = if force { "?force=true" } else { "" }
@@ -188,7 +188,7 @@ pub async fn Admin::delete_partitioned_topic(
 pub async fn Admin::delete_topic(
   self : Admin,
   topic : String,
-  force? : Bool = false,
+  force~ : Bool = false,
 ) -> Unit {
   let name = TopicName::parse(topic)
   let force_q = if force { "?force=true" } else { "" }
@@ -222,7 +222,7 @@ pub async fn Admin::list_topics(
   self : Admin,
   tenant : String,
   ns : String,
-  domain? : String = "persistent",
+  domain~ : String = "persistent",
 ) -> Array[String] {
   guard domain == "persistent" || domain == "non-persistent" else {
     raise LookupFailed("invalid topic domain: \{domain}")
@@ -240,7 +240,7 @@ pub async fn Admin::list_partitioned_topics(
   self : Admin,
   tenant : String,
   ns : String,
-  domain? : String = "persistent",
+  domain~ : String = "persistent",
 ) -> Array[String] {
   guard domain == "persistent" || domain == "non-persistent" else {
     raise LookupFailed("invalid topic domain: \{domain}")
@@ -299,7 +299,7 @@ pub async fn Admin::update_topic_properties(
     self.request(
       Put,
       topic_path(name) + "/properties",
-      body=@utf8.encode(properties.to_json().stringify()),
+      body=@utf8.encode(Json(properties).stringify()),
     ),
   )
 }
@@ -327,7 +327,7 @@ pub async fn Admin::remove_topic_property(
 pub async fn Admin::partitioned_topic_stats(
   self : Admin,
   topic : String,
-  per_partition? : Bool = false,
+  per_partition~ : Bool = false,
 ) -> Json {
   let name = TopicName::parse(topic)
   let detail = if per_partition { "true" } else { "false" }
@@ -376,7 +376,7 @@ pub async fn Admin::delete_subscription(
   self : Admin,
   topic : String,
   subscription : String,
-  force? : Bool = false,
+  force~ : Bool = false,
 ) -> Unit {
   let name = TopicName::parse(topic)
   let force_q = if force { "?force=true" } else { "" }
@@ -389,7 +389,7 @@ pub async fn Admin::create_subscription(
   self : Admin,
   topic : String,
   subscription : String,
-  initial_position? : SubscriptionInitialPosition = Latest,
+  initial_position~ : SubscriptionInitialPosition = Latest,
 ) -> Unit {
   let name = TopicName::parse(topic)
   let cursor = match initial_position {
@@ -406,7 +406,7 @@ pub async fn Admin::skip_messages(
   self : Admin,
   topic : String,
   subscription : String,
-  count : Int,
+  count : Int32,
 ) -> Unit {
   guard count > 0 else { raise LookupFailed("skip count must be positive") }
   let name = TopicName::parse(topic)
@@ -434,7 +434,7 @@ pub async fn Admin::expire_messages(
   self : Admin,
   topic : String,
   subscription : String,
-  older_than_seconds : Int,
+  older_than_seconds : Int32,
 ) -> Unit {
   guard older_than_seconds > 0 else {
     raise LookupFailed("expiration interval must be positive")

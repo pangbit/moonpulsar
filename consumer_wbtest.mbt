@@ -220,8 +220,8 @@ fn message_frame(
 
 ///|
 fn test_metadata(
-  producer_name? : String = "mock-producer",
-  sequence_id? : UInt64 = 0,
+  producer_name~ : String = "mock-producer",
+  sequence_id~ : UInt64 = 0,
 ) -> @proto.MessageMetadata {
   let metadata = @proto.MessageMetadata::default()
   metadata.producer_name = producer_name

@@ -16,28 +16,28 @@ pub fn availability_error() -> String? {
 
 ///|
 #borrow(pem)
-extern "C" fn public_valid(pem : Bytes, length : Int) -> Bool = "moonpulsar_ecies_public_valid"
+extern "C" fn public_valid(pem : Bytes, length : Int32) -> Bool = "moonpulsar_ecies_public_valid"
 
 ///|
 #borrow(pem)
-extern "C" fn private_valid(pem : Bytes, length : Int) -> Bool = "moonpulsar_ecies_private_valid"
+extern "C" fn private_valid(pem : Bytes, length : Int32) -> Bool = "moonpulsar_ecies_private_valid"
 
 ///|
 #borrow(pem, key)
 extern "C" fn wrap(
   pem : Bytes,
-  length : Int,
+  length : Int32,
   key : Bytes,
-  key_length : Int,
+  key_length : Int32,
 ) -> Bytes = "moonpulsar_ecies_wrap"
 
 ///|
 #borrow(pem, wrapped)
 extern "C" fn unwrap(
   pem : Bytes,
-  length : Int,
+  length : Int32,
   wrapped : Bytes,
-  wrapped_length : Int,
+  wrapped_length : Int32,
 ) -> Bytes = "moonpulsar_ecies_unwrap"
 
 ///|

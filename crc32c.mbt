@@ -2,7 +2,7 @@
 // of incoming message frames.
 
 ///|
-let crc32c_table : FixedArray[UInt] = FixedArray::makei(256, fn(i) {
+let crc32c_table : FixedArray[UInt32] = FixedArray::makei(256, fn(i) {
   let mut crc = i.reinterpret_as_uint()
   for _ in 0..<8 {
     if (crc & 1) != 0 {
@@ -17,7 +17,7 @@ let crc32c_table : FixedArray[UInt] = FixedArray::makei(256, fn(i) {
 ///|
 // Advance each byte through up to eight zero bytes. Slicing-by-eight breaks
 // the per-byte dependency chain without a native CPU feature or dependency.
-let crc32c_slices : FixedArray[FixedArray[UInt]] = {
+let crc32c_slices : FixedArray[FixedArray[UInt32]] = {
   let tables = FixedArray::make(8, crc32c_table)
   for slice in 1..<8 {
     let previous = tables[slice - 1]
@@ -31,8 +31,8 @@ let crc32c_slices : FixedArray[FixedArray[UInt]] = {
 
 ///|
 /// Compute the CRC32-C (Castagnoli) checksum of `data`.
-pub fn crc32c(data : BytesView) -> UInt {
-  let mut crc : UInt = 0xffffffff
+pub fn crc32c(data : BytesView) -> UInt32 {
+  let mut crc : UInt32 = 0xffffffff
   let mut offset = 0
   while offset <= data.length() - 8 {
     let word = data[offset].to_uint() |

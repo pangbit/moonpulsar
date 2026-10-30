@@ -18,6 +18,18 @@ pub(all) struct AuthData {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn AuthData::AuthData(auth_method_name? : String, auth_data? : Bytes) -> Self
+pub fn AuthData::default() -> Self
+#deprecated
+pub fn AuthData::equal(Self, Self) -> Bool
+pub fn AuthData::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn AuthData::not_equal(Self, Self) -> Bool
+pub fn AuthData::read(&@protobuf.Reader) -> Self raise
+pub fn AuthData::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn AuthData::size_of(Self) -> UInt32
+pub fn AuthData::to_json(Self) -> Json
+pub fn AuthData::to_repr(Self) -> @debug.Repr
+pub fn AuthData::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for AuthData
 pub impl ToJson for AuthData
 pub impl @json.FromJson for AuthData
@@ -32,8 +44,17 @@ pub(all) enum AuthMethod {
   AuthMethodYcaV1
   AuthMethodAthens
 } derive(Eq, @debug.Debug)
+pub fn AuthMethod::default() -> Self
+#deprecated
+pub fn AuthMethod::equal(Self, Self) -> Bool
 pub fn AuthMethod::from_enum(@protobuf.Enum) -> Self
+pub fn AuthMethod::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn AuthMethod::not_equal(Self, Self) -> Bool
+pub fn AuthMethod::size_of(Self) -> UInt32
 pub fn AuthMethod::to_enum(Self) -> @protobuf.Enum
+pub fn AuthMethod::to_json(Self) -> Json
+pub fn AuthMethod::to_repr(Self) -> @debug.Repr
 pub impl Default for AuthMethod
 pub impl ToJson for AuthMethod
 pub impl @json.FromJson for AuthMethod
@@ -115,6 +136,18 @@ pub(all) struct BaseCommand {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn BaseCommand::BaseCommand(BaseCommand_Type, connect? : CommandConnect, connected? : CommandConnected, subscribe? : CommandSubscribe, producer? : CommandProducer, send? : CommandSend, send_receipt? : CommandSendReceipt, send_error? : CommandSendError, message? : CommandMessage, ack? : CommandAck, flow? : CommandFlow, unsubscribe? : CommandUnsubscribe, success? : CommandSuccess, error? : CommandError, close_producer? : CommandCloseProducer, close_consumer? : CommandCloseConsumer, producer_success? : CommandProducerSuccess, ping? : CommandPing, pong? : CommandPong, redeliver_unacknowledged_messages? : CommandRedeliverUnacknowledgedMessages, partition_metadata? : CommandPartitionedTopicMetadata, partition_metadata_response? : CommandPartitionedTopicMetadataResponse, lookup_topic? : CommandLookupTopic, lookup_topic_response? : CommandLookupTopicResponse, consumer_stats? : CommandConsumerStats, consumer_stats_response? : CommandConsumerStatsResponse, reached_end_of_topic? : CommandReachedEndOfTopic, seek? : CommandSeek, get_last_message_id? : CommandGetLastMessageId, get_last_message_id_response? : CommandGetLastMessageIdResponse, active_consumer_change? : CommandActiveConsumerChange, get_topics_of_namespace? : CommandGetTopicsOfNamespace, get_topics_of_namespace_response? : CommandGetTopicsOfNamespaceResponse, get_schema? : CommandGetSchema, get_schema_response? : CommandGetSchemaResponse, auth_challenge? : CommandAuthChallenge, auth_response? : CommandAuthResponse, ack_response? : CommandAckResponse, get_or_create_schema? : CommandGetOrCreateSchema, get_or_create_schema_response? : CommandGetOrCreateSchemaResponse, new_txn? : CommandNewTxn, new_txn_response? : CommandNewTxnResponse, add_partition_to_txn? : CommandAddPartitionToTxn, add_partition_to_txn_response? : CommandAddPartitionToTxnResponse, add_subscription_to_txn? : CommandAddSubscriptionToTxn, add_subscription_to_txn_response? : CommandAddSubscriptionToTxnResponse, end_txn? : CommandEndTxn, end_txn_response? : CommandEndTxnResponse, end_txn_on_partition? : CommandEndTxnOnPartition, end_txn_on_partition_response? : CommandEndTxnOnPartitionResponse, end_txn_on_subscription? : CommandEndTxnOnSubscription, end_txn_on_subscription_response? : CommandEndTxnOnSubscriptionResponse, tc_client_connect_request? : CommandTcClientConnectRequest, tc_client_connect_response? : CommandTcClientConnectResponse, watch_topic_list? : CommandWatchTopicList, watch_topic_list_success? : CommandWatchTopicListSuccess, watch_topic_update? : CommandWatchTopicUpdate, watch_topic_list_close? : CommandWatchTopicListClose, topic_migrated? : CommandTopicMigrated, scalable_topic_lookup? : CommandScalableTopicLookup, scalable_topic_update? : CommandScalableTopicUpdate, scalable_topic_close? : CommandScalableTopicClose, scalable_topic_subscribe? : CommandScalableTopicSubscribe, scalable_topic_subscribe_response? : CommandScalableTopicSubscribeResponse, scalable_topic_assignment_update? : CommandScalableTopicAssignmentUpdate, watch_scalable_topics? : CommandWatchScalableTopics, watch_scalable_topics_update? : CommandWatchScalableTopicsUpdate, watch_scalable_topics_close? : CommandWatchScalableTopicsClose, watch_tc_assignments? : CommandWatchTcAssignments, watch_tc_assignments_update? : CommandWatchTcAssignmentsUpdate, watch_tc_assignments_close? : CommandWatchTcAssignmentsClose, scalable_topic_unsubscribe? : CommandScalableTopicUnsubscribe) -> Self
+pub fn BaseCommand::default() -> Self
+#deprecated
+pub fn BaseCommand::equal(Self, Self) -> Bool
+pub fn BaseCommand::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn BaseCommand::not_equal(Self, Self) -> Bool
+pub fn BaseCommand::read(&@protobuf.Reader) -> Self raise
+pub fn BaseCommand::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn BaseCommand::size_of(Self) -> UInt32
+pub fn BaseCommand::to_json(Self) -> Json
+pub fn BaseCommand::to_repr(Self) -> @debug.Repr
+pub fn BaseCommand::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for BaseCommand
 pub impl ToJson for BaseCommand
 pub impl @json.FromJson for BaseCommand
@@ -197,8 +230,17 @@ pub(all) enum BaseCommand_Type {
   WATCH_TC_ASSIGNMENTS_CLOSE
   SCALABLE_TOPIC_UNSUBSCRIBE
 } derive(Eq, @debug.Debug)
+pub fn BaseCommand_Type::default() -> Self
+#deprecated
+pub fn BaseCommand_Type::equal(Self, Self) -> Bool
 pub fn BaseCommand_Type::from_enum(@protobuf.Enum) -> Self
+pub fn BaseCommand_Type::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn BaseCommand_Type::not_equal(Self, Self) -> Bool
+pub fn BaseCommand_Type::size_of(Self) -> UInt32
 pub fn BaseCommand_Type::to_enum(Self) -> @protobuf.Enum
+pub fn BaseCommand_Type::to_json(Self) -> Json
+pub fn BaseCommand_Type::to_repr(Self) -> @debug.Repr
 pub impl Default for BaseCommand_Type
 pub impl ToJson for BaseCommand_Type
 pub impl @json.FromJson for BaseCommand_Type
@@ -210,6 +252,18 @@ pub(all) struct BrokerEntryMetadata {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn BrokerEntryMetadata::BrokerEntryMetadata(broker_timestamp? : UInt64, index? : UInt64) -> Self
+pub fn BrokerEntryMetadata::default() -> Self
+#deprecated
+pub fn BrokerEntryMetadata::equal(Self, Self) -> Bool
+pub fn BrokerEntryMetadata::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn BrokerEntryMetadata::not_equal(Self, Self) -> Bool
+pub fn BrokerEntryMetadata::read(&@protobuf.Reader) -> Self raise
+pub fn BrokerEntryMetadata::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn BrokerEntryMetadata::size_of(Self) -> UInt32
+pub fn BrokerEntryMetadata::to_json(Self) -> Json
+pub fn BrokerEntryMetadata::to_repr(Self) -> @debug.Repr
+pub fn BrokerEntryMetadata::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for BrokerEntryMetadata
 pub impl ToJson for BrokerEntryMetadata
 pub impl @json.FromJson for BrokerEntryMetadata
@@ -231,6 +285,18 @@ pub(all) struct CommandAck {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandAck::CommandAck(UInt64, CommandAck_AckType, Array[MessageIdData], validation_error? : CommandAck_ValidationError, Array[KeyLongValue], txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, request_id? : UInt64) -> Self
+pub fn CommandAck::default() -> Self
+#deprecated
+pub fn CommandAck::equal(Self, Self) -> Bool
+pub fn CommandAck::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAck::not_equal(Self, Self) -> Bool
+pub fn CommandAck::read(&@protobuf.Reader) -> Self raise
+pub fn CommandAck::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandAck::size_of(Self) -> UInt32
+pub fn CommandAck::to_json(Self) -> Json
+pub fn CommandAck::to_repr(Self) -> @debug.Repr
+pub fn CommandAck::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandAck
 pub impl ToJson for CommandAck
 pub impl @json.FromJson for CommandAck
@@ -250,6 +316,18 @@ pub(all) struct CommandAckResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandAckResponse::CommandAckResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String, request_id? : UInt64) -> Self
+pub fn CommandAckResponse::default() -> Self
+#deprecated
+pub fn CommandAckResponse::equal(Self, Self) -> Bool
+pub fn CommandAckResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAckResponse::not_equal(Self, Self) -> Bool
+pub fn CommandAckResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandAckResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandAckResponse::size_of(Self) -> UInt32
+pub fn CommandAckResponse::to_json(Self) -> Json
+pub fn CommandAckResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandAckResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandAckResponse
 pub impl ToJson for CommandAckResponse
 pub impl @json.FromJson for CommandAckResponse
@@ -263,8 +341,17 @@ pub(all) enum CommandAck_AckType {
   Individual
   Cumulative
 } derive(Eq, @debug.Debug)
+pub fn CommandAck_AckType::default() -> Self
+#deprecated
+pub fn CommandAck_AckType::equal(Self, Self) -> Bool
 pub fn CommandAck_AckType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandAck_AckType::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAck_AckType::not_equal(Self, Self) -> Bool
+pub fn CommandAck_AckType::size_of(Self) -> UInt32
 pub fn CommandAck_AckType::to_enum(Self) -> @protobuf.Enum
+pub fn CommandAck_AckType::to_json(Self) -> Json
+pub fn CommandAck_AckType::to_repr(Self) -> @debug.Repr
 pub impl Default for CommandAck_AckType
 pub impl ToJson for CommandAck_AckType
 pub impl @json.FromJson for CommandAck_AckType
@@ -277,8 +364,17 @@ pub(all) enum CommandAck_ValidationError {
   BatchDeSerializeError
   DecryptionError
 } derive(Eq, @debug.Debug)
+pub fn CommandAck_ValidationError::default() -> Self
+#deprecated
+pub fn CommandAck_ValidationError::equal(Self, Self) -> Bool
 pub fn CommandAck_ValidationError::from_enum(@protobuf.Enum) -> Self
+pub fn CommandAck_ValidationError::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAck_ValidationError::not_equal(Self, Self) -> Bool
+pub fn CommandAck_ValidationError::size_of(Self) -> UInt32
 pub fn CommandAck_ValidationError::to_enum(Self) -> @protobuf.Enum
+pub fn CommandAck_ValidationError::to_json(Self) -> Json
+pub fn CommandAck_ValidationError::to_repr(Self) -> @debug.Repr
 pub impl Default for CommandAck_ValidationError
 pub impl ToJson for CommandAck_ValidationError
 pub impl @json.FromJson for CommandAck_ValidationError
@@ -290,6 +386,18 @@ pub(all) struct CommandActiveConsumerChange {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandActiveConsumerChange::CommandActiveConsumerChange(UInt64, is_active? : Bool) -> Self
+pub fn CommandActiveConsumerChange::default() -> Self
+#deprecated
+pub fn CommandActiveConsumerChange::equal(Self, Self) -> Bool
+pub fn CommandActiveConsumerChange::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandActiveConsumerChange::not_equal(Self, Self) -> Bool
+pub fn CommandActiveConsumerChange::read(&@protobuf.Reader) -> Self raise
+pub fn CommandActiveConsumerChange::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandActiveConsumerChange::size_of(Self) -> UInt32
+pub fn CommandActiveConsumerChange::to_json(Self) -> Json
+pub fn CommandActiveConsumerChange::to_repr(Self) -> @debug.Repr
+pub fn CommandActiveConsumerChange::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandActiveConsumerChange
 pub impl ToJson for CommandActiveConsumerChange
 pub impl @json.FromJson for CommandActiveConsumerChange
@@ -308,6 +416,18 @@ pub(all) struct CommandAddPartitionToTxn {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandAddPartitionToTxn::CommandAddPartitionToTxn(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, Array[String], scalable? : Bool) -> Self
+pub fn CommandAddPartitionToTxn::default() -> Self
+#deprecated
+pub fn CommandAddPartitionToTxn::equal(Self, Self) -> Bool
+pub fn CommandAddPartitionToTxn::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAddPartitionToTxn::not_equal(Self, Self) -> Bool
+pub fn CommandAddPartitionToTxn::read(&@protobuf.Reader) -> Self raise
+pub fn CommandAddPartitionToTxn::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandAddPartitionToTxn::size_of(Self) -> UInt32
+pub fn CommandAddPartitionToTxn::to_json(Self) -> Json
+pub fn CommandAddPartitionToTxn::to_repr(Self) -> @debug.Repr
+pub fn CommandAddPartitionToTxn::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandAddPartitionToTxn
 pub impl ToJson for CommandAddPartitionToTxn
 pub impl @json.FromJson for CommandAddPartitionToTxn
@@ -326,6 +446,18 @@ pub(all) struct CommandAddPartitionToTxnResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandAddPartitionToTxnResponse::CommandAddPartitionToTxnResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub fn CommandAddPartitionToTxnResponse::default() -> Self
+#deprecated
+pub fn CommandAddPartitionToTxnResponse::equal(Self, Self) -> Bool
+pub fn CommandAddPartitionToTxnResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAddPartitionToTxnResponse::not_equal(Self, Self) -> Bool
+pub fn CommandAddPartitionToTxnResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandAddPartitionToTxnResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandAddPartitionToTxnResponse::size_of(Self) -> UInt32
+pub fn CommandAddPartitionToTxnResponse::to_json(Self) -> Json
+pub fn CommandAddPartitionToTxnResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandAddPartitionToTxnResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandAddPartitionToTxnResponse
 pub impl ToJson for CommandAddPartitionToTxnResponse
 pub impl @json.FromJson for CommandAddPartitionToTxnResponse
@@ -344,6 +476,18 @@ pub(all) struct CommandAddSubscriptionToTxn {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandAddSubscriptionToTxn::CommandAddSubscriptionToTxn(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, Array[Subscription], scalable? : Bool) -> Self
+pub fn CommandAddSubscriptionToTxn::default() -> Self
+#deprecated
+pub fn CommandAddSubscriptionToTxn::equal(Self, Self) -> Bool
+pub fn CommandAddSubscriptionToTxn::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAddSubscriptionToTxn::not_equal(Self, Self) -> Bool
+pub fn CommandAddSubscriptionToTxn::read(&@protobuf.Reader) -> Self raise
+pub fn CommandAddSubscriptionToTxn::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandAddSubscriptionToTxn::size_of(Self) -> UInt32
+pub fn CommandAddSubscriptionToTxn::to_json(Self) -> Json
+pub fn CommandAddSubscriptionToTxn::to_repr(Self) -> @debug.Repr
+pub fn CommandAddSubscriptionToTxn::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandAddSubscriptionToTxn
 pub impl ToJson for CommandAddSubscriptionToTxn
 pub impl @json.FromJson for CommandAddSubscriptionToTxn
@@ -362,6 +506,18 @@ pub(all) struct CommandAddSubscriptionToTxnResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandAddSubscriptionToTxnResponse::CommandAddSubscriptionToTxnResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub fn CommandAddSubscriptionToTxnResponse::default() -> Self
+#deprecated
+pub fn CommandAddSubscriptionToTxnResponse::equal(Self, Self) -> Bool
+pub fn CommandAddSubscriptionToTxnResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAddSubscriptionToTxnResponse::not_equal(Self, Self) -> Bool
+pub fn CommandAddSubscriptionToTxnResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandAddSubscriptionToTxnResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandAddSubscriptionToTxnResponse::size_of(Self) -> UInt32
+pub fn CommandAddSubscriptionToTxnResponse::to_json(Self) -> Json
+pub fn CommandAddSubscriptionToTxnResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandAddSubscriptionToTxnResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandAddSubscriptionToTxnResponse
 pub impl ToJson for CommandAddSubscriptionToTxnResponse
 pub impl @json.FromJson for CommandAddSubscriptionToTxnResponse
@@ -374,10 +530,22 @@ pub impl @protobuf.Write for CommandAddSubscriptionToTxnResponse
 pub(all) struct CommandAuthChallenge {
   mut server_version : String?
   mut challenge : AuthData?
-  mut protocol_version : Int?
+  mut protocol_version : Int32?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn CommandAuthChallenge::CommandAuthChallenge(server_version? : String, challenge? : AuthData, protocol_version? : Int) -> Self
+pub fn CommandAuthChallenge::CommandAuthChallenge(server_version? : String, challenge? : AuthData, protocol_version? : Int32) -> Self
+pub fn CommandAuthChallenge::default() -> Self
+#deprecated
+pub fn CommandAuthChallenge::equal(Self, Self) -> Bool
+pub fn CommandAuthChallenge::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAuthChallenge::not_equal(Self, Self) -> Bool
+pub fn CommandAuthChallenge::read(&@protobuf.Reader) -> Self raise
+pub fn CommandAuthChallenge::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandAuthChallenge::size_of(Self) -> UInt32
+pub fn CommandAuthChallenge::to_json(Self) -> Json
+pub fn CommandAuthChallenge::to_repr(Self) -> @debug.Repr
+pub fn CommandAuthChallenge::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandAuthChallenge
 pub impl ToJson for CommandAuthChallenge
 pub impl @json.FromJson for CommandAuthChallenge
@@ -390,10 +558,22 @@ pub impl @protobuf.Write for CommandAuthChallenge
 pub(all) struct CommandAuthResponse {
   mut client_version : String?
   mut response : AuthData?
-  mut protocol_version : Int?
+  mut protocol_version : Int32?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn CommandAuthResponse::CommandAuthResponse(client_version? : String, response? : AuthData, protocol_version? : Int) -> Self
+pub fn CommandAuthResponse::CommandAuthResponse(client_version? : String, response? : AuthData, protocol_version? : Int32) -> Self
+pub fn CommandAuthResponse::default() -> Self
+#deprecated
+pub fn CommandAuthResponse::equal(Self, Self) -> Bool
+pub fn CommandAuthResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandAuthResponse::not_equal(Self, Self) -> Bool
+pub fn CommandAuthResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandAuthResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandAuthResponse::size_of(Self) -> UInt32
+pub fn CommandAuthResponse::to_json(Self) -> Json
+pub fn CommandAuthResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandAuthResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandAuthResponse
 pub impl ToJson for CommandAuthResponse
 pub impl @json.FromJson for CommandAuthResponse
@@ -411,6 +591,18 @@ pub(all) struct CommandCloseConsumer {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandCloseConsumer::CommandCloseConsumer(UInt64, UInt64, assigned_broker_service_url? : String, assigned_broker_service_url_tls? : String) -> Self
+pub fn CommandCloseConsumer::default() -> Self
+#deprecated
+pub fn CommandCloseConsumer::equal(Self, Self) -> Bool
+pub fn CommandCloseConsumer::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandCloseConsumer::not_equal(Self, Self) -> Bool
+pub fn CommandCloseConsumer::read(&@protobuf.Reader) -> Self raise
+pub fn CommandCloseConsumer::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandCloseConsumer::size_of(Self) -> UInt32
+pub fn CommandCloseConsumer::to_json(Self) -> Json
+pub fn CommandCloseConsumer::to_repr(Self) -> @debug.Repr
+pub fn CommandCloseConsumer::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandCloseConsumer
 pub impl ToJson for CommandCloseConsumer
 pub impl @json.FromJson for CommandCloseConsumer
@@ -428,6 +620,18 @@ pub(all) struct CommandCloseProducer {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandCloseProducer::CommandCloseProducer(UInt64, UInt64, assigned_broker_service_url? : String, assigned_broker_service_url_tls? : String) -> Self
+pub fn CommandCloseProducer::default() -> Self
+#deprecated
+pub fn CommandCloseProducer::equal(Self, Self) -> Bool
+pub fn CommandCloseProducer::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandCloseProducer::not_equal(Self, Self) -> Bool
+pub fn CommandCloseProducer::read(&@protobuf.Reader) -> Self raise
+pub fn CommandCloseProducer::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandCloseProducer::size_of(Self) -> UInt32
+pub fn CommandCloseProducer::to_json(Self) -> Json
+pub fn CommandCloseProducer::to_repr(Self) -> @debug.Repr
+pub fn CommandCloseProducer::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandCloseProducer
 pub impl ToJson for CommandCloseProducer
 pub impl @json.FromJson for CommandCloseProducer
@@ -442,7 +646,7 @@ pub(all) struct CommandConnect {
   mut auth_method : AuthMethod?
   mut auth_method_name : String?
   mut auth_data : Bytes?
-  mut protocol_version : Int?
+  mut protocol_version : Int32?
   mut proxy_to_broker_url : String?
   mut original_principal : String?
   mut original_auth_data : String?
@@ -451,7 +655,19 @@ pub(all) struct CommandConnect {
   mut proxy_version : String?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn CommandConnect::CommandConnect(String, auth_method? : AuthMethod, auth_method_name? : String, auth_data? : Bytes, protocol_version? : Int, proxy_to_broker_url? : String, original_principal? : String, original_auth_data? : String, original_auth_method? : String, feature_flags? : FeatureFlags, proxy_version? : String) -> Self
+pub fn CommandConnect::CommandConnect(String, auth_method? : AuthMethod, auth_method_name? : String, auth_data? : Bytes, protocol_version? : Int32, proxy_to_broker_url? : String, original_principal? : String, original_auth_data? : String, original_auth_method? : String, feature_flags? : FeatureFlags, proxy_version? : String) -> Self
+pub fn CommandConnect::default() -> Self
+#deprecated
+pub fn CommandConnect::equal(Self, Self) -> Bool
+pub fn CommandConnect::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandConnect::not_equal(Self, Self) -> Bool
+pub fn CommandConnect::read(&@protobuf.Reader) -> Self raise
+pub fn CommandConnect::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandConnect::size_of(Self) -> UInt32
+pub fn CommandConnect::to_json(Self) -> Json
+pub fn CommandConnect::to_repr(Self) -> @debug.Repr
+pub fn CommandConnect::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandConnect
 pub impl ToJson for CommandConnect
 pub impl @json.FromJson for CommandConnect
@@ -463,12 +679,24 @@ pub impl @protobuf.Write for CommandConnect
 
 pub(all) struct CommandConnected {
   mut server_version : String
-  mut protocol_version : Int?
-  mut max_message_size : Int?
+  mut protocol_version : Int32?
+  mut max_message_size : Int32?
   mut feature_flags : FeatureFlags?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn CommandConnected::CommandConnected(String, protocol_version? : Int, max_message_size? : Int, feature_flags? : FeatureFlags) -> Self
+pub fn CommandConnected::CommandConnected(String, protocol_version? : Int32, max_message_size? : Int32, feature_flags? : FeatureFlags) -> Self
+pub fn CommandConnected::default() -> Self
+#deprecated
+pub fn CommandConnected::equal(Self, Self) -> Bool
+pub fn CommandConnected::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandConnected::not_equal(Self, Self) -> Bool
+pub fn CommandConnected::read(&@protobuf.Reader) -> Self raise
+pub fn CommandConnected::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandConnected::size_of(Self) -> UInt32
+pub fn CommandConnected::to_json(Self) -> Json
+pub fn CommandConnected::to_repr(Self) -> @debug.Repr
+pub fn CommandConnected::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandConnected
 pub impl ToJson for CommandConnected
 pub impl @json.FromJson for CommandConnected
@@ -484,6 +712,18 @@ pub(all) struct CommandConsumerStats {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandConsumerStats::CommandConsumerStats(UInt64, UInt64) -> Self
+pub fn CommandConsumerStats::default() -> Self
+#deprecated
+pub fn CommandConsumerStats::equal(Self, Self) -> Bool
+pub fn CommandConsumerStats::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandConsumerStats::not_equal(Self, Self) -> Bool
+pub fn CommandConsumerStats::read(&@protobuf.Reader) -> Self raise
+pub fn CommandConsumerStats::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandConsumerStats::size_of(Self) -> UInt32
+pub fn CommandConsumerStats::to_json(Self) -> Json
+pub fn CommandConsumerStats::to_repr(Self) -> @debug.Repr
+pub fn CommandConsumerStats::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandConsumerStats
 pub impl ToJson for CommandConsumerStats
 pub impl @json.FromJson for CommandConsumerStats
@@ -513,6 +753,18 @@ pub(all) struct CommandConsumerStatsResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandConsumerStatsResponse::CommandConsumerStatsResponse(UInt64, error_code? : ServerError, error_message? : String, msg_rate_out? : Double, msg_throughput_out? : Double, msg_rate_redeliver? : Double, consumer_name? : String, available_permits? : UInt64, unacked_messages? : UInt64, blocked_consumer_on_unacked_msgs? : Bool, address? : String, connected_since? : String, type_? : String, msg_rate_expired? : Double, msg_backlog? : UInt64, message_ack_rate? : Double) -> Self
+pub fn CommandConsumerStatsResponse::default() -> Self
+#deprecated
+pub fn CommandConsumerStatsResponse::equal(Self, Self) -> Bool
+pub fn CommandConsumerStatsResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandConsumerStatsResponse::not_equal(Self, Self) -> Bool
+pub fn CommandConsumerStatsResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandConsumerStatsResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandConsumerStatsResponse::size_of(Self) -> UInt32
+pub fn CommandConsumerStatsResponse::to_json(Self) -> Json
+pub fn CommandConsumerStatsResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandConsumerStatsResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandConsumerStatsResponse
 pub impl ToJson for CommandConsumerStatsResponse
 pub impl @json.FromJson for CommandConsumerStatsResponse
@@ -531,6 +783,18 @@ pub(all) struct CommandEndTxn {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandEndTxn::CommandEndTxn(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, txn_action? : TxnAction, scalable? : Bool) -> Self
+pub fn CommandEndTxn::default() -> Self
+#deprecated
+pub fn CommandEndTxn::equal(Self, Self) -> Bool
+pub fn CommandEndTxn::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandEndTxn::not_equal(Self, Self) -> Bool
+pub fn CommandEndTxn::read(&@protobuf.Reader) -> Self raise
+pub fn CommandEndTxn::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandEndTxn::size_of(Self) -> UInt32
+pub fn CommandEndTxn::to_json(Self) -> Json
+pub fn CommandEndTxn::to_repr(Self) -> @debug.Repr
+pub fn CommandEndTxn::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandEndTxn
 pub impl ToJson for CommandEndTxn
 pub impl @json.FromJson for CommandEndTxn
@@ -550,6 +814,18 @@ pub(all) struct CommandEndTxnOnPartition {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandEndTxnOnPartition::CommandEndTxnOnPartition(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, topic? : String, txn_action? : TxnAction, txnid_least_bits_of_low_watermark? : UInt64) -> Self
+pub fn CommandEndTxnOnPartition::default() -> Self
+#deprecated
+pub fn CommandEndTxnOnPartition::equal(Self, Self) -> Bool
+pub fn CommandEndTxnOnPartition::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandEndTxnOnPartition::not_equal(Self, Self) -> Bool
+pub fn CommandEndTxnOnPartition::read(&@protobuf.Reader) -> Self raise
+pub fn CommandEndTxnOnPartition::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandEndTxnOnPartition::size_of(Self) -> UInt32
+pub fn CommandEndTxnOnPartition::to_json(Self) -> Json
+pub fn CommandEndTxnOnPartition::to_repr(Self) -> @debug.Repr
+pub fn CommandEndTxnOnPartition::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandEndTxnOnPartition
 pub impl ToJson for CommandEndTxnOnPartition
 pub impl @json.FromJson for CommandEndTxnOnPartition
@@ -568,6 +844,18 @@ pub(all) struct CommandEndTxnOnPartitionResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandEndTxnOnPartitionResponse::CommandEndTxnOnPartitionResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub fn CommandEndTxnOnPartitionResponse::default() -> Self
+#deprecated
+pub fn CommandEndTxnOnPartitionResponse::equal(Self, Self) -> Bool
+pub fn CommandEndTxnOnPartitionResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandEndTxnOnPartitionResponse::not_equal(Self, Self) -> Bool
+pub fn CommandEndTxnOnPartitionResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandEndTxnOnPartitionResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandEndTxnOnPartitionResponse::size_of(Self) -> UInt32
+pub fn CommandEndTxnOnPartitionResponse::to_json(Self) -> Json
+pub fn CommandEndTxnOnPartitionResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandEndTxnOnPartitionResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandEndTxnOnPartitionResponse
 pub impl ToJson for CommandEndTxnOnPartitionResponse
 pub impl @json.FromJson for CommandEndTxnOnPartitionResponse
@@ -587,6 +875,18 @@ pub(all) struct CommandEndTxnOnSubscription {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandEndTxnOnSubscription::CommandEndTxnOnSubscription(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, subscription? : Subscription, txn_action? : TxnAction, txnid_least_bits_of_low_watermark? : UInt64) -> Self
+pub fn CommandEndTxnOnSubscription::default() -> Self
+#deprecated
+pub fn CommandEndTxnOnSubscription::equal(Self, Self) -> Bool
+pub fn CommandEndTxnOnSubscription::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandEndTxnOnSubscription::not_equal(Self, Self) -> Bool
+pub fn CommandEndTxnOnSubscription::read(&@protobuf.Reader) -> Self raise
+pub fn CommandEndTxnOnSubscription::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandEndTxnOnSubscription::size_of(Self) -> UInt32
+pub fn CommandEndTxnOnSubscription::to_json(Self) -> Json
+pub fn CommandEndTxnOnSubscription::to_repr(Self) -> @debug.Repr
+pub fn CommandEndTxnOnSubscription::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandEndTxnOnSubscription
 pub impl ToJson for CommandEndTxnOnSubscription
 pub impl @json.FromJson for CommandEndTxnOnSubscription
@@ -605,6 +905,18 @@ pub(all) struct CommandEndTxnOnSubscriptionResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandEndTxnOnSubscriptionResponse::CommandEndTxnOnSubscriptionResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub fn CommandEndTxnOnSubscriptionResponse::default() -> Self
+#deprecated
+pub fn CommandEndTxnOnSubscriptionResponse::equal(Self, Self) -> Bool
+pub fn CommandEndTxnOnSubscriptionResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandEndTxnOnSubscriptionResponse::not_equal(Self, Self) -> Bool
+pub fn CommandEndTxnOnSubscriptionResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandEndTxnOnSubscriptionResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandEndTxnOnSubscriptionResponse::size_of(Self) -> UInt32
+pub fn CommandEndTxnOnSubscriptionResponse::to_json(Self) -> Json
+pub fn CommandEndTxnOnSubscriptionResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandEndTxnOnSubscriptionResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandEndTxnOnSubscriptionResponse
 pub impl ToJson for CommandEndTxnOnSubscriptionResponse
 pub impl @json.FromJson for CommandEndTxnOnSubscriptionResponse
@@ -623,6 +935,18 @@ pub(all) struct CommandEndTxnResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandEndTxnResponse::CommandEndTxnResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub fn CommandEndTxnResponse::default() -> Self
+#deprecated
+pub fn CommandEndTxnResponse::equal(Self, Self) -> Bool
+pub fn CommandEndTxnResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandEndTxnResponse::not_equal(Self, Self) -> Bool
+pub fn CommandEndTxnResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandEndTxnResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandEndTxnResponse::size_of(Self) -> UInt32
+pub fn CommandEndTxnResponse::to_json(Self) -> Json
+pub fn CommandEndTxnResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandEndTxnResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandEndTxnResponse
 pub impl ToJson for CommandEndTxnResponse
 pub impl @json.FromJson for CommandEndTxnResponse
@@ -639,6 +963,18 @@ pub(all) struct CommandError {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandError::CommandError(UInt64, ServerError, String) -> Self
+pub fn CommandError::default() -> Self
+#deprecated
+pub fn CommandError::equal(Self, Self) -> Bool
+pub fn CommandError::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandError::not_equal(Self, Self) -> Bool
+pub fn CommandError::read(&@protobuf.Reader) -> Self raise
+pub fn CommandError::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandError::size_of(Self) -> UInt32
+pub fn CommandError::to_json(Self) -> Json
+pub fn CommandError::to_repr(Self) -> @debug.Repr
+pub fn CommandError::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandError
 pub impl ToJson for CommandError
 pub impl @json.FromJson for CommandError
@@ -650,10 +986,22 @@ pub impl @protobuf.Write for CommandError
 
 pub(all) struct CommandFlow {
   mut consumer_id : UInt64
-  mut message_permits : UInt
+  mut message_permits : UInt32
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn CommandFlow::CommandFlow(UInt64, UInt) -> Self
+pub fn CommandFlow::CommandFlow(UInt64, UInt32) -> Self
+pub fn CommandFlow::default() -> Self
+#deprecated
+pub fn CommandFlow::equal(Self, Self) -> Bool
+pub fn CommandFlow::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandFlow::not_equal(Self, Self) -> Bool
+pub fn CommandFlow::read(&@protobuf.Reader) -> Self raise
+pub fn CommandFlow::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandFlow::size_of(Self) -> UInt32
+pub fn CommandFlow::to_json(Self) -> Json
+pub fn CommandFlow::to_repr(Self) -> @debug.Repr
+pub fn CommandFlow::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandFlow
 pub impl ToJson for CommandFlow
 pub impl @json.FromJson for CommandFlow
@@ -669,6 +1017,18 @@ pub(all) struct CommandGetLastMessageId {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandGetLastMessageId::CommandGetLastMessageId(UInt64, UInt64) -> Self
+pub fn CommandGetLastMessageId::default() -> Self
+#deprecated
+pub fn CommandGetLastMessageId::equal(Self, Self) -> Bool
+pub fn CommandGetLastMessageId::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandGetLastMessageId::not_equal(Self, Self) -> Bool
+pub fn CommandGetLastMessageId::read(&@protobuf.Reader) -> Self raise
+pub fn CommandGetLastMessageId::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandGetLastMessageId::size_of(Self) -> UInt32
+pub fn CommandGetLastMessageId::to_json(Self) -> Json
+pub fn CommandGetLastMessageId::to_repr(Self) -> @debug.Repr
+pub fn CommandGetLastMessageId::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandGetLastMessageId
 pub impl ToJson for CommandGetLastMessageId
 pub impl @json.FromJson for CommandGetLastMessageId
@@ -685,6 +1045,18 @@ pub(all) struct CommandGetLastMessageIdResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandGetLastMessageIdResponse::CommandGetLastMessageIdResponse(MessageIdData, UInt64, consumer_mark_delete_position? : MessageIdData) -> Self
+pub fn CommandGetLastMessageIdResponse::default() -> Self
+#deprecated
+pub fn CommandGetLastMessageIdResponse::equal(Self, Self) -> Bool
+pub fn CommandGetLastMessageIdResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandGetLastMessageIdResponse::not_equal(Self, Self) -> Bool
+pub fn CommandGetLastMessageIdResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandGetLastMessageIdResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandGetLastMessageIdResponse::size_of(Self) -> UInt32
+pub fn CommandGetLastMessageIdResponse::to_json(Self) -> Json
+pub fn CommandGetLastMessageIdResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandGetLastMessageIdResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandGetLastMessageIdResponse
 pub impl ToJson for CommandGetLastMessageIdResponse
 pub impl @json.FromJson for CommandGetLastMessageIdResponse
@@ -702,6 +1074,18 @@ pub(all) struct CommandGetOrCreateSchema {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandGetOrCreateSchema::CommandGetOrCreateSchema(UInt64, String, Schema, producer_name? : String) -> Self
+pub fn CommandGetOrCreateSchema::default() -> Self
+#deprecated
+pub fn CommandGetOrCreateSchema::equal(Self, Self) -> Bool
+pub fn CommandGetOrCreateSchema::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandGetOrCreateSchema::not_equal(Self, Self) -> Bool
+pub fn CommandGetOrCreateSchema::read(&@protobuf.Reader) -> Self raise
+pub fn CommandGetOrCreateSchema::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandGetOrCreateSchema::size_of(Self) -> UInt32
+pub fn CommandGetOrCreateSchema::to_json(Self) -> Json
+pub fn CommandGetOrCreateSchema::to_repr(Self) -> @debug.Repr
+pub fn CommandGetOrCreateSchema::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandGetOrCreateSchema
 pub impl ToJson for CommandGetOrCreateSchema
 pub impl @json.FromJson for CommandGetOrCreateSchema
@@ -719,6 +1103,18 @@ pub(all) struct CommandGetOrCreateSchemaResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandGetOrCreateSchemaResponse::CommandGetOrCreateSchemaResponse(UInt64, error_code? : ServerError, error_message? : String, schema_version? : Bytes) -> Self
+pub fn CommandGetOrCreateSchemaResponse::default() -> Self
+#deprecated
+pub fn CommandGetOrCreateSchemaResponse::equal(Self, Self) -> Bool
+pub fn CommandGetOrCreateSchemaResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandGetOrCreateSchemaResponse::not_equal(Self, Self) -> Bool
+pub fn CommandGetOrCreateSchemaResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandGetOrCreateSchemaResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandGetOrCreateSchemaResponse::size_of(Self) -> UInt32
+pub fn CommandGetOrCreateSchemaResponse::to_json(Self) -> Json
+pub fn CommandGetOrCreateSchemaResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandGetOrCreateSchemaResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandGetOrCreateSchemaResponse
 pub impl ToJson for CommandGetOrCreateSchemaResponse
 pub impl @json.FromJson for CommandGetOrCreateSchemaResponse
@@ -735,6 +1131,18 @@ pub(all) struct CommandGetSchema {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandGetSchema::CommandGetSchema(UInt64, String, schema_version? : Bytes) -> Self
+pub fn CommandGetSchema::default() -> Self
+#deprecated
+pub fn CommandGetSchema::equal(Self, Self) -> Bool
+pub fn CommandGetSchema::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandGetSchema::not_equal(Self, Self) -> Bool
+pub fn CommandGetSchema::read(&@protobuf.Reader) -> Self raise
+pub fn CommandGetSchema::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandGetSchema::size_of(Self) -> UInt32
+pub fn CommandGetSchema::to_json(Self) -> Json
+pub fn CommandGetSchema::to_repr(Self) -> @debug.Repr
+pub fn CommandGetSchema::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandGetSchema
 pub impl ToJson for CommandGetSchema
 pub impl @json.FromJson for CommandGetSchema
@@ -753,6 +1161,18 @@ pub(all) struct CommandGetSchemaResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandGetSchemaResponse::CommandGetSchemaResponse(UInt64, error_code? : ServerError, error_message? : String, schema? : Schema, schema_version? : Bytes) -> Self
+pub fn CommandGetSchemaResponse::default() -> Self
+#deprecated
+pub fn CommandGetSchemaResponse::equal(Self, Self) -> Bool
+pub fn CommandGetSchemaResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandGetSchemaResponse::not_equal(Self, Self) -> Bool
+pub fn CommandGetSchemaResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandGetSchemaResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandGetSchemaResponse::size_of(Self) -> UInt32
+pub fn CommandGetSchemaResponse::to_json(Self) -> Json
+pub fn CommandGetSchemaResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandGetSchemaResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandGetSchemaResponse
 pub impl ToJson for CommandGetSchemaResponse
 pub impl @json.FromJson for CommandGetSchemaResponse
@@ -772,6 +1192,18 @@ pub(all) struct CommandGetTopicsOfNamespace {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandGetTopicsOfNamespace::CommandGetTopicsOfNamespace(UInt64, String, mode? : CommandGetTopicsOfNamespace_Mode, topics_pattern? : String, topics_hash? : String, Array[KeyValue]) -> Self
+pub fn CommandGetTopicsOfNamespace::default() -> Self
+#deprecated
+pub fn CommandGetTopicsOfNamespace::equal(Self, Self) -> Bool
+pub fn CommandGetTopicsOfNamespace::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandGetTopicsOfNamespace::not_equal(Self, Self) -> Bool
+pub fn CommandGetTopicsOfNamespace::read(&@protobuf.Reader) -> Self raise
+pub fn CommandGetTopicsOfNamespace::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandGetTopicsOfNamespace::size_of(Self) -> UInt32
+pub fn CommandGetTopicsOfNamespace::to_json(Self) -> Json
+pub fn CommandGetTopicsOfNamespace::to_repr(Self) -> @debug.Repr
+pub fn CommandGetTopicsOfNamespace::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandGetTopicsOfNamespace
 pub impl ToJson for CommandGetTopicsOfNamespace
 pub impl @json.FromJson for CommandGetTopicsOfNamespace
@@ -790,6 +1222,18 @@ pub(all) struct CommandGetTopicsOfNamespaceResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandGetTopicsOfNamespaceResponse::CommandGetTopicsOfNamespaceResponse(UInt64, Array[String], filtered? : Bool, topics_hash? : String, changed? : Bool) -> Self
+pub fn CommandGetTopicsOfNamespaceResponse::default() -> Self
+#deprecated
+pub fn CommandGetTopicsOfNamespaceResponse::equal(Self, Self) -> Bool
+pub fn CommandGetTopicsOfNamespaceResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandGetTopicsOfNamespaceResponse::not_equal(Self, Self) -> Bool
+pub fn CommandGetTopicsOfNamespaceResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandGetTopicsOfNamespaceResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandGetTopicsOfNamespaceResponse::size_of(Self) -> UInt32
+pub fn CommandGetTopicsOfNamespaceResponse::to_json(Self) -> Json
+pub fn CommandGetTopicsOfNamespaceResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandGetTopicsOfNamespaceResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandGetTopicsOfNamespaceResponse
 pub impl ToJson for CommandGetTopicsOfNamespaceResponse
 pub impl @json.FromJson for CommandGetTopicsOfNamespaceResponse
@@ -804,8 +1248,17 @@ pub(all) enum CommandGetTopicsOfNamespace_Mode {
   NON_PERSISTENT
   ALL
 } derive(Eq, @debug.Debug)
+pub fn CommandGetTopicsOfNamespace_Mode::default() -> Self
+#deprecated
+pub fn CommandGetTopicsOfNamespace_Mode::equal(Self, Self) -> Bool
 pub fn CommandGetTopicsOfNamespace_Mode::from_enum(@protobuf.Enum) -> Self
+pub fn CommandGetTopicsOfNamespace_Mode::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandGetTopicsOfNamespace_Mode::not_equal(Self, Self) -> Bool
+pub fn CommandGetTopicsOfNamespace_Mode::size_of(Self) -> UInt32
 pub fn CommandGetTopicsOfNamespace_Mode::to_enum(Self) -> @protobuf.Enum
+pub fn CommandGetTopicsOfNamespace_Mode::to_json(Self) -> Json
+pub fn CommandGetTopicsOfNamespace_Mode::to_repr(Self) -> @debug.Repr
 pub impl Default for CommandGetTopicsOfNamespace_Mode
 pub impl ToJson for CommandGetTopicsOfNamespace_Mode
 pub impl @json.FromJson for CommandGetTopicsOfNamespace_Mode
@@ -823,6 +1276,18 @@ pub(all) struct CommandLookupTopic {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandLookupTopic::CommandLookupTopic(String, UInt64, authoritative? : Bool, original_principal? : String, original_auth_data? : String, original_auth_method? : String, advertised_listener_name? : String, Array[KeyValue]) -> Self
+pub fn CommandLookupTopic::default() -> Self
+#deprecated
+pub fn CommandLookupTopic::equal(Self, Self) -> Bool
+pub fn CommandLookupTopic::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandLookupTopic::not_equal(Self, Self) -> Bool
+pub fn CommandLookupTopic::read(&@protobuf.Reader) -> Self raise
+pub fn CommandLookupTopic::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandLookupTopic::size_of(Self) -> UInt32
+pub fn CommandLookupTopic::to_json(Self) -> Json
+pub fn CommandLookupTopic::to_repr(Self) -> @debug.Repr
+pub fn CommandLookupTopic::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandLookupTopic
 pub impl ToJson for CommandLookupTopic
 pub impl @json.FromJson for CommandLookupTopic
@@ -844,6 +1309,18 @@ pub(all) struct CommandLookupTopicResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandLookupTopicResponse::CommandLookupTopicResponse(broker_service_url? : String, broker_service_url_tls? : String, response? : CommandLookupTopicResponse_LookupType, UInt64, authoritative? : Bool, error? : ServerError, message? : String, proxy_through_service_url? : Bool) -> Self
+pub fn CommandLookupTopicResponse::default() -> Self
+#deprecated
+pub fn CommandLookupTopicResponse::equal(Self, Self) -> Bool
+pub fn CommandLookupTopicResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandLookupTopicResponse::not_equal(Self, Self) -> Bool
+pub fn CommandLookupTopicResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandLookupTopicResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandLookupTopicResponse::size_of(Self) -> UInt32
+pub fn CommandLookupTopicResponse::to_json(Self) -> Json
+pub fn CommandLookupTopicResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandLookupTopicResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandLookupTopicResponse
 pub impl ToJson for CommandLookupTopicResponse
 pub impl @json.FromJson for CommandLookupTopicResponse
@@ -858,8 +1335,17 @@ pub(all) enum CommandLookupTopicResponse_LookupType {
   Connect
   Failed
 } derive(Eq, @debug.Debug)
+pub fn CommandLookupTopicResponse_LookupType::default() -> Self
+#deprecated
+pub fn CommandLookupTopicResponse_LookupType::equal(Self, Self) -> Bool
 pub fn CommandLookupTopicResponse_LookupType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandLookupTopicResponse_LookupType::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandLookupTopicResponse_LookupType::not_equal(Self, Self) -> Bool
+pub fn CommandLookupTopicResponse_LookupType::size_of(Self) -> UInt32
 pub fn CommandLookupTopicResponse_LookupType::to_enum(Self) -> @protobuf.Enum
+pub fn CommandLookupTopicResponse_LookupType::to_json(Self) -> Json
+pub fn CommandLookupTopicResponse_LookupType::to_repr(Self) -> @debug.Repr
 pub impl Default for CommandLookupTopicResponse_LookupType
 pub impl ToJson for CommandLookupTopicResponse_LookupType
 pub impl @json.FromJson for CommandLookupTopicResponse_LookupType
@@ -868,12 +1354,24 @@ pub impl @protobuf.Sized for CommandLookupTopicResponse_LookupType
 pub(all) struct CommandMessage {
   mut consumer_id : UInt64
   mut message_id : MessageIdData
-  mut redelivery_count : UInt?
+  mut redelivery_count : UInt32?
   mut ack_set : Array[Int64]
   mut consumer_epoch : UInt64?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn CommandMessage::CommandMessage(UInt64, MessageIdData, redelivery_count? : UInt, Array[Int64], consumer_epoch? : UInt64) -> Self
+pub fn CommandMessage::CommandMessage(UInt64, MessageIdData, redelivery_count? : UInt32, Array[Int64], consumer_epoch? : UInt64) -> Self
+pub fn CommandMessage::default() -> Self
+#deprecated
+pub fn CommandMessage::equal(Self, Self) -> Bool
+pub fn CommandMessage::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandMessage::not_equal(Self, Self) -> Bool
+pub fn CommandMessage::read(&@protobuf.Reader) -> Self raise
+pub fn CommandMessage::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandMessage::size_of(Self) -> UInt32
+pub fn CommandMessage::to_json(Self) -> Json
+pub fn CommandMessage::to_repr(Self) -> @debug.Repr
+pub fn CommandMessage::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandMessage
 pub impl ToJson for CommandMessage
 pub impl @json.FromJson for CommandMessage
@@ -891,6 +1389,18 @@ pub(all) struct CommandNewTxn {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandNewTxn::CommandNewTxn(UInt64, txn_ttl_millis? : UInt64, tc_id? : UInt64, scalable? : Bool) -> Self
+pub fn CommandNewTxn::default() -> Self
+#deprecated
+pub fn CommandNewTxn::equal(Self, Self) -> Bool
+pub fn CommandNewTxn::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandNewTxn::not_equal(Self, Self) -> Bool
+pub fn CommandNewTxn::read(&@protobuf.Reader) -> Self raise
+pub fn CommandNewTxn::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandNewTxn::size_of(Self) -> UInt32
+pub fn CommandNewTxn::to_json(Self) -> Json
+pub fn CommandNewTxn::to_repr(Self) -> @debug.Repr
+pub fn CommandNewTxn::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandNewTxn
 pub impl ToJson for CommandNewTxn
 pub impl @json.FromJson for CommandNewTxn
@@ -909,6 +1419,18 @@ pub(all) struct CommandNewTxnResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandNewTxnResponse::CommandNewTxnResponse(UInt64, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, error? : ServerError, message? : String) -> Self
+pub fn CommandNewTxnResponse::default() -> Self
+#deprecated
+pub fn CommandNewTxnResponse::equal(Self, Self) -> Bool
+pub fn CommandNewTxnResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandNewTxnResponse::not_equal(Self, Self) -> Bool
+pub fn CommandNewTxnResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandNewTxnResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandNewTxnResponse::size_of(Self) -> UInt32
+pub fn CommandNewTxnResponse::to_json(Self) -> Json
+pub fn CommandNewTxnResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandNewTxnResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandNewTxnResponse
 pub impl ToJson for CommandNewTxnResponse
 pub impl @json.FromJson for CommandNewTxnResponse
@@ -928,6 +1450,18 @@ pub(all) struct CommandPartitionedTopicMetadata {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandPartitionedTopicMetadata::CommandPartitionedTopicMetadata(String, UInt64, original_principal? : String, original_auth_data? : String, original_auth_method? : String, metadata_auto_creation_enabled? : Bool) -> Self
+pub fn CommandPartitionedTopicMetadata::default() -> Self
+#deprecated
+pub fn CommandPartitionedTopicMetadata::equal(Self, Self) -> Bool
+pub fn CommandPartitionedTopicMetadata::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandPartitionedTopicMetadata::not_equal(Self, Self) -> Bool
+pub fn CommandPartitionedTopicMetadata::read(&@protobuf.Reader) -> Self raise
+pub fn CommandPartitionedTopicMetadata::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandPartitionedTopicMetadata::size_of(Self) -> UInt32
+pub fn CommandPartitionedTopicMetadata::to_json(Self) -> Json
+pub fn CommandPartitionedTopicMetadata::to_repr(Self) -> @debug.Repr
+pub fn CommandPartitionedTopicMetadata::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandPartitionedTopicMetadata
 pub impl ToJson for CommandPartitionedTopicMetadata
 pub impl @json.FromJson for CommandPartitionedTopicMetadata
@@ -938,14 +1472,26 @@ pub impl @protobuf.Sized for CommandPartitionedTopicMetadata
 pub impl @protobuf.Write for CommandPartitionedTopicMetadata
 
 pub(all) struct CommandPartitionedTopicMetadataResponse {
-  mut partitions : UInt?
+  mut partitions : UInt32?
   mut request_id : UInt64
   mut response : CommandPartitionedTopicMetadataResponse_LookupType?
   mut error : ServerError?
   mut message : String?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn CommandPartitionedTopicMetadataResponse::CommandPartitionedTopicMetadataResponse(partitions? : UInt, UInt64, response? : CommandPartitionedTopicMetadataResponse_LookupType, error? : ServerError, message? : String) -> Self
+pub fn CommandPartitionedTopicMetadataResponse::CommandPartitionedTopicMetadataResponse(partitions? : UInt32, UInt64, response? : CommandPartitionedTopicMetadataResponse_LookupType, error? : ServerError, message? : String) -> Self
+pub fn CommandPartitionedTopicMetadataResponse::default() -> Self
+#deprecated
+pub fn CommandPartitionedTopicMetadataResponse::equal(Self, Self) -> Bool
+pub fn CommandPartitionedTopicMetadataResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandPartitionedTopicMetadataResponse::not_equal(Self, Self) -> Bool
+pub fn CommandPartitionedTopicMetadataResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandPartitionedTopicMetadataResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandPartitionedTopicMetadataResponse::size_of(Self) -> UInt32
+pub fn CommandPartitionedTopicMetadataResponse::to_json(Self) -> Json
+pub fn CommandPartitionedTopicMetadataResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandPartitionedTopicMetadataResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandPartitionedTopicMetadataResponse
 pub impl ToJson for CommandPartitionedTopicMetadataResponse
 pub impl @json.FromJson for CommandPartitionedTopicMetadataResponse
@@ -959,8 +1505,17 @@ pub(all) enum CommandPartitionedTopicMetadataResponse_LookupType {
   Success
   Failed
 } derive(Eq, @debug.Debug)
+pub fn CommandPartitionedTopicMetadataResponse_LookupType::default() -> Self
+#deprecated
+pub fn CommandPartitionedTopicMetadataResponse_LookupType::equal(Self, Self) -> Bool
 pub fn CommandPartitionedTopicMetadataResponse_LookupType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandPartitionedTopicMetadataResponse_LookupType::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandPartitionedTopicMetadataResponse_LookupType::not_equal(Self, Self) -> Bool
+pub fn CommandPartitionedTopicMetadataResponse_LookupType::size_of(Self) -> UInt32
 pub fn CommandPartitionedTopicMetadataResponse_LookupType::to_enum(Self) -> @protobuf.Enum
+pub fn CommandPartitionedTopicMetadataResponse_LookupType::to_json(Self) -> Json
+pub fn CommandPartitionedTopicMetadataResponse_LookupType::to_repr(Self) -> @debug.Repr
 pub impl Default for CommandPartitionedTopicMetadataResponse_LookupType
 pub impl ToJson for CommandPartitionedTopicMetadataResponse_LookupType
 pub impl @json.FromJson for CommandPartitionedTopicMetadataResponse_LookupType
@@ -970,6 +1525,18 @@ pub(all) struct CommandPing {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandPing::CommandPing() -> Self
+pub fn CommandPing::default() -> Self
+#deprecated
+pub fn CommandPing::equal(Self, Self) -> Bool
+pub fn CommandPing::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandPing::not_equal(Self, Self) -> Bool
+pub fn CommandPing::read(&@protobuf.Reader) -> Self raise
+pub fn CommandPing::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandPing::size_of(Self) -> UInt32
+pub fn CommandPing::to_json(Self) -> Json
+pub fn CommandPing::to_repr(Self) -> @debug.Repr
+pub fn CommandPing::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandPing
 pub impl ToJson for CommandPing
 pub impl @json.FromJson for CommandPing
@@ -983,6 +1550,18 @@ pub(all) struct CommandPong {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandPong::CommandPong() -> Self
+pub fn CommandPong::default() -> Self
+#deprecated
+pub fn CommandPong::equal(Self, Self) -> Bool
+pub fn CommandPong::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandPong::not_equal(Self, Self) -> Bool
+pub fn CommandPong::read(&@protobuf.Reader) -> Self raise
+pub fn CommandPong::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandPong::size_of(Self) -> UInt32
+pub fn CommandPong::to_json(Self) -> Json
+pub fn CommandPong::to_repr(Self) -> @debug.Repr
+pub fn CommandPong::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandPong
 pub impl ToJson for CommandPong
 pub impl @json.FromJson for CommandPong
@@ -1009,6 +1588,18 @@ pub(all) struct CommandProducer {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandProducer::CommandProducer(String, UInt64, UInt64, producer_name? : String, encrypted? : Bool, Array[KeyValue], schema? : Schema, epoch? : UInt64, user_provided_producer_name? : Bool, producer_access_mode? : ProducerAccessMode, topic_epoch? : UInt64, txn_enabled? : Bool, initial_subscription_name? : String) -> Self
+pub fn CommandProducer::default() -> Self
+#deprecated
+pub fn CommandProducer::equal(Self, Self) -> Bool
+pub fn CommandProducer::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandProducer::not_equal(Self, Self) -> Bool
+pub fn CommandProducer::read(&@protobuf.Reader) -> Self raise
+pub fn CommandProducer::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandProducer::size_of(Self) -> UInt32
+pub fn CommandProducer::to_json(Self) -> Json
+pub fn CommandProducer::to_repr(Self) -> @debug.Repr
+pub fn CommandProducer::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandProducer
 pub impl ToJson for CommandProducer
 pub impl @json.FromJson for CommandProducer
@@ -1028,6 +1619,18 @@ pub(all) struct CommandProducerSuccess {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandProducerSuccess::CommandProducerSuccess(UInt64, String, last_sequence_id? : Int64, schema_version? : Bytes, topic_epoch? : UInt64, producer_ready? : Bool) -> Self
+pub fn CommandProducerSuccess::default() -> Self
+#deprecated
+pub fn CommandProducerSuccess::equal(Self, Self) -> Bool
+pub fn CommandProducerSuccess::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandProducerSuccess::not_equal(Self, Self) -> Bool
+pub fn CommandProducerSuccess::read(&@protobuf.Reader) -> Self raise
+pub fn CommandProducerSuccess::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandProducerSuccess::size_of(Self) -> UInt32
+pub fn CommandProducerSuccess::to_json(Self) -> Json
+pub fn CommandProducerSuccess::to_repr(Self) -> @debug.Repr
+pub fn CommandProducerSuccess::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandProducerSuccess
 pub impl ToJson for CommandProducerSuccess
 pub impl @json.FromJson for CommandProducerSuccess
@@ -1042,6 +1645,18 @@ pub(all) struct CommandReachedEndOfTopic {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandReachedEndOfTopic::CommandReachedEndOfTopic(UInt64) -> Self
+pub fn CommandReachedEndOfTopic::default() -> Self
+#deprecated
+pub fn CommandReachedEndOfTopic::equal(Self, Self) -> Bool
+pub fn CommandReachedEndOfTopic::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandReachedEndOfTopic::not_equal(Self, Self) -> Bool
+pub fn CommandReachedEndOfTopic::read(&@protobuf.Reader) -> Self raise
+pub fn CommandReachedEndOfTopic::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandReachedEndOfTopic::size_of(Self) -> UInt32
+pub fn CommandReachedEndOfTopic::to_json(Self) -> Json
+pub fn CommandReachedEndOfTopic::to_repr(Self) -> @debug.Repr
+pub fn CommandReachedEndOfTopic::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandReachedEndOfTopic
 pub impl ToJson for CommandReachedEndOfTopic
 pub impl @json.FromJson for CommandReachedEndOfTopic
@@ -1058,6 +1673,18 @@ pub(all) struct CommandRedeliverUnacknowledgedMessages {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandRedeliverUnacknowledgedMessages::CommandRedeliverUnacknowledgedMessages(UInt64, Array[MessageIdData], consumer_epoch? : UInt64) -> Self
+pub fn CommandRedeliverUnacknowledgedMessages::default() -> Self
+#deprecated
+pub fn CommandRedeliverUnacknowledgedMessages::equal(Self, Self) -> Bool
+pub fn CommandRedeliverUnacknowledgedMessages::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandRedeliverUnacknowledgedMessages::not_equal(Self, Self) -> Bool
+pub fn CommandRedeliverUnacknowledgedMessages::read(&@protobuf.Reader) -> Self raise
+pub fn CommandRedeliverUnacknowledgedMessages::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandRedeliverUnacknowledgedMessages::size_of(Self) -> UInt32
+pub fn CommandRedeliverUnacknowledgedMessages::to_json(Self) -> Json
+pub fn CommandRedeliverUnacknowledgedMessages::to_repr(Self) -> @debug.Repr
+pub fn CommandRedeliverUnacknowledgedMessages::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandRedeliverUnacknowledgedMessages
 pub impl ToJson for CommandRedeliverUnacknowledgedMessages
 pub impl @json.FromJson for CommandRedeliverUnacknowledgedMessages
@@ -1073,6 +1700,18 @@ pub(all) struct CommandScalableTopicAssignmentUpdate {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandScalableTopicAssignmentUpdate::CommandScalableTopicAssignmentUpdate(UInt64, ScalableConsumerAssignment) -> Self
+pub fn CommandScalableTopicAssignmentUpdate::default() -> Self
+#deprecated
+pub fn CommandScalableTopicAssignmentUpdate::equal(Self, Self) -> Bool
+pub fn CommandScalableTopicAssignmentUpdate::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandScalableTopicAssignmentUpdate::not_equal(Self, Self) -> Bool
+pub fn CommandScalableTopicAssignmentUpdate::read(&@protobuf.Reader) -> Self raise
+pub fn CommandScalableTopicAssignmentUpdate::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandScalableTopicAssignmentUpdate::size_of(Self) -> UInt32
+pub fn CommandScalableTopicAssignmentUpdate::to_json(Self) -> Json
+pub fn CommandScalableTopicAssignmentUpdate::to_repr(Self) -> @debug.Repr
+pub fn CommandScalableTopicAssignmentUpdate::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandScalableTopicAssignmentUpdate
 pub impl ToJson for CommandScalableTopicAssignmentUpdate
 pub impl @json.FromJson for CommandScalableTopicAssignmentUpdate
@@ -1087,6 +1726,18 @@ pub(all) struct CommandScalableTopicClose {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandScalableTopicClose::CommandScalableTopicClose(UInt64) -> Self
+pub fn CommandScalableTopicClose::default() -> Self
+#deprecated
+pub fn CommandScalableTopicClose::equal(Self, Self) -> Bool
+pub fn CommandScalableTopicClose::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandScalableTopicClose::not_equal(Self, Self) -> Bool
+pub fn CommandScalableTopicClose::read(&@protobuf.Reader) -> Self raise
+pub fn CommandScalableTopicClose::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandScalableTopicClose::size_of(Self) -> UInt32
+pub fn CommandScalableTopicClose::to_json(Self) -> Json
+pub fn CommandScalableTopicClose::to_repr(Self) -> @debug.Repr
+pub fn CommandScalableTopicClose::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandScalableTopicClose
 pub impl ToJson for CommandScalableTopicClose
 pub impl @json.FromJson for CommandScalableTopicClose
@@ -1103,6 +1754,18 @@ pub(all) struct CommandScalableTopicLookup {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandScalableTopicLookup::CommandScalableTopicLookup(UInt64, String, create_if_missing? : Bool) -> Self
+pub fn CommandScalableTopicLookup::default() -> Self
+#deprecated
+pub fn CommandScalableTopicLookup::equal(Self, Self) -> Bool
+pub fn CommandScalableTopicLookup::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandScalableTopicLookup::not_equal(Self, Self) -> Bool
+pub fn CommandScalableTopicLookup::read(&@protobuf.Reader) -> Self raise
+pub fn CommandScalableTopicLookup::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandScalableTopicLookup::size_of(Self) -> UInt32
+pub fn CommandScalableTopicLookup::to_json(Self) -> Json
+pub fn CommandScalableTopicLookup::to_repr(Self) -> @debug.Repr
+pub fn CommandScalableTopicLookup::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandScalableTopicLookup
 pub impl ToJson for CommandScalableTopicLookup
 pub impl @json.FromJson for CommandScalableTopicLookup
@@ -1122,6 +1785,18 @@ pub(all) struct CommandScalableTopicSubscribe {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandScalableTopicSubscribe::CommandScalableTopicSubscribe(UInt64, String, String, String, UInt64, ScalableConsumerType) -> Self
+pub fn CommandScalableTopicSubscribe::default() -> Self
+#deprecated
+pub fn CommandScalableTopicSubscribe::equal(Self, Self) -> Bool
+pub fn CommandScalableTopicSubscribe::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandScalableTopicSubscribe::not_equal(Self, Self) -> Bool
+pub fn CommandScalableTopicSubscribe::read(&@protobuf.Reader) -> Self raise
+pub fn CommandScalableTopicSubscribe::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandScalableTopicSubscribe::size_of(Self) -> UInt32
+pub fn CommandScalableTopicSubscribe::to_json(Self) -> Json
+pub fn CommandScalableTopicSubscribe::to_repr(Self) -> @debug.Repr
+pub fn CommandScalableTopicSubscribe::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandScalableTopicSubscribe
 pub impl ToJson for CommandScalableTopicSubscribe
 pub impl @json.FromJson for CommandScalableTopicSubscribe
@@ -1139,6 +1814,18 @@ pub(all) struct CommandScalableTopicSubscribeResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandScalableTopicSubscribeResponse::CommandScalableTopicSubscribeResponse(UInt64, error? : ServerError, message? : String, assignment? : ScalableConsumerAssignment) -> Self
+pub fn CommandScalableTopicSubscribeResponse::default() -> Self
+#deprecated
+pub fn CommandScalableTopicSubscribeResponse::equal(Self, Self) -> Bool
+pub fn CommandScalableTopicSubscribeResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandScalableTopicSubscribeResponse::not_equal(Self, Self) -> Bool
+pub fn CommandScalableTopicSubscribeResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandScalableTopicSubscribeResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandScalableTopicSubscribeResponse::size_of(Self) -> UInt32
+pub fn CommandScalableTopicSubscribeResponse::to_json(Self) -> Json
+pub fn CommandScalableTopicSubscribeResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandScalableTopicSubscribeResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandScalableTopicSubscribeResponse
 pub impl ToJson for CommandScalableTopicSubscribeResponse
 pub impl @json.FromJson for CommandScalableTopicSubscribeResponse
@@ -1154,6 +1841,18 @@ pub(all) struct CommandScalableTopicUnsubscribe {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandScalableTopicUnsubscribe::CommandScalableTopicUnsubscribe(UInt64, UInt64) -> Self
+pub fn CommandScalableTopicUnsubscribe::default() -> Self
+#deprecated
+pub fn CommandScalableTopicUnsubscribe::equal(Self, Self) -> Bool
+pub fn CommandScalableTopicUnsubscribe::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandScalableTopicUnsubscribe::not_equal(Self, Self) -> Bool
+pub fn CommandScalableTopicUnsubscribe::read(&@protobuf.Reader) -> Self raise
+pub fn CommandScalableTopicUnsubscribe::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandScalableTopicUnsubscribe::size_of(Self) -> UInt32
+pub fn CommandScalableTopicUnsubscribe::to_json(Self) -> Json
+pub fn CommandScalableTopicUnsubscribe::to_repr(Self) -> @debug.Repr
+pub fn CommandScalableTopicUnsubscribe::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandScalableTopicUnsubscribe
 pub impl ToJson for CommandScalableTopicUnsubscribe
 pub impl @json.FromJson for CommandScalableTopicUnsubscribe
@@ -1172,6 +1871,18 @@ pub(all) struct CommandScalableTopicUpdate {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandScalableTopicUpdate::CommandScalableTopicUpdate(UInt64, dag? : ScalableTopicDAG, error? : ServerError, message? : String, resolved_topic_name? : String) -> Self
+pub fn CommandScalableTopicUpdate::default() -> Self
+#deprecated
+pub fn CommandScalableTopicUpdate::equal(Self, Self) -> Bool
+pub fn CommandScalableTopicUpdate::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandScalableTopicUpdate::not_equal(Self, Self) -> Bool
+pub fn CommandScalableTopicUpdate::read(&@protobuf.Reader) -> Self raise
+pub fn CommandScalableTopicUpdate::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandScalableTopicUpdate::size_of(Self) -> UInt32
+pub fn CommandScalableTopicUpdate::to_json(Self) -> Json
+pub fn CommandScalableTopicUpdate::to_repr(Self) -> @debug.Repr
+pub fn CommandScalableTopicUpdate::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandScalableTopicUpdate
 pub impl ToJson for CommandScalableTopicUpdate
 pub impl @json.FromJson for CommandScalableTopicUpdate
@@ -1189,6 +1900,18 @@ pub(all) struct CommandSeek {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandSeek::CommandSeek(UInt64, UInt64, message_id? : MessageIdData, message_publish_time? : UInt64) -> Self
+pub fn CommandSeek::default() -> Self
+#deprecated
+pub fn CommandSeek::equal(Self, Self) -> Bool
+pub fn CommandSeek::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandSeek::not_equal(Self, Self) -> Bool
+pub fn CommandSeek::read(&@protobuf.Reader) -> Self raise
+pub fn CommandSeek::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandSeek::size_of(Self) -> UInt32
+pub fn CommandSeek::to_json(Self) -> Json
+pub fn CommandSeek::to_repr(Self) -> @debug.Repr
+pub fn CommandSeek::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandSeek
 pub impl ToJson for CommandSeek
 pub impl @json.FromJson for CommandSeek
@@ -1201,7 +1924,7 @@ pub impl @protobuf.Write for CommandSeek
 pub(all) struct CommandSend {
   mut producer_id : UInt64
   mut sequence_id : UInt64
-  mut num_messages : Int?
+  mut num_messages : Int32?
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut highest_sequence_id : UInt64?
@@ -1210,7 +1933,19 @@ pub(all) struct CommandSend {
   mut message_id : MessageIdData?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn CommandSend::CommandSend(UInt64, UInt64, num_messages? : Int, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, highest_sequence_id? : UInt64, is_chunk? : Bool, marker? : Bool, message_id? : MessageIdData) -> Self
+pub fn CommandSend::CommandSend(UInt64, UInt64, num_messages? : Int32, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, highest_sequence_id? : UInt64, is_chunk? : Bool, marker? : Bool, message_id? : MessageIdData) -> Self
+pub fn CommandSend::default() -> Self
+#deprecated
+pub fn CommandSend::equal(Self, Self) -> Bool
+pub fn CommandSend::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandSend::not_equal(Self, Self) -> Bool
+pub fn CommandSend::read(&@protobuf.Reader) -> Self raise
+pub fn CommandSend::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandSend::size_of(Self) -> UInt32
+pub fn CommandSend::to_json(Self) -> Json
+pub fn CommandSend::to_repr(Self) -> @debug.Repr
+pub fn CommandSend::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandSend
 pub impl ToJson for CommandSend
 pub impl @json.FromJson for CommandSend
@@ -1228,6 +1963,18 @@ pub(all) struct CommandSendError {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandSendError::CommandSendError(UInt64, UInt64, ServerError, String) -> Self
+pub fn CommandSendError::default() -> Self
+#deprecated
+pub fn CommandSendError::equal(Self, Self) -> Bool
+pub fn CommandSendError::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandSendError::not_equal(Self, Self) -> Bool
+pub fn CommandSendError::read(&@protobuf.Reader) -> Self raise
+pub fn CommandSendError::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandSendError::size_of(Self) -> UInt32
+pub fn CommandSendError::to_json(Self) -> Json
+pub fn CommandSendError::to_repr(Self) -> @debug.Repr
+pub fn CommandSendError::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandSendError
 pub impl ToJson for CommandSendError
 pub impl @json.FromJson for CommandSendError
@@ -1245,6 +1992,18 @@ pub(all) struct CommandSendReceipt {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandSendReceipt::CommandSendReceipt(UInt64, UInt64, message_id? : MessageIdData, highest_sequence_id? : UInt64) -> Self
+pub fn CommandSendReceipt::default() -> Self
+#deprecated
+pub fn CommandSendReceipt::equal(Self, Self) -> Bool
+pub fn CommandSendReceipt::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandSendReceipt::not_equal(Self, Self) -> Bool
+pub fn CommandSendReceipt::read(&@protobuf.Reader) -> Self raise
+pub fn CommandSendReceipt::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandSendReceipt::size_of(Self) -> UInt32
+pub fn CommandSendReceipt::to_json(Self) -> Json
+pub fn CommandSendReceipt::to_repr(Self) -> @debug.Repr
+pub fn CommandSendReceipt::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandSendReceipt
 pub impl ToJson for CommandSendReceipt
 pub impl @json.FromJson for CommandSendReceipt
@@ -1261,7 +2020,7 @@ pub(all) struct CommandSubscribe {
   mut consumer_id : UInt64
   mut request_id : UInt64
   mut consumer_name : String?
-  mut priority_level : Int?
+  mut priority_level : Int32?
   mut durable : Bool?
   mut start_message_id : MessageIdData?
   mut metadata : Array[KeyValue]
@@ -1276,7 +2035,19 @@ pub(all) struct CommandSubscribe {
   mut consumer_epoch : UInt64?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn CommandSubscribe::CommandSubscribe(String, String, CommandSubscribe_SubType, UInt64, UInt64, consumer_name? : String, priority_level? : Int, durable? : Bool, start_message_id? : MessageIdData, Array[KeyValue], read_compacted? : Bool, schema? : Schema, initial_position? : CommandSubscribe_InitialPosition, replicate_subscription_state? : Bool, force_topic_creation? : Bool, start_message_rollback_duration_sec? : UInt64, key_shared_meta? : KeySharedMeta, Array[KeyValue], consumer_epoch? : UInt64) -> Self
+pub fn CommandSubscribe::CommandSubscribe(String, String, CommandSubscribe_SubType, UInt64, UInt64, consumer_name? : String, priority_level? : Int32, durable? : Bool, start_message_id? : MessageIdData, Array[KeyValue], read_compacted? : Bool, schema? : Schema, initial_position? : CommandSubscribe_InitialPosition, replicate_subscription_state? : Bool, force_topic_creation? : Bool, start_message_rollback_duration_sec? : UInt64, key_shared_meta? : KeySharedMeta, Array[KeyValue], consumer_epoch? : UInt64) -> Self
+pub fn CommandSubscribe::default() -> Self
+#deprecated
+pub fn CommandSubscribe::equal(Self, Self) -> Bool
+pub fn CommandSubscribe::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandSubscribe::not_equal(Self, Self) -> Bool
+pub fn CommandSubscribe::read(&@protobuf.Reader) -> Self raise
+pub fn CommandSubscribe::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandSubscribe::size_of(Self) -> UInt32
+pub fn CommandSubscribe::to_json(Self) -> Json
+pub fn CommandSubscribe::to_repr(Self) -> @debug.Repr
+pub fn CommandSubscribe::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandSubscribe
 pub impl ToJson for CommandSubscribe
 pub impl @json.FromJson for CommandSubscribe
@@ -1290,8 +2061,17 @@ pub(all) enum CommandSubscribe_InitialPosition {
   Latest
   Earliest
 } derive(Eq, @debug.Debug)
+pub fn CommandSubscribe_InitialPosition::default() -> Self
+#deprecated
+pub fn CommandSubscribe_InitialPosition::equal(Self, Self) -> Bool
 pub fn CommandSubscribe_InitialPosition::from_enum(@protobuf.Enum) -> Self
+pub fn CommandSubscribe_InitialPosition::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandSubscribe_InitialPosition::not_equal(Self, Self) -> Bool
+pub fn CommandSubscribe_InitialPosition::size_of(Self) -> UInt32
 pub fn CommandSubscribe_InitialPosition::to_enum(Self) -> @protobuf.Enum
+pub fn CommandSubscribe_InitialPosition::to_json(Self) -> Json
+pub fn CommandSubscribe_InitialPosition::to_repr(Self) -> @debug.Repr
 pub impl Default for CommandSubscribe_InitialPosition
 pub impl ToJson for CommandSubscribe_InitialPosition
 pub impl @json.FromJson for CommandSubscribe_InitialPosition
@@ -1303,8 +2083,17 @@ pub(all) enum CommandSubscribe_SubType {
   Failover
   Key_Shared
 } derive(Eq, @debug.Debug)
+pub fn CommandSubscribe_SubType::default() -> Self
+#deprecated
+pub fn CommandSubscribe_SubType::equal(Self, Self) -> Bool
 pub fn CommandSubscribe_SubType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandSubscribe_SubType::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandSubscribe_SubType::not_equal(Self, Self) -> Bool
+pub fn CommandSubscribe_SubType::size_of(Self) -> UInt32
 pub fn CommandSubscribe_SubType::to_enum(Self) -> @protobuf.Enum
+pub fn CommandSubscribe_SubType::to_json(Self) -> Json
+pub fn CommandSubscribe_SubType::to_repr(Self) -> @debug.Repr
 pub impl Default for CommandSubscribe_SubType
 pub impl ToJson for CommandSubscribe_SubType
 pub impl @json.FromJson for CommandSubscribe_SubType
@@ -1316,6 +2105,18 @@ pub(all) struct CommandSuccess {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandSuccess::CommandSuccess(UInt64, schema? : Schema) -> Self
+pub fn CommandSuccess::default() -> Self
+#deprecated
+pub fn CommandSuccess::equal(Self, Self) -> Bool
+pub fn CommandSuccess::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandSuccess::not_equal(Self, Self) -> Bool
+pub fn CommandSuccess::read(&@protobuf.Reader) -> Self raise
+pub fn CommandSuccess::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandSuccess::size_of(Self) -> UInt32
+pub fn CommandSuccess::to_json(Self) -> Json
+pub fn CommandSuccess::to_repr(Self) -> @debug.Repr
+pub fn CommandSuccess::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandSuccess
 pub impl ToJson for CommandSuccess
 pub impl @json.FromJson for CommandSuccess
@@ -1332,6 +2133,18 @@ pub(all) struct CommandTcClientConnectRequest {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandTcClientConnectRequest::CommandTcClientConnectRequest(UInt64, UInt64, scalable? : Bool) -> Self
+pub fn CommandTcClientConnectRequest::default() -> Self
+#deprecated
+pub fn CommandTcClientConnectRequest::equal(Self, Self) -> Bool
+pub fn CommandTcClientConnectRequest::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandTcClientConnectRequest::not_equal(Self, Self) -> Bool
+pub fn CommandTcClientConnectRequest::read(&@protobuf.Reader) -> Self raise
+pub fn CommandTcClientConnectRequest::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandTcClientConnectRequest::size_of(Self) -> UInt32
+pub fn CommandTcClientConnectRequest::to_json(Self) -> Json
+pub fn CommandTcClientConnectRequest::to_repr(Self) -> @debug.Repr
+pub fn CommandTcClientConnectRequest::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandTcClientConnectRequest
 pub impl ToJson for CommandTcClientConnectRequest
 pub impl @json.FromJson for CommandTcClientConnectRequest
@@ -1348,6 +2161,18 @@ pub(all) struct CommandTcClientConnectResponse {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandTcClientConnectResponse::CommandTcClientConnectResponse(UInt64, error? : ServerError, message? : String) -> Self
+pub fn CommandTcClientConnectResponse::default() -> Self
+#deprecated
+pub fn CommandTcClientConnectResponse::equal(Self, Self) -> Bool
+pub fn CommandTcClientConnectResponse::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandTcClientConnectResponse::not_equal(Self, Self) -> Bool
+pub fn CommandTcClientConnectResponse::read(&@protobuf.Reader) -> Self raise
+pub fn CommandTcClientConnectResponse::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandTcClientConnectResponse::size_of(Self) -> UInt32
+pub fn CommandTcClientConnectResponse::to_json(Self) -> Json
+pub fn CommandTcClientConnectResponse::to_repr(Self) -> @debug.Repr
+pub fn CommandTcClientConnectResponse::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandTcClientConnectResponse
 pub impl ToJson for CommandTcClientConnectResponse
 pub impl @json.FromJson for CommandTcClientConnectResponse
@@ -1365,6 +2190,18 @@ pub(all) struct CommandTopicMigrated {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandTopicMigrated::CommandTopicMigrated(UInt64, CommandTopicMigrated_ResourceType, broker_service_url? : String, broker_service_url_tls? : String) -> Self
+pub fn CommandTopicMigrated::default() -> Self
+#deprecated
+pub fn CommandTopicMigrated::equal(Self, Self) -> Bool
+pub fn CommandTopicMigrated::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandTopicMigrated::not_equal(Self, Self) -> Bool
+pub fn CommandTopicMigrated::read(&@protobuf.Reader) -> Self raise
+pub fn CommandTopicMigrated::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandTopicMigrated::size_of(Self) -> UInt32
+pub fn CommandTopicMigrated::to_json(Self) -> Json
+pub fn CommandTopicMigrated::to_repr(Self) -> @debug.Repr
+pub fn CommandTopicMigrated::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandTopicMigrated
 pub impl ToJson for CommandTopicMigrated
 pub impl @json.FromJson for CommandTopicMigrated
@@ -1378,8 +2215,17 @@ pub(all) enum CommandTopicMigrated_ResourceType {
   Producer
   Consumer
 } derive(Eq, @debug.Debug)
+pub fn CommandTopicMigrated_ResourceType::default() -> Self
+#deprecated
+pub fn CommandTopicMigrated_ResourceType::equal(Self, Self) -> Bool
 pub fn CommandTopicMigrated_ResourceType::from_enum(@protobuf.Enum) -> Self
+pub fn CommandTopicMigrated_ResourceType::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandTopicMigrated_ResourceType::not_equal(Self, Self) -> Bool
+pub fn CommandTopicMigrated_ResourceType::size_of(Self) -> UInt32
 pub fn CommandTopicMigrated_ResourceType::to_enum(Self) -> @protobuf.Enum
+pub fn CommandTopicMigrated_ResourceType::to_json(Self) -> Json
+pub fn CommandTopicMigrated_ResourceType::to_repr(Self) -> @debug.Repr
 pub impl Default for CommandTopicMigrated_ResourceType
 pub impl ToJson for CommandTopicMigrated_ResourceType
 pub impl @json.FromJson for CommandTopicMigrated_ResourceType
@@ -1392,6 +2238,18 @@ pub(all) struct CommandUnsubscribe {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandUnsubscribe::CommandUnsubscribe(UInt64, UInt64, force? : Bool) -> Self
+pub fn CommandUnsubscribe::default() -> Self
+#deprecated
+pub fn CommandUnsubscribe::equal(Self, Self) -> Bool
+pub fn CommandUnsubscribe::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandUnsubscribe::not_equal(Self, Self) -> Bool
+pub fn CommandUnsubscribe::read(&@protobuf.Reader) -> Self raise
+pub fn CommandUnsubscribe::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandUnsubscribe::size_of(Self) -> UInt32
+pub fn CommandUnsubscribe::to_json(Self) -> Json
+pub fn CommandUnsubscribe::to_repr(Self) -> @debug.Repr
+pub fn CommandUnsubscribe::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandUnsubscribe
 pub impl ToJson for CommandUnsubscribe
 pub impl @json.FromJson for CommandUnsubscribe
@@ -1409,6 +2267,18 @@ pub(all) struct CommandWatchScalableTopics {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchScalableTopics::CommandWatchScalableTopics(UInt64, String, Array[KeyValue], current_hash? : String) -> Self
+pub fn CommandWatchScalableTopics::default() -> Self
+#deprecated
+pub fn CommandWatchScalableTopics::equal(Self, Self) -> Bool
+pub fn CommandWatchScalableTopics::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchScalableTopics::not_equal(Self, Self) -> Bool
+pub fn CommandWatchScalableTopics::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchScalableTopics::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchScalableTopics::size_of(Self) -> UInt32
+pub fn CommandWatchScalableTopics::to_json(Self) -> Json
+pub fn CommandWatchScalableTopics::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchScalableTopics::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchScalableTopics
 pub impl ToJson for CommandWatchScalableTopics
 pub impl @json.FromJson for CommandWatchScalableTopics
@@ -1423,6 +2293,18 @@ pub(all) struct CommandWatchScalableTopicsClose {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchScalableTopicsClose::CommandWatchScalableTopicsClose(UInt64) -> Self
+pub fn CommandWatchScalableTopicsClose::default() -> Self
+#deprecated
+pub fn CommandWatchScalableTopicsClose::equal(Self, Self) -> Bool
+pub fn CommandWatchScalableTopicsClose::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchScalableTopicsClose::not_equal(Self, Self) -> Bool
+pub fn CommandWatchScalableTopicsClose::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchScalableTopicsClose::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchScalableTopicsClose::size_of(Self) -> UInt32
+pub fn CommandWatchScalableTopicsClose::to_json(Self) -> Json
+pub fn CommandWatchScalableTopicsClose::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchScalableTopicsClose::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchScalableTopicsClose
 pub impl ToJson for CommandWatchScalableTopicsClose
 pub impl @json.FromJson for CommandWatchScalableTopicsClose
@@ -1440,6 +2322,18 @@ pub(all) struct CommandWatchScalableTopicsUpdate {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchScalableTopicsUpdate::CommandWatchScalableTopicsUpdate(UInt64, error? : ServerError, message? : String, event? : CommandWatchScalableTopicsUpdate_Event) -> Self
+pub fn CommandWatchScalableTopicsUpdate::default() -> Self
+#deprecated
+pub fn CommandWatchScalableTopicsUpdate::equal(Self, Self) -> Bool
+pub fn CommandWatchScalableTopicsUpdate::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchScalableTopicsUpdate::not_equal(Self, Self) -> Bool
+pub fn CommandWatchScalableTopicsUpdate::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchScalableTopicsUpdate::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchScalableTopicsUpdate::size_of(Self) -> UInt32
+pub fn CommandWatchScalableTopicsUpdate::to_json(Self) -> Json
+pub fn CommandWatchScalableTopicsUpdate::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchScalableTopicsUpdate::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchScalableTopicsUpdate
 pub impl ToJson for CommandWatchScalableTopicsUpdate
 pub impl @json.FromJson for CommandWatchScalableTopicsUpdate
@@ -1454,6 +2348,14 @@ pub(all) enum CommandWatchScalableTopicsUpdate_Event {
   Diff(ScalableTopicsDiff)
   NotSet
 } derive(Eq, @debug.Debug)
+pub fn CommandWatchScalableTopicsUpdate_Event::default() -> Self
+#deprecated
+pub fn CommandWatchScalableTopicsUpdate_Event::equal(Self, Self) -> Bool
+pub fn CommandWatchScalableTopicsUpdate_Event::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchScalableTopicsUpdate_Event::not_equal(Self, Self) -> Bool
+pub fn CommandWatchScalableTopicsUpdate_Event::to_json(Self) -> Json
+pub fn CommandWatchScalableTopicsUpdate_Event::to_repr(Self) -> @debug.Repr
 pub impl Default for CommandWatchScalableTopicsUpdate_Event
 pub impl ToJson for CommandWatchScalableTopicsUpdate_Event
 pub impl @json.FromJson for CommandWatchScalableTopicsUpdate_Event
@@ -1463,6 +2365,18 @@ pub(all) struct CommandWatchTcAssignments {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchTcAssignments::CommandWatchTcAssignments(UInt64) -> Self
+pub fn CommandWatchTcAssignments::default() -> Self
+#deprecated
+pub fn CommandWatchTcAssignments::equal(Self, Self) -> Bool
+pub fn CommandWatchTcAssignments::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchTcAssignments::not_equal(Self, Self) -> Bool
+pub fn CommandWatchTcAssignments::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchTcAssignments::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchTcAssignments::size_of(Self) -> UInt32
+pub fn CommandWatchTcAssignments::to_json(Self) -> Json
+pub fn CommandWatchTcAssignments::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchTcAssignments::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchTcAssignments
 pub impl ToJson for CommandWatchTcAssignments
 pub impl @json.FromJson for CommandWatchTcAssignments
@@ -1477,6 +2391,18 @@ pub(all) struct CommandWatchTcAssignmentsClose {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchTcAssignmentsClose::CommandWatchTcAssignmentsClose(UInt64) -> Self
+pub fn CommandWatchTcAssignmentsClose::default() -> Self
+#deprecated
+pub fn CommandWatchTcAssignmentsClose::equal(Self, Self) -> Bool
+pub fn CommandWatchTcAssignmentsClose::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchTcAssignmentsClose::not_equal(Self, Self) -> Bool
+pub fn CommandWatchTcAssignmentsClose::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchTcAssignmentsClose::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchTcAssignmentsClose::size_of(Self) -> UInt32
+pub fn CommandWatchTcAssignmentsClose::to_json(Self) -> Json
+pub fn CommandWatchTcAssignmentsClose::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchTcAssignmentsClose::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchTcAssignmentsClose
 pub impl ToJson for CommandWatchTcAssignmentsClose
 pub impl @json.FromJson for CommandWatchTcAssignmentsClose
@@ -1494,6 +2420,18 @@ pub(all) struct CommandWatchTcAssignmentsUpdate {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchTcAssignmentsUpdate::CommandWatchTcAssignmentsUpdate(UInt64, snapshot? : TcAssignmentsSnapshot, error? : ServerError, message? : String) -> Self
+pub fn CommandWatchTcAssignmentsUpdate::default() -> Self
+#deprecated
+pub fn CommandWatchTcAssignmentsUpdate::equal(Self, Self) -> Bool
+pub fn CommandWatchTcAssignmentsUpdate::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchTcAssignmentsUpdate::not_equal(Self, Self) -> Bool
+pub fn CommandWatchTcAssignmentsUpdate::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchTcAssignmentsUpdate::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchTcAssignmentsUpdate::size_of(Self) -> UInt32
+pub fn CommandWatchTcAssignmentsUpdate::to_json(Self) -> Json
+pub fn CommandWatchTcAssignmentsUpdate::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchTcAssignmentsUpdate::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchTcAssignmentsUpdate
 pub impl ToJson for CommandWatchTcAssignmentsUpdate
 pub impl @json.FromJson for CommandWatchTcAssignmentsUpdate
@@ -1512,6 +2450,18 @@ pub(all) struct CommandWatchTopicList {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchTopicList::CommandWatchTopicList(UInt64, UInt64, String, String, topics_hash? : String) -> Self
+pub fn CommandWatchTopicList::default() -> Self
+#deprecated
+pub fn CommandWatchTopicList::equal(Self, Self) -> Bool
+pub fn CommandWatchTopicList::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchTopicList::not_equal(Self, Self) -> Bool
+pub fn CommandWatchTopicList::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchTopicList::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchTopicList::size_of(Self) -> UInt32
+pub fn CommandWatchTopicList::to_json(Self) -> Json
+pub fn CommandWatchTopicList::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchTopicList::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchTopicList
 pub impl ToJson for CommandWatchTopicList
 pub impl @json.FromJson for CommandWatchTopicList
@@ -1527,6 +2477,18 @@ pub(all) struct CommandWatchTopicListClose {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchTopicListClose::CommandWatchTopicListClose(UInt64, UInt64) -> Self
+pub fn CommandWatchTopicListClose::default() -> Self
+#deprecated
+pub fn CommandWatchTopicListClose::equal(Self, Self) -> Bool
+pub fn CommandWatchTopicListClose::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchTopicListClose::not_equal(Self, Self) -> Bool
+pub fn CommandWatchTopicListClose::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchTopicListClose::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchTopicListClose::size_of(Self) -> UInt32
+pub fn CommandWatchTopicListClose::to_json(Self) -> Json
+pub fn CommandWatchTopicListClose::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchTopicListClose::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchTopicListClose
 pub impl ToJson for CommandWatchTopicListClose
 pub impl @json.FromJson for CommandWatchTopicListClose
@@ -1544,6 +2506,18 @@ pub(all) struct CommandWatchTopicListSuccess {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchTopicListSuccess::CommandWatchTopicListSuccess(UInt64, UInt64, Array[String], String) -> Self
+pub fn CommandWatchTopicListSuccess::default() -> Self
+#deprecated
+pub fn CommandWatchTopicListSuccess::equal(Self, Self) -> Bool
+pub fn CommandWatchTopicListSuccess::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchTopicListSuccess::not_equal(Self, Self) -> Bool
+pub fn CommandWatchTopicListSuccess::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchTopicListSuccess::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchTopicListSuccess::size_of(Self) -> UInt32
+pub fn CommandWatchTopicListSuccess::to_json(Self) -> Json
+pub fn CommandWatchTopicListSuccess::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchTopicListSuccess::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchTopicListSuccess
 pub impl ToJson for CommandWatchTopicListSuccess
 pub impl @json.FromJson for CommandWatchTopicListSuccess
@@ -1561,6 +2535,18 @@ pub(all) struct CommandWatchTopicUpdate {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn CommandWatchTopicUpdate::CommandWatchTopicUpdate(UInt64, Array[String], Array[String], String) -> Self
+pub fn CommandWatchTopicUpdate::default() -> Self
+#deprecated
+pub fn CommandWatchTopicUpdate::equal(Self, Self) -> Bool
+pub fn CommandWatchTopicUpdate::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CommandWatchTopicUpdate::not_equal(Self, Self) -> Bool
+pub fn CommandWatchTopicUpdate::read(&@protobuf.Reader) -> Self raise
+pub fn CommandWatchTopicUpdate::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn CommandWatchTopicUpdate::size_of(Self) -> UInt32
+pub fn CommandWatchTopicUpdate::to_json(Self) -> Json
+pub fn CommandWatchTopicUpdate::to_repr(Self) -> @debug.Repr
+pub fn CommandWatchTopicUpdate::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for CommandWatchTopicUpdate
 pub impl ToJson for CommandWatchTopicUpdate
 pub impl @json.FromJson for CommandWatchTopicUpdate
@@ -1577,8 +2563,17 @@ pub(all) enum CompressionType {
   ZSTD
   SNAPPY
 } derive(Eq, @debug.Debug)
+pub fn CompressionType::default() -> Self
+#deprecated
+pub fn CompressionType::equal(Self, Self) -> Bool
 pub fn CompressionType::from_enum(@protobuf.Enum) -> Self
+pub fn CompressionType::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn CompressionType::not_equal(Self, Self) -> Bool
+pub fn CompressionType::size_of(Self) -> UInt32
 pub fn CompressionType::to_enum(Self) -> @protobuf.Enum
+pub fn CompressionType::to_json(Self) -> Json
+pub fn CompressionType::to_repr(Self) -> @debug.Repr
 pub impl Default for CompressionType
 pub impl ToJson for CompressionType
 pub impl @json.FromJson for CompressionType
@@ -1591,6 +2586,18 @@ pub(all) struct EncryptionKeys {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn EncryptionKeys::EncryptionKeys(String, Bytes, Array[KeyValue]) -> Self
+pub fn EncryptionKeys::default() -> Self
+#deprecated
+pub fn EncryptionKeys::equal(Self, Self) -> Bool
+pub fn EncryptionKeys::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn EncryptionKeys::not_equal(Self, Self) -> Bool
+pub fn EncryptionKeys::read(&@protobuf.Reader) -> Self raise
+pub fn EncryptionKeys::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn EncryptionKeys::size_of(Self) -> UInt32
+pub fn EncryptionKeys::to_json(Self) -> Json
+pub fn EncryptionKeys::to_repr(Self) -> @debug.Repr
+pub fn EncryptionKeys::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for EncryptionKeys
 pub impl ToJson for EncryptionKeys
 pub impl @json.FromJson for EncryptionKeys
@@ -1613,6 +2620,18 @@ pub(all) struct FeatureFlags {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn FeatureFlags::FeatureFlags(supports_auth_refresh? : Bool, supports_broker_entry_metadata? : Bool, supports_partial_producer? : Bool, supports_topic_watchers? : Bool, supports_get_partitioned_metadata_without_auto_creation? : Bool, supports_repl_dedup_by_lid_and_eid? : Bool, supports_topic_watcher_reconcile? : Bool, supports_scalable_topics? : Bool, supports_tc_metadata_discovery? : Bool) -> Self
+pub fn FeatureFlags::default() -> Self
+#deprecated
+pub fn FeatureFlags::equal(Self, Self) -> Bool
+pub fn FeatureFlags::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn FeatureFlags::not_equal(Self, Self) -> Bool
+pub fn FeatureFlags::read(&@protobuf.Reader) -> Self raise
+pub fn FeatureFlags::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn FeatureFlags::size_of(Self) -> UInt32
+pub fn FeatureFlags::to_json(Self) -> Json
+pub fn FeatureFlags::to_repr(Self) -> @debug.Repr
+pub fn FeatureFlags::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for FeatureFlags
 pub impl ToJson for FeatureFlags
 pub impl @json.FromJson for FeatureFlags
@@ -1623,11 +2642,23 @@ pub impl @protobuf.Sized for FeatureFlags
 pub impl @protobuf.Write for FeatureFlags
 
 pub(all) struct IntRange {
-  mut start : Int
-  mut end : Int
+  mut start : Int32
+  mut end : Int32
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn IntRange::IntRange(Int, Int) -> Self
+pub fn IntRange::IntRange(Int32, Int32) -> Self
+pub fn IntRange::default() -> Self
+#deprecated
+pub fn IntRange::equal(Self, Self) -> Bool
+pub fn IntRange::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn IntRange::not_equal(Self, Self) -> Bool
+pub fn IntRange::read(&@protobuf.Reader) -> Self raise
+pub fn IntRange::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn IntRange::size_of(Self) -> UInt32
+pub fn IntRange::to_json(Self) -> Json
+pub fn IntRange::to_repr(Self) -> @debug.Repr
+pub fn IntRange::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for IntRange
 pub impl ToJson for IntRange
 pub impl @json.FromJson for IntRange
@@ -1643,6 +2674,18 @@ pub(all) struct KeyLongValue {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn KeyLongValue::KeyLongValue(String, UInt64) -> Self
+pub fn KeyLongValue::default() -> Self
+#deprecated
+pub fn KeyLongValue::equal(Self, Self) -> Bool
+pub fn KeyLongValue::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn KeyLongValue::not_equal(Self, Self) -> Bool
+pub fn KeyLongValue::read(&@protobuf.Reader) -> Self raise
+pub fn KeyLongValue::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn KeyLongValue::size_of(Self) -> UInt32
+pub fn KeyLongValue::to_json(Self) -> Json
+pub fn KeyLongValue::to_repr(Self) -> @debug.Repr
+pub fn KeyLongValue::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for KeyLongValue
 pub impl ToJson for KeyLongValue
 pub impl @json.FromJson for KeyLongValue
@@ -1660,6 +2703,18 @@ pub(all) struct KeySharedMeta {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn KeySharedMeta::KeySharedMeta(KeySharedMode, Array[IntRange], allow_out_of_order_delivery? : Bool, entry_bucket_dispatch? : Bool) -> Self
+pub fn KeySharedMeta::default() -> Self
+#deprecated
+pub fn KeySharedMeta::equal(Self, Self) -> Bool
+pub fn KeySharedMeta::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn KeySharedMeta::not_equal(Self, Self) -> Bool
+pub fn KeySharedMeta::read(&@protobuf.Reader) -> Self raise
+pub fn KeySharedMeta::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn KeySharedMeta::size_of(Self) -> UInt32
+pub fn KeySharedMeta::to_json(Self) -> Json
+pub fn KeySharedMeta::to_repr(Self) -> @debug.Repr
+pub fn KeySharedMeta::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for KeySharedMeta
 pub impl ToJson for KeySharedMeta
 pub impl @json.FromJson for KeySharedMeta
@@ -1673,8 +2728,17 @@ pub(all) enum KeySharedMode {
   AUTO_SPLIT
   STICKY
 } derive(Eq, @debug.Debug)
+pub fn KeySharedMode::default() -> Self
+#deprecated
+pub fn KeySharedMode::equal(Self, Self) -> Bool
 pub fn KeySharedMode::from_enum(@protobuf.Enum) -> Self
+pub fn KeySharedMode::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn KeySharedMode::not_equal(Self, Self) -> Bool
+pub fn KeySharedMode::size_of(Self) -> UInt32
 pub fn KeySharedMode::to_enum(Self) -> @protobuf.Enum
+pub fn KeySharedMode::to_json(Self) -> Json
+pub fn KeySharedMode::to_repr(Self) -> @debug.Repr
 pub impl Default for KeySharedMode
 pub impl ToJson for KeySharedMode
 pub impl @json.FromJson for KeySharedMode
@@ -1686,6 +2750,18 @@ pub(all) struct KeyValue {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn KeyValue::KeyValue(String, String) -> Self
+pub fn KeyValue::default() -> Self
+#deprecated
+pub fn KeyValue::equal(Self, Self) -> Bool
+pub fn KeyValue::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn KeyValue::not_equal(Self, Self) -> Bool
+pub fn KeyValue::read(&@protobuf.Reader) -> Self raise
+pub fn KeyValue::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn KeyValue::size_of(Self) -> UInt32
+pub fn KeyValue::to_json(Self) -> Json
+pub fn KeyValue::to_repr(Self) -> @debug.Repr
+pub fn KeyValue::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for KeyValue
 pub impl ToJson for KeyValue
 pub impl @json.FromJson for KeyValue
@@ -1698,14 +2774,26 @@ pub impl @protobuf.Write for KeyValue
 pub(all) struct MessageIdData {
   mut ledger_id : UInt64
   mut entry_id : UInt64
-  mut partition : Int?
-  mut batch_index : Int?
+  mut partition : Int32?
+  mut batch_index : Int32?
   mut ack_set : Array[Int64]
-  mut batch_size : Int?
+  mut batch_size : Int32?
   mut first_chunk_message_id : MessageIdData?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn MessageIdData::MessageIdData(UInt64, UInt64, partition? : Int, batch_index? : Int, Array[Int64], batch_size? : Int, first_chunk_message_id? : Self) -> Self
+pub fn MessageIdData::MessageIdData(UInt64, UInt64, partition? : Int32, batch_index? : Int32, Array[Int64], batch_size? : Int32, first_chunk_message_id? : Self) -> Self
+pub fn MessageIdData::default() -> Self
+#deprecated
+pub fn MessageIdData::equal(Self, Self) -> Bool
+pub fn MessageIdData::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn MessageIdData::not_equal(Self, Self) -> Bool
+pub fn MessageIdData::read(&@protobuf.Reader) -> Self raise
+pub fn MessageIdData::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn MessageIdData::size_of(Self) -> UInt32
+pub fn MessageIdData::to_json(Self) -> Json
+pub fn MessageIdData::to_repr(Self) -> @debug.Repr
+pub fn MessageIdData::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for MessageIdData
 pub impl ToJson for MessageIdData
 pub impl @json.FromJson for MessageIdData
@@ -1724,8 +2812,8 @@ pub(all) struct MessageMetadata {
   mut partition_key : String?
   mut replicate_to : Array[String]
   mut compression : CompressionType?
-  mut uncompressed_size : UInt?
-  mut num_messages_in_batch : Int?
+  mut uncompressed_size : UInt32?
+  mut num_messages_in_batch : Int32?
   mut event_time : UInt64?
   mut encryption_keys : Array[EncryptionKeys]
   mut encryption_algo : String?
@@ -1734,23 +2822,35 @@ pub(all) struct MessageMetadata {
   mut partition_key_b64_encoded : Bool?
   mut ordering_key : Bytes?
   mut deliver_at_time : Int64?
-  mut marker_type : Int?
+  mut marker_type : Int32?
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut highest_sequence_id : UInt64?
   mut null_value : Bool?
   mut uuid : String?
-  mut num_chunks_from_msg : Int?
-  mut total_chunk_msg_size : Int?
-  mut chunk_id : Int?
+  mut num_chunks_from_msg : Int32?
+  mut total_chunk_msg_size : Int32?
+  mut chunk_id : Int32?
   mut null_partition_key : Bool?
-  mut compacted_batch_indexes : Array[Int]
+  mut compacted_batch_indexes : Array[Int32]
   mut schema_id : Bytes?
-  mut entry_hash_min : UInt?
-  mut entry_hash_max : UInt?
+  mut entry_hash_min : UInt32?
+  mut entry_hash_max : UInt32?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn MessageMetadata::MessageMetadata(String, UInt64, UInt64, Array[KeyValue], replicated_from? : String, partition_key? : String, Array[String], compression? : CompressionType, uncompressed_size? : UInt, num_messages_in_batch? : Int, event_time? : UInt64, Array[EncryptionKeys], encryption_algo? : String, encryption_param? : Bytes, schema_version? : Bytes, partition_key_b64_encoded? : Bool, ordering_key? : Bytes, deliver_at_time? : Int64, marker_type? : Int, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, highest_sequence_id? : UInt64, null_value? : Bool, uuid? : String, num_chunks_from_msg? : Int, total_chunk_msg_size? : Int, chunk_id? : Int, null_partition_key? : Bool, Array[Int], schema_id? : Bytes, entry_hash_min? : UInt, entry_hash_max? : UInt) -> Self
+pub fn MessageMetadata::MessageMetadata(String, UInt64, UInt64, Array[KeyValue], replicated_from? : String, partition_key? : String, Array[String], compression? : CompressionType, uncompressed_size? : UInt32, num_messages_in_batch? : Int32, event_time? : UInt64, Array[EncryptionKeys], encryption_algo? : String, encryption_param? : Bytes, schema_version? : Bytes, partition_key_b64_encoded? : Bool, ordering_key? : Bytes, deliver_at_time? : Int64, marker_type? : Int32, txnid_least_bits? : UInt64, txnid_most_bits? : UInt64, highest_sequence_id? : UInt64, null_value? : Bool, uuid? : String, num_chunks_from_msg? : Int32, total_chunk_msg_size? : Int32, chunk_id? : Int32, null_partition_key? : Bool, Array[Int32], schema_id? : Bytes, entry_hash_min? : UInt32, entry_hash_max? : UInt32) -> Self
+pub fn MessageMetadata::default() -> Self
+#deprecated
+pub fn MessageMetadata::equal(Self, Self) -> Bool
+pub fn MessageMetadata::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn MessageMetadata::not_equal(Self, Self) -> Bool
+pub fn MessageMetadata::read(&@protobuf.Reader) -> Self raise
+pub fn MessageMetadata::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn MessageMetadata::size_of(Self) -> UInt32
+pub fn MessageMetadata::to_json(Self) -> Json
+pub fn MessageMetadata::to_repr(Self) -> @debug.Repr
+pub fn MessageMetadata::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for MessageMetadata
 pub impl ToJson for MessageMetadata
 pub impl @json.FromJson for MessageMetadata
@@ -1766,8 +2866,17 @@ pub(all) enum ProducerAccessMode {
   WaitForExclusive
   ExclusiveWithFencing
 } derive(Eq, @debug.Debug)
+pub fn ProducerAccessMode::default() -> Self
+#deprecated
+pub fn ProducerAccessMode::equal(Self, Self) -> Bool
 pub fn ProducerAccessMode::from_enum(@protobuf.Enum) -> Self
+pub fn ProducerAccessMode::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn ProducerAccessMode::not_equal(Self, Self) -> Bool
+pub fn ProducerAccessMode::size_of(Self) -> UInt32
 pub fn ProducerAccessMode::to_enum(Self) -> @protobuf.Enum
+pub fn ProducerAccessMode::to_json(Self) -> Json
+pub fn ProducerAccessMode::to_repr(Self) -> @debug.Repr
 pub impl Default for ProducerAccessMode
 pub impl ToJson for ProducerAccessMode
 pub impl @json.FromJson for ProducerAccessMode
@@ -1797,8 +2906,17 @@ pub(all) enum ProtocolVersion {
   V20
   V21
 } derive(Eq, @debug.Debug)
+pub fn ProtocolVersion::default() -> Self
+#deprecated
+pub fn ProtocolVersion::equal(Self, Self) -> Bool
 pub fn ProtocolVersion::from_enum(@protobuf.Enum) -> Self
+pub fn ProtocolVersion::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn ProtocolVersion::not_equal(Self, Self) -> Bool
+pub fn ProtocolVersion::size_of(Self) -> UInt32
 pub fn ProtocolVersion::to_enum(Self) -> @protobuf.Enum
+pub fn ProtocolVersion::to_json(Self) -> Json
+pub fn ProtocolVersion::to_repr(Self) -> @debug.Repr
 pub impl Default for ProtocolVersion
 pub impl ToJson for ProtocolVersion
 pub impl @json.FromJson for ProtocolVersion
@@ -1806,13 +2924,25 @@ pub impl @protobuf.Sized for ProtocolVersion
 
 pub(all) struct ScalableAssignedSegment {
   mut segment_id : UInt64
-  mut hash_start : UInt
-  mut hash_end : UInt
+  mut hash_start : UInt32
+  mut hash_end : UInt32
   mut segment_topic : String
   mut bucket_ranges : Array[IntRange]
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn ScalableAssignedSegment::ScalableAssignedSegment(UInt64, UInt, UInt, String, Array[IntRange]) -> Self
+pub fn ScalableAssignedSegment::ScalableAssignedSegment(UInt64, UInt32, UInt32, String, Array[IntRange]) -> Self
+pub fn ScalableAssignedSegment::default() -> Self
+#deprecated
+pub fn ScalableAssignedSegment::equal(Self, Self) -> Bool
+pub fn ScalableAssignedSegment::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn ScalableAssignedSegment::not_equal(Self, Self) -> Bool
+pub fn ScalableAssignedSegment::read(&@protobuf.Reader) -> Self raise
+pub fn ScalableAssignedSegment::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn ScalableAssignedSegment::size_of(Self) -> UInt32
+pub fn ScalableAssignedSegment::to_json(Self) -> Json
+pub fn ScalableAssignedSegment::to_repr(Self) -> @debug.Repr
+pub fn ScalableAssignedSegment::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for ScalableAssignedSegment
 pub impl ToJson for ScalableAssignedSegment
 pub impl @json.FromJson for ScalableAssignedSegment
@@ -1828,6 +2958,18 @@ pub(all) struct ScalableConsumerAssignment {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn ScalableConsumerAssignment::ScalableConsumerAssignment(UInt64, Array[ScalableAssignedSegment]) -> Self
+pub fn ScalableConsumerAssignment::default() -> Self
+#deprecated
+pub fn ScalableConsumerAssignment::equal(Self, Self) -> Bool
+pub fn ScalableConsumerAssignment::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn ScalableConsumerAssignment::not_equal(Self, Self) -> Bool
+pub fn ScalableConsumerAssignment::read(&@protobuf.Reader) -> Self raise
+pub fn ScalableConsumerAssignment::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn ScalableConsumerAssignment::size_of(Self) -> UInt32
+pub fn ScalableConsumerAssignment::to_json(Self) -> Json
+pub fn ScalableConsumerAssignment::to_repr(Self) -> @debug.Repr
+pub fn ScalableConsumerAssignment::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for ScalableConsumerAssignment
 pub impl ToJson for ScalableConsumerAssignment
 pub impl @json.FromJson for ScalableConsumerAssignment
@@ -1841,8 +2983,17 @@ pub(all) enum ScalableConsumerType {
   STREAM
   CHECKPOINT
 } derive(Eq, @debug.Debug)
+pub fn ScalableConsumerType::default() -> Self
+#deprecated
+pub fn ScalableConsumerType::equal(Self, Self) -> Bool
 pub fn ScalableConsumerType::from_enum(@protobuf.Enum) -> Self
+pub fn ScalableConsumerType::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn ScalableConsumerType::not_equal(Self, Self) -> Bool
+pub fn ScalableConsumerType::size_of(Self) -> UInt32
 pub fn ScalableConsumerType::to_enum(Self) -> @protobuf.Enum
+pub fn ScalableConsumerType::to_json(Self) -> Json
+pub fn ScalableConsumerType::to_repr(Self) -> @debug.Repr
 pub impl Default for ScalableConsumerType
 pub impl ToJson for ScalableConsumerType
 pub impl @json.FromJson for ScalableConsumerType
@@ -1857,6 +3008,18 @@ pub(all) struct ScalableTopicDAG {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn ScalableTopicDAG::ScalableTopicDAG(UInt64, Array[SegmentInfoProto], Array[SegmentBrokerAddress], controller_broker_url? : String, controller_broker_url_tls? : String) -> Self
+pub fn ScalableTopicDAG::default() -> Self
+#deprecated
+pub fn ScalableTopicDAG::equal(Self, Self) -> Bool
+pub fn ScalableTopicDAG::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn ScalableTopicDAG::not_equal(Self, Self) -> Bool
+pub fn ScalableTopicDAG::read(&@protobuf.Reader) -> Self raise
+pub fn ScalableTopicDAG::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn ScalableTopicDAG::size_of(Self) -> UInt32
+pub fn ScalableTopicDAG::to_json(Self) -> Json
+pub fn ScalableTopicDAG::to_repr(Self) -> @debug.Repr
+pub fn ScalableTopicDAG::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for ScalableTopicDAG
 pub impl ToJson for ScalableTopicDAG
 pub impl @json.FromJson for ScalableTopicDAG
@@ -1872,6 +3035,18 @@ pub(all) struct ScalableTopicsDiff {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn ScalableTopicsDiff::ScalableTopicsDiff(Array[String], Array[String]) -> Self
+pub fn ScalableTopicsDiff::default() -> Self
+#deprecated
+pub fn ScalableTopicsDiff::equal(Self, Self) -> Bool
+pub fn ScalableTopicsDiff::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn ScalableTopicsDiff::not_equal(Self, Self) -> Bool
+pub fn ScalableTopicsDiff::read(&@protobuf.Reader) -> Self raise
+pub fn ScalableTopicsDiff::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn ScalableTopicsDiff::size_of(Self) -> UInt32
+pub fn ScalableTopicsDiff::to_json(Self) -> Json
+pub fn ScalableTopicsDiff::to_repr(Self) -> @debug.Repr
+pub fn ScalableTopicsDiff::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for ScalableTopicsDiff
 pub impl ToJson for ScalableTopicsDiff
 pub impl @json.FromJson for ScalableTopicsDiff
@@ -1886,6 +3061,18 @@ pub(all) struct ScalableTopicsSnapshot {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn ScalableTopicsSnapshot::ScalableTopicsSnapshot(Array[String]) -> Self
+pub fn ScalableTopicsSnapshot::default() -> Self
+#deprecated
+pub fn ScalableTopicsSnapshot::equal(Self, Self) -> Bool
+pub fn ScalableTopicsSnapshot::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn ScalableTopicsSnapshot::not_equal(Self, Self) -> Bool
+pub fn ScalableTopicsSnapshot::read(&@protobuf.Reader) -> Self raise
+pub fn ScalableTopicsSnapshot::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn ScalableTopicsSnapshot::size_of(Self) -> UInt32
+pub fn ScalableTopicsSnapshot::to_json(Self) -> Json
+pub fn ScalableTopicsSnapshot::to_repr(Self) -> @debug.Repr
+pub fn ScalableTopicsSnapshot::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for ScalableTopicsSnapshot
 pub impl ToJson for ScalableTopicsSnapshot
 pub impl @json.FromJson for ScalableTopicsSnapshot
@@ -1903,6 +3090,18 @@ pub(all) struct Schema {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn Schema::Schema(String, Bytes, Schema_Type, Array[KeyValue]) -> Self
+pub fn Schema::default() -> Self
+#deprecated
+pub fn Schema::equal(Self, Self) -> Bool
+pub fn Schema::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn Schema::not_equal(Self, Self) -> Bool
+pub fn Schema::read(&@protobuf.Reader) -> Self raise
+pub fn Schema::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn Schema::size_of(Self) -> UInt32
+pub fn Schema::to_json(Self) -> Json
+pub fn Schema::to_repr(Self) -> @debug.Repr
+pub fn Schema::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for Schema
 pub impl ToJson for Schema
 pub impl @json.FromJson for Schema
@@ -1937,8 +3136,17 @@ pub(all) enum Schema_Type {
   AutoConsume
   External
 } derive(Eq, @debug.Debug)
+pub fn Schema_Type::default() -> Self
+#deprecated
+pub fn Schema_Type::equal(Self, Self) -> Bool
 pub fn Schema_Type::from_enum(@protobuf.Enum) -> Self
+pub fn Schema_Type::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn Schema_Type::not_equal(Self, Self) -> Bool
+pub fn Schema_Type::size_of(Self) -> UInt32
 pub fn Schema_Type::to_enum(Self) -> @protobuf.Enum
+pub fn Schema_Type::to_json(Self) -> Json
+pub fn Schema_Type::to_repr(Self) -> @debug.Repr
 pub impl Default for Schema_Type
 pub impl ToJson for Schema_Type
 pub impl @json.FromJson for Schema_Type
@@ -1951,6 +3159,18 @@ pub(all) struct SegmentBrokerAddress {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn SegmentBrokerAddress::SegmentBrokerAddress(UInt64, String, broker_url_tls? : String) -> Self
+pub fn SegmentBrokerAddress::default() -> Self
+#deprecated
+pub fn SegmentBrokerAddress::equal(Self, Self) -> Bool
+pub fn SegmentBrokerAddress::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn SegmentBrokerAddress::not_equal(Self, Self) -> Bool
+pub fn SegmentBrokerAddress::read(&@protobuf.Reader) -> Self raise
+pub fn SegmentBrokerAddress::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn SegmentBrokerAddress::size_of(Self) -> UInt32
+pub fn SegmentBrokerAddress::to_json(Self) -> Json
+pub fn SegmentBrokerAddress::to_repr(Self) -> @debug.Repr
+pub fn SegmentBrokerAddress::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for SegmentBrokerAddress
 pub impl ToJson for SegmentBrokerAddress
 pub impl @json.FromJson for SegmentBrokerAddress
@@ -1962,8 +3182,8 @@ pub impl @protobuf.Write for SegmentBrokerAddress
 
 pub(all) struct SegmentInfoProto {
   mut segment_id : UInt64
-  mut hash_start : UInt
-  mut hash_end : UInt
+  mut hash_start : UInt32
+  mut hash_end : UInt32
   mut state : SegmentState
   mut parent_ids : Array[UInt64]
   mut child_ids : Array[UInt64]
@@ -1972,10 +3192,22 @@ pub(all) struct SegmentInfoProto {
   mut created_at_ms : UInt64
   mut sealed_at_ms : UInt64?
   mut legacy_topic_name : String?
-  mut entry_bucket_splits : Array[UInt]
+  mut entry_bucket_splits : Array[UInt32]
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn SegmentInfoProto::SegmentInfoProto(UInt64, UInt, UInt, SegmentState, Array[UInt64], Array[UInt64], UInt64, sealed_at_epoch? : UInt64, UInt64, sealed_at_ms? : UInt64, legacy_topic_name? : String, Array[UInt]) -> Self
+pub fn SegmentInfoProto::SegmentInfoProto(UInt64, UInt32, UInt32, SegmentState, Array[UInt64], Array[UInt64], UInt64, sealed_at_epoch? : UInt64, UInt64, sealed_at_ms? : UInt64, legacy_topic_name? : String, Array[UInt32]) -> Self
+pub fn SegmentInfoProto::default() -> Self
+#deprecated
+pub fn SegmentInfoProto::equal(Self, Self) -> Bool
+pub fn SegmentInfoProto::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn SegmentInfoProto::not_equal(Self, Self) -> Bool
+pub fn SegmentInfoProto::read(&@protobuf.Reader) -> Self raise
+pub fn SegmentInfoProto::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn SegmentInfoProto::size_of(Self) -> UInt32
+pub fn SegmentInfoProto::to_json(Self) -> Json
+pub fn SegmentInfoProto::to_repr(Self) -> @debug.Repr
+pub fn SegmentInfoProto::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for SegmentInfoProto
 pub impl ToJson for SegmentInfoProto
 pub impl @json.FromJson for SegmentInfoProto
@@ -1989,8 +3221,17 @@ pub(all) enum SegmentState {
   ACTIVE
   SEALED
 } derive(Eq, @debug.Debug)
+pub fn SegmentState::default() -> Self
+#deprecated
+pub fn SegmentState::equal(Self, Self) -> Bool
 pub fn SegmentState::from_enum(@protobuf.Enum) -> Self
+pub fn SegmentState::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn SegmentState::not_equal(Self, Self) -> Bool
+pub fn SegmentState::size_of(Self) -> UInt32
 pub fn SegmentState::to_enum(Self) -> @protobuf.Enum
+pub fn SegmentState::to_json(Self) -> Json
+pub fn SegmentState::to_repr(Self) -> @debug.Repr
 pub impl Default for SegmentState
 pub impl ToJson for SegmentState
 pub impl @json.FromJson for SegmentState
@@ -2024,8 +3265,17 @@ pub(all) enum ServerError {
   TransactionNotFound
   ProducerFenced
 } derive(Eq, @debug.Debug)
+pub fn ServerError::default() -> Self
+#deprecated
+pub fn ServerError::equal(Self, Self) -> Bool
 pub fn ServerError::from_enum(@protobuf.Enum) -> Self
+pub fn ServerError::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn ServerError::not_equal(Self, Self) -> Bool
+pub fn ServerError::size_of(Self) -> UInt32
 pub fn ServerError::to_enum(Self) -> @protobuf.Enum
+pub fn ServerError::to_json(Self) -> Json
+pub fn ServerError::to_repr(Self) -> @debug.Repr
 pub impl Default for ServerError
 pub impl ToJson for ServerError
 pub impl @json.FromJson for ServerError
@@ -2034,7 +3284,7 @@ pub impl @protobuf.Sized for ServerError
 pub(all) struct SingleMessageMetadata {
   mut properties : Array[KeyValue]
   mut partition_key : String?
-  mut payload_size : Int
+  mut payload_size : Int32
   mut compacted_out : Bool?
   mut event_time : UInt64?
   mut partition_key_b64_encoded : Bool?
@@ -2044,7 +3294,19 @@ pub(all) struct SingleMessageMetadata {
   mut null_partition_key : Bool?
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn SingleMessageMetadata::SingleMessageMetadata(Array[KeyValue], partition_key? : String, Int, compacted_out? : Bool, event_time? : UInt64, partition_key_b64_encoded? : Bool, ordering_key? : Bytes, sequence_id? : UInt64, null_value? : Bool, null_partition_key? : Bool) -> Self
+pub fn SingleMessageMetadata::SingleMessageMetadata(Array[KeyValue], partition_key? : String, Int32, compacted_out? : Bool, event_time? : UInt64, partition_key_b64_encoded? : Bool, ordering_key? : Bytes, sequence_id? : UInt64, null_value? : Bool, null_partition_key? : Bool) -> Self
+pub fn SingleMessageMetadata::default() -> Self
+#deprecated
+pub fn SingleMessageMetadata::equal(Self, Self) -> Bool
+pub fn SingleMessageMetadata::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn SingleMessageMetadata::not_equal(Self, Self) -> Bool
+pub fn SingleMessageMetadata::read(&@protobuf.Reader) -> Self raise
+pub fn SingleMessageMetadata::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn SingleMessageMetadata::size_of(Self) -> UInt32
+pub fn SingleMessageMetadata::to_json(Self) -> Json
+pub fn SingleMessageMetadata::to_repr(Self) -> @debug.Repr
+pub fn SingleMessageMetadata::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for SingleMessageMetadata
 pub impl ToJson for SingleMessageMetadata
 pub impl @json.FromJson for SingleMessageMetadata
@@ -2060,6 +3322,18 @@ pub(all) struct Subscription {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn Subscription::Subscription(String, String) -> Self
+pub fn Subscription::default() -> Self
+#deprecated
+pub fn Subscription::equal(Self, Self) -> Bool
+pub fn Subscription::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn Subscription::not_equal(Self, Self) -> Bool
+pub fn Subscription::read(&@protobuf.Reader) -> Self raise
+pub fn Subscription::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn Subscription::size_of(Self) -> UInt32
+pub fn Subscription::to_json(Self) -> Json
+pub fn Subscription::to_repr(Self) -> @debug.Repr
+pub fn Subscription::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for Subscription
 pub impl ToJson for Subscription
 pub impl @json.FromJson for Subscription
@@ -2076,6 +3350,18 @@ pub(all) struct TcAssignment {
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
 pub fn TcAssignment::TcAssignment(UInt64, broker_service_url? : String, broker_service_url_tls? : String) -> Self
+pub fn TcAssignment::default() -> Self
+#deprecated
+pub fn TcAssignment::equal(Self, Self) -> Bool
+pub fn TcAssignment::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn TcAssignment::not_equal(Self, Self) -> Bool
+pub fn TcAssignment::read(&@protobuf.Reader) -> Self raise
+pub fn TcAssignment::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn TcAssignment::size_of(Self) -> UInt32
+pub fn TcAssignment::to_json(Self) -> Json
+pub fn TcAssignment::to_repr(Self) -> @debug.Repr
+pub fn TcAssignment::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for TcAssignment
 pub impl ToJson for TcAssignment
 pub impl @json.FromJson for TcAssignment
@@ -2086,11 +3372,23 @@ pub impl @protobuf.Sized for TcAssignment
 pub impl @protobuf.Write for TcAssignment
 
 pub(all) struct TcAssignmentsSnapshot {
-  mut parallelism : UInt
+  mut parallelism : UInt32
   mut assignments : Array[TcAssignment]
 } derive(Eq, @debug.Debug)
 #alias(new, deprecated)
-pub fn TcAssignmentsSnapshot::TcAssignmentsSnapshot(UInt, Array[TcAssignment]) -> Self
+pub fn TcAssignmentsSnapshot::TcAssignmentsSnapshot(UInt32, Array[TcAssignment]) -> Self
+pub fn TcAssignmentsSnapshot::default() -> Self
+#deprecated
+pub fn TcAssignmentsSnapshot::equal(Self, Self) -> Bool
+pub fn TcAssignmentsSnapshot::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn TcAssignmentsSnapshot::not_equal(Self, Self) -> Bool
+pub fn TcAssignmentsSnapshot::read(&@protobuf.Reader) -> Self raise
+pub fn TcAssignmentsSnapshot::read_with_limit(@protobuf.LimitedReader[&@protobuf.Reader]) -> Self raise
+pub fn TcAssignmentsSnapshot::size_of(Self) -> UInt32
+pub fn TcAssignmentsSnapshot::to_json(Self) -> Json
+pub fn TcAssignmentsSnapshot::to_repr(Self) -> @debug.Repr
+pub fn TcAssignmentsSnapshot::write(Self, &@protobuf.Writer) -> Unit raise
 pub impl Default for TcAssignmentsSnapshot
 pub impl ToJson for TcAssignmentsSnapshot
 pub impl @json.FromJson for TcAssignmentsSnapshot
@@ -2104,8 +3402,17 @@ pub(all) enum TxnAction {
   COMMIT
   ABORT
 } derive(Eq, @debug.Debug)
+pub fn TxnAction::default() -> Self
+#deprecated
+pub fn TxnAction::equal(Self, Self) -> Bool
 pub fn TxnAction::from_enum(@protobuf.Enum) -> Self
+pub fn TxnAction::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+#deprecated
+pub fn TxnAction::not_equal(Self, Self) -> Bool
+pub fn TxnAction::size_of(Self) -> UInt32
 pub fn TxnAction::to_enum(Self) -> @protobuf.Enum
+pub fn TxnAction::to_json(Self) -> Json
+pub fn TxnAction::to_repr(Self) -> @debug.Repr
 pub impl Default for TxnAction
 pub impl ToJson for TxnAction
 pub impl @json.FromJson for TxnAction

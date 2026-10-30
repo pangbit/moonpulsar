@@ -3,7 +3,7 @@
 // and can seek freely.
 
 ///|
-const COMPOSITE_READER_QUEUE_CAPACITY : Int = 1000
+const COMPOSITE_READER_QUEUE_CAPACITY : Int32 = 1000
 
 ///|
 priv enum ReaderEvent {
@@ -39,7 +39,7 @@ pub struct SingleReader {
   priv mut consumer_id : UInt64
   priv events : @aqueue.Queue[ReaderEvent]
   priv conn_ref : Ref[Connection]
-  priv receiver_permits : Int
+  priv receiver_permits : Int32
   priv read_compacted : Bool
   priv schema : SchemaInfo?
   priv message_crypto : MessageCrypto?
@@ -47,7 +47,7 @@ pub struct SingleReader {
   priv decryption_failure_action : DecryptionFailureAction
   priv include_start_message_id : Bool
   priv start_bound : Ref[MessageId?]
-  priv mut available_permits : Int
+  priv mut available_permits : Int32
   /// last message seen, for `has_message_available`
   priv last_seen : Ref[MessageId?]
   priv closed : Ref[Bool]
@@ -65,17 +65,17 @@ pub async fn SingleReader::create(
   conn : Connection,
   topic : String,
   start_message_id? : MessageId,
-  receiver_queue_size? : Int = 1000,
-  read_compacted? : Bool = false,
-  include_start_message_id? : Bool = false,
+  receiver_queue_size~ : Int32 = 1000,
+  read_compacted~ : Bool = false,
+  include_start_message_id~ : Bool = false,
   name? : String,
-  properties? : Map[String, String] = {},
+  properties~ : Map[String, String] = {},
   subscription_name? : String,
-  subscription_role_prefix? : String = "reader",
+  subscription_role_prefix~ : String = "reader",
   chunk_policy? : ChunkAssemblyPolicy,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
-  decryption_failure_action? : DecryptionFailureAction = Fail,
+  decryption_failure_action~ : DecryptionFailureAction = Fail,
 ) -> SingleReader {
   SingleReader::create_with_memory(
     group,
@@ -102,17 +102,17 @@ async fn SingleReader::create_with_memory(
   conn : Connection,
   topic : String,
   start_message_id? : MessageId,
-  receiver_queue_size? : Int = 1000,
-  read_compacted? : Bool = false,
-  include_start_message_id? : Bool = false,
+  receiver_queue_size~ : Int32 = 1000,
+  read_compacted~ : Bool = false,
+  include_start_message_id~ : Bool = false,
   name? : String,
-  properties? : Map[String, String] = {},
+  properties~ : Map[String, String] = {},
   subscription_name? : String,
-  subscription_role_prefix? : String = "reader",
+  subscription_role_prefix~ : String = "reader",
   chunk_policy? : ChunkAssemblyPolicy,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
-  decryption_failure_action? : DecryptionFailureAction = Fail,
+  decryption_failure_action~ : DecryptionFailureAction = Fail,
   memory_limiter? : ClientMemoryLimiter,
 ) -> SingleReader {
   guard subscription_name != Some("") && subscription_role_prefix != "" else {
@@ -378,7 +378,7 @@ async fn SingleReader::resubscribe(
 }
 
 ///|
-async fn SingleReader::send_flow(self : SingleReader, permits : Int) -> Unit {
+async fn SingleReader::send_flow(self : SingleReader, permits : Int32) -> Unit {
   let cmd = @proto.BaseCommand::default()
   cmd.type_ = @proto.BaseCommand_Type::FLOW
   let flow = @proto.CommandFlow::default()
@@ -500,7 +500,7 @@ fn SingleReader::dispatch_message(
         decompress(
           CompressionCodec::from_proto(t),
           assembled,
-          uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt) {
+          uncompressed_size?=metadata.uncompressed_size.map(fn(u : UInt32) {
             u.reinterpret_as_int()
           }),
         )
@@ -782,16 +782,16 @@ priv enum ReaderImpl {
 
 ///|
 priv struct PartitionedReaderEvent {
-  source : Int
+  source : Int32
   event : ReaderEvent
 }
 
 ///|
 priv struct PartitionedReaderState {
   queue : @aqueue.Queue[PartitionedReaderEvent]
-  mut ended : Int
-  ended_sources : Map[Int, Bool]
-  mut total : Int
+  mut ended : Int32
+  ended_sources : Map[Int32, Bool]
+  mut total : Int32
   readers : Array[SingleReader]
   closed : Ref[Bool]
   mut peeked : PartitionedReaderEvent?
@@ -852,7 +852,7 @@ pub fn Reader::partitioned(
 fn PartitionedReaderState::forward_source(
   self : PartitionedReaderState,
   group : @async.TaskGroup[Unit],
-  source : Int,
+  source : Int32,
   reader : SingleReader,
 ) -> Unit {
   group.spawn_bg(

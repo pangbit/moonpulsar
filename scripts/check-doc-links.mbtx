@@ -1,4 +1,4 @@
-///|
+----
 // Check inline Markdown file links in the checkout and, optionally, a ZIP.
 // Repository URLs are checked against local files, not fetched over the network.
 import {
@@ -7,6 +7,7 @@ import {
   "moonbitlang/async@0.22.1/shell",
   "moonbitlang/core/env",
 }
+----
 
 ///|
 fn normalize(path : String) -> String {
@@ -32,7 +33,7 @@ async fn check_links(
   path : String,
   content : String,
   archive_files : Set[String]?,
-) -> Int {
+) -> Int32 {
   let parts = path.split("/").to_array()
   let base = parts[:parts.length() - 1]
     .to_owned()

@@ -4,7 +4,7 @@
 #warnings("-alert_internal")
 async fn start_tls_close_probe(
   group : @async.TaskGroup[Unit],
-  malformed? : Bool = false,
+  malformed~ : Bool = false,
 ) -> (String, @aqueue.Queue[Unit]) {
   let server = @socket.TcpServer::TcpServer(@socket.Addr::parse("127.0.0.1:0"))
   let addr = server.addr.to_string()

@@ -9,9 +9,9 @@ pub struct ClientOptions {
   priv service_url : String
   priv auth : &Authentication?
   priv auth_provider : (async () -> AuthData)?
-  priv connection_timeout_ms : Int
-  priv operation_timeout_ms : Int
-  priv keepalive_interval_ms : Int
+  priv connection_timeout_ms : Int32
+  priv operation_timeout_ms : Int32
+  priv keepalive_interval_ms : Int32
   priv tls_insecure : Bool
   priv ca_pem_file : String?
   priv tls_identity : TlsIdentity?
@@ -23,9 +23,9 @@ pub struct ClientOptions {
   priv listener_name : String?
   priv lookup_properties : Map[String, String]
   priv reconnect_policy : RetryPolicy
-  priv max_connections_per_broker : Int
-  priv connection_idle_timeout_ms : Int?
-  priv max_memory_bytes : Int?
+  priv max_connections_per_broker : Int32
+  priv connection_idle_timeout_ms : Int32?
+  priv max_memory_bytes : Int32?
   priv on_event : ((ClientEvent) -> Unit)?
   priv on_span : ((ClientSpanEvent) -> Unit)?
 }
@@ -35,10 +35,10 @@ pub fn ClientOptions::new(
   service_url : String,
   auth? : &Authentication,
   auth_provider? : async () -> AuthData,
-  connection_timeout_ms? : Int = 10000,
-  operation_timeout_ms? : Int = 60000,
-  keepalive_interval_ms? : Int = 30000,
-  tls_insecure? : Bool = false,
+  connection_timeout_ms~ : Int32 = 10000,
+  operation_timeout_ms~ : Int32 = 60000,
+  keepalive_interval_ms~ : Int32 = 30000,
+  tls_insecure~ : Bool = false,
   ca_pem_file? : String,
   tls_identity? : TlsIdentity,
   tls_identity_provider? : async () -> TlsIdentity,
@@ -47,11 +47,11 @@ pub fn ClientOptions::new(
   tls_cipher_list? : String,
   tls13_ciphersuites? : String,
   listener_name? : String,
-  lookup_properties? : Map[String, String] = {},
-  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
-  max_connections_per_broker? : Int = 1,
-  connection_idle_timeout_ms? : Int,
-  max_memory_bytes? : Int,
+  lookup_properties~ : Map[String, String] = {},
+  reconnect_policy~ : RetryPolicy = RetryPolicy::default(),
+  max_connections_per_broker~ : Int32 = 1,
+  connection_idle_timeout_ms? : Int32,
+  max_memory_bytes? : Int32,
   on_event? : (ClientEvent) -> Unit,
   on_span? : (ClientSpanEvent) -> Unit,
 ) -> ClientOptions raise PulsarError {

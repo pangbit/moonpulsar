@@ -6,7 +6,7 @@
 
 ## 环境与本地检查
 
-需要支持 native 后端的 MoonBit 工具链、C 编译器与系统 SDK/libc。TLS/ECIES 运行库要求见 [README](../README.zh-CN.md)。克隆后运行 `moon update`。发布候选版本执行：
+需要支持 native 后端的 MoonBit 工具链、C 编译器与系统 SDK/libc。TLS/ECIES 运行库要求见 [README](../README.zh-CN.md)。克隆后运行 `moon update`。Linux 先按下文用有限的 32 MiB 编译栈生成测试程序。发布候选版本执行：
 
 ```sh
 moon check --target native --deny-warn
@@ -21,6 +21,28 @@ git diff --check
 ```
 
 准备其他版本时使用对应候选 ZIP 文件名。真实 Broker 脚本可能创建、重启或删除隔离容器；先阅读其说明，只在获准使用的测试环境执行。
+
+### Linux 编译器栈
+
+moonc `0.10.18+6c83a7f62` 编译完整 native debug 白盒 IR 时，8 MiB 进程栈可复现
+`link-core` 栈溢出；同一编译器、IR 和参数在 32 MiB 下成功生成对象。
+这证明该输入对栈限制敏感，不代表所有构建的最低栈要求，也尚未证明是相对旧编译器的回归。
+
+CI 对 debug/release 测试的编译阶段采用同一有限预算：
+
+```sh
+prlimit --stack=33554432:33554432 -- moon test --target native --build-only
+moon test --target native
+prlimit --stack=33554432:33554432 -- moon test --release --target native --build-only
+moon test --release --target native
+```
+
+`prlimit` 只影响构建子进程及其子进程；后面的测试命令复用产物，并使用正常进程栈，
+保留对运行时栈问题的检查。每对命令使用相同输出目录和构建参数，无需修改系统级或持久限制。
+本地 Linux 验证中，debug 套件在明确限制为 8 MiB 的栈下报告 **398 项通过**；
+其中六项真实 Broker 可选用例因缺少环境输入而直接返回。Release 测试程序也已在有限编译栈下
+成功构建，未运行 release 测试。这些结果用于验证 SDK 兼容性；该规避配置不改变协议、
+生成绑定、用例选择或断言。
 
 ## 维护约定
 
@@ -50,11 +72,19 @@ Mock 覆盖握手超时、Broker 拒绝 CONNECT、过多认证挑战、非空 To
 
 GitHub Actions 使用 Linux（Ubuntu 24.04），在推送和 PR 时执行 native 检查、debug/release 测试、格式与生成接口检查、文档生成及打包。仓库中的 localhost TLS 密钥与证书为公开的一次性测试夹具，不能用于真实 Broker；夹具、测试和示例均排除在 Mooncakes 包外。
 
-`proto/` 中的协议层由来自 apache/pulsar 的 `proto/PulsarApi.proto` 使用 `protoc-gen-mbt` 生成：
+`proto/` 中的协议层由来自 apache/pulsar 的 `proto/PulsarApi.proto` 使用 `protoc-gen-mbt@0.3.0` 和 README 指定的 SDK 生成。本次记录使用 `protoc 29.3`。先生成到独立目录，避免生成器的示例模块元数据覆盖本库配置：
 
 ```sh
-protoc --mbt_out=. --mbt_opt=project_name=proto proto/PulsarApi.proto
+mkdir -p _build/protocol-gen
+moon install moonbitlang/protoc-gen-mbt@0.3.0 --bin _build/protocol-gen/bin
+protoc --plugin=protoc-gen-mbt=_build/protocol-gen/bin/protoc-gen-mbt --mbt_out=_build/protocol-gen --mbt_opt=project_name=proto proto/PulsarApi.proto
+cp _build/protocol-gen/proto/src/pulsar/proto/top.mbt proto/top.mbt
+cp _build/protocol-gen/proto/src/pulsar/proto/moon.pkg proto/moon.pkg
+moon fmt proto
+moon info
 ```
+
+检查生成源码与接口差异。生成器会显式导出 trait 方法；不要通过关闭警告或手改生成绑定掩盖兼容错误。普通构建无需重新生成协议。
 
 ## 历史真实 Broker 验证
 

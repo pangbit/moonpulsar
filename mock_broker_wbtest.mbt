@@ -62,7 +62,7 @@ fn MockPeer::unread(self : MockPeer, frame : IncomingFrame) -> Unit {
 async fn start_mock_broker(
   group : @async.TaskGroup[Unit],
   on_peer : async (String, MockPeer) -> Unit,
-  max_message_size? : Int,
+  max_message_size? : Int32,
 ) -> String {
   let server = @socket.TcpServer::TcpServer(@socket.Addr::parse("127.0.0.1:0"))
   let addr = server.addr.to_string()

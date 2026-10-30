@@ -2,12 +2,12 @@
 // checksums.
 
 ///|
-let xxh32_primes : (UInt, UInt, UInt, UInt, UInt) = (
+let xxh32_primes : (UInt32, UInt32, UInt32, UInt32, UInt32) = (
   2654435761, 2246822519, 3266489917, 668265263, 374761393,
 )
 
 ///|
-fn xxh32_round(acc : UInt, input : UInt) -> UInt {
+fn xxh32_round(acc : UInt32, input : UInt32) -> UInt32 {
   let (p1, p2, _, _, _) = xxh32_primes
   let acc = acc + input * p2
   let acc = (acc << 13) | (acc >> 19)
@@ -15,7 +15,7 @@ fn xxh32_round(acc : UInt, input : UInt) -> UInt {
 }
 
 ///|
-fn read_le32(data : BytesView, at : Int) -> UInt {
+fn read_le32(data : BytesView, at : Int32) -> UInt32 {
   data[at].to_uint() |
   (data[at + 1].to_uint() << 8) |
   (data[at + 2].to_uint() << 16) |
@@ -24,16 +24,16 @@ fn read_le32(data : BytesView, at : Int) -> UInt {
 
 ///|
 /// Compute xxHash32 of `data` with seed 0.
-pub fn xxhash32(data : BytesView) -> UInt {
+pub fn xxhash32(data : BytesView) -> UInt32 {
   let (p1, p2, p3, p4, p5) = xxh32_primes
   let len = data.length()
   let mut offset = 0
-  let mut acc : UInt = 0
+  let mut acc : UInt32 = 0
   if len >= 16 {
-    let mut acc1 : UInt = p1 + p2
-    let mut acc2 : UInt = p2
-    let mut acc3 : UInt = 0
-    let mut acc4 : UInt = 0 - p1
+    let mut acc1 : UInt32 = p1 + p2
+    let mut acc2 : UInt32 = p2
+    let mut acc3 : UInt32 = 0
+    let mut acc4 : UInt32 = 0 - p1
     while offset + 16 <= len {
       acc1 = xxh32_round(acc1, read_le32(data, offset))
       acc2 = xxh32_round(acc2, read_le32(data, offset + 4))

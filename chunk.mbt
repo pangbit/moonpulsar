@@ -1,30 +1,30 @@
 // Reassemble interleaved chunked messages before decompression.
 
 ///|
-const MAX_PENDING_CHUNKED_MESSAGES : Int = 100
+const MAX_PENDING_CHUNKED_MESSAGES : Int32 = 100
 
 ///|
-const MAX_CHUNKED_MESSAGE_BYTES : Int = 67108864
+const MAX_CHUNKED_MESSAGE_BYTES : Int32 = 67108864
 
 ///|
-const MAX_PENDING_CHUNKED_BYTES : Int = 67108864
+const MAX_PENDING_CHUNKED_BYTES : Int32 = 67108864
 
 ///|
-const CHUNK_EXPIRY_MS : Int = 60000
+const CHUNK_EXPIRY_MS : Int32 = 60000
 
 ///|
 /// Limits for incomplete chunked messages buffered by a reader or consumer.
 pub struct ChunkAssemblyPolicy {
-  priv expiry_ms : Int
-  priv max_pending_messages : Int
+  priv expiry_ms : Int32
+  priv max_pending_messages : Int32
   priv auto_ack_incomplete : Bool
 }
 
 ///|
 pub fn ChunkAssemblyPolicy::new(
-  expiry_ms? : Int = CHUNK_EXPIRY_MS,
-  max_pending_messages? : Int = MAX_PENDING_CHUNKED_MESSAGES,
-  auto_ack_incomplete? : Bool = false,
+  expiry_ms~ : Int32 = CHUNK_EXPIRY_MS,
+  max_pending_messages~ : Int32 = MAX_PENDING_CHUNKED_MESSAGES,
+  auto_ack_incomplete~ : Bool = false,
 ) -> ChunkAssemblyPolicy raise PulsarError {
   guard expiry_ms > 0 && max_pending_messages > 0 else {
     raise InvalidFrame("chunk expiry and pending limit must be positive")
@@ -34,10 +34,10 @@ pub fn ChunkAssemblyPolicy::new(
 
 ///|
 priv struct ChunkAssembly {
-  expected : Int
-  total_size : Int
-  next_index : Int
-  size : Int
+  expected : Int32
+  total_size : Int32
+  next_index : Int32
+  size : Int32
   payload : @buffer.Buffer
   ids : Array[MessageId]
   started_at : Int64
@@ -53,7 +53,7 @@ priv struct ChunkResult {
 ///|
 struct ChunkAssembler {
   pending : Map[String, ChunkAssembly]
-  mut buffered_bytes : Int
+  mut buffered_bytes : Int32
   mut evicted_ids : Array[MessageId]
   policy : ChunkAssemblyPolicy
   memory_limiter : ClientMemoryLimiter?
@@ -91,7 +91,7 @@ fn ChunkAssembler::clear(self : ChunkAssembler) -> Unit {
 fn ChunkAssembler::discard(
   self : ChunkAssembler,
   uuid : String,
-  acknowledge? : Bool = true,
+  acknowledge~ : Bool = true,
 ) -> Unit {
   if self.pending.get(uuid) is Some(part) {
     self.buffered_bytes -= part.size

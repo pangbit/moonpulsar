@@ -5,7 +5,7 @@ struct Journal {
   directory : String
   run_id : String
   mutex : @async.Mutex
-  mut next : Int
+  mut next : Int32
 }
 
 ///|
@@ -85,12 +85,12 @@ async fn relay_pump(
   reader : @socket.Tcp,
   writer : @socket.Tcp,
   client_to_broker : Bool,
-  id : Int,
+  id : Int32,
   gate : RelayGate,
   state : AttemptState,
   journal : Journal,
   closed : Ref[Bool],
-  read_chunk_limit? : Int = 8192,
+  read_chunk_limit~ : Int32 = 8192,
 ) -> Unit {
   defer {
     closed.val = true

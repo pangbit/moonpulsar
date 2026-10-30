@@ -3,14 +3,14 @@
 
 ///|
 pub struct AckGroupingOptions {
-  priv max_size : Int
-  priv max_time_ms : Int
+  priv max_size : Int32
+  priv max_time_ms : Int32
 }
 
 ///|
 pub fn AckGroupingOptions::new(
-  max_size? : Int = 1000,
-  max_time_ms? : Int = 100,
+  max_size~ : Int32 = 1000,
+  max_time_ms~ : Int32 = 100,
 ) -> AckGroupingOptions raise PulsarError {
   guard max_size >= 0 && max_time_ms >= 0 else {
     raise InvalidFrame("ACK grouping size and time must not be negative")
@@ -23,7 +23,7 @@ priv struct PendingAck {
   ack_type : @proto.CommandAck_AckType
   ids : Array[MessageId]
   batch_ack_set : Array[Int64]?
-  batch_size : Int?
+  batch_size : Int32?
 }
 
 ///|
@@ -167,9 +167,9 @@ async fn AckDispatcher::ack(
   ack_type : @proto.CommandAck_AckType,
   ids : Array[MessageId],
   txn? : Transaction,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
   batch_ack_set? : Array[Int64],
-  batch_size? : Int,
+  batch_size? : Int32,
 ) -> Unit {
   if self.closed {
     raise ConsumerClosed

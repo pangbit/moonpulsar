@@ -18,9 +18,9 @@ struct ReplayTcpWriter {
   started : @aqueue.Queue[Unit]
   release : @aqueue.Queue[Bool]
   mut entered : Bool
-  mut active : Int
-  mut prefix_bytes : Int
-  mut injected : Int
+  mut active : Int32
+  mut prefix_bytes : Int32
+  mut injected : Int32
 }
 
 ///|
@@ -256,7 +256,7 @@ async fn replay_tcp_connect(
 }
 
 ///|
-async fn replay_tcp_receipt(peer : ReplayTcpPeer, index : Int) -> Unit {
+async fn replay_tcp_receipt(peer : ReplayTcpPeer, index : Int32) -> Unit {
   let frame = decode_frame_body(peer.sends[index][4:].to_owned())
   let send = frame.cmd.send.unwrap()
   let command = @proto.BaseCommand::default()
@@ -301,7 +301,7 @@ async fn replay_tcp_two_send(retry : Bool, closing : Bool) -> Unit {
       defer first.close()
       let second_ref : Ref[Connection?] = { val: None, }
       let third_ref : Ref[Connection?] = { val: None, }
-      let attempts : Ref[Int] = { val: 0, }
+      let attempts : Ref[Int32] = { val: 0, }
       let completed : @aqueue.Queue[Bool] = @aqueue.Queue::Queue(
         kind=Blocking(1),
       )

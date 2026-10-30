@@ -23,7 +23,7 @@ pub async fn TransactionCoordinator::connect(
   addr : String,
   tc_id : UInt64,
   auth? : AuthData,
-  tls? : Bool = false,
+  tls~ : Bool = false,
 ) -> TransactionCoordinator {
   let conn = Connection::connect(group, addr, auth?, tls~)
   errdefer conn.close()
@@ -98,7 +98,7 @@ pub fn Transaction::id(self : Transaction) -> (UInt64, UInt64) {
 /// Start a new transaction with the given time-to-live.
 pub async fn TransactionCoordinator::new_transaction(
   self : TransactionCoordinator,
-  ttl_ms? : UInt64 = 60000,
+  ttl_ms~ : UInt64 = 60000,
 ) -> Transaction {
   if self.closed {
     raise ConnectionClosed

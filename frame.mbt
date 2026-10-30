@@ -15,10 +15,10 @@
 
 ///|
 /// Magic number preceding the CRC32-C checksum on message frames.
-const MESSAGE_CHECKSUM_MAGIC : Int = 0x0e01
+const MESSAGE_CHECKSUM_MAGIC : Int32 = 0x0e01
 
 ///|
-fn write_be32(buf : @buffer.Buffer, v : UInt) -> Unit {
+fn write_be32(buf : @buffer.Buffer, v : UInt32) -> Unit {
   buf.write_byte((v >> 24).to_byte())
   buf.write_byte((v >> 16).to_byte())
   buf.write_byte((v >> 8).to_byte())
@@ -26,7 +26,7 @@ fn write_be32(buf : @buffer.Buffer, v : UInt) -> Unit {
 }
 
 ///|
-fn read_be32(data : BytesView, at : Int) -> UInt raise PulsarError {
+fn read_be32(data : BytesView, at : Int32) -> UInt32 raise PulsarError {
   if at + 4 > data.length() {
     raise InvalidFrame("unexpected end of frame")
   }
@@ -139,7 +139,7 @@ pub(all) struct IncomingFrame {
   cmd : @proto.BaseCommand
   metadata : @proto.MessageMetadata?
   payload : Bytes?
-  wire_size : Int
+  wire_size : Int32
 } derive(Debug)
 
 ///|

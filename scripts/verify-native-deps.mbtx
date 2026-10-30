@@ -1,4 +1,4 @@
-///|
+----
 // Full Linux matrix by default; --openssl-only selects the macOS-compatible
 // external build and injected OpenSSL loader checks.
 import {
@@ -7,6 +7,7 @@ import {
   "moonbitlang/async@0.22.1/shell",
   "moonbitlang/core/env",
 }
+----
 
 ///|
 async fn run_check(name : String, cmd : @shell.Cmd, report : String) -> Unit {

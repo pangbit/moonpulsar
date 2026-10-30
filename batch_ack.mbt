@@ -4,7 +4,7 @@
 ///|
 priv struct BatchAckState {
   acknowledged : Array[Bool]
-  generation : Int
+  generation : Int32
 }
 
 ///|
@@ -12,7 +12,7 @@ struct BatchAckTracker {
   states : Map[MessageId, BatchAckState]
   enabled : Bool
   mu : @async.Mutex
-  mut next_generation : Int
+  mut next_generation : Int32
 }
 
 ///|
@@ -29,7 +29,7 @@ fn batch_entry_id(id : MessageId) -> MessageId {
 fn BatchAckTracker::register(
   self : BatchAckTracker,
   id : MessageId,
-  size : Int,
+  size : Int32,
   broker_ack_set : Array[Int64],
 ) -> Unit {
   let key = batch_entry_id(id)
@@ -61,9 +61,9 @@ fn BatchAckTracker::clear(self : BatchAckTracker) -> Unit {
 ///|
 fn batch_ack_set(
   acknowledged : Array[Bool],
-  through : Int,
+  through : Int32,
   cumulative : Bool,
-  only_current? : Bool = false,
+  only_current~ : Bool = false,
 ) -> Array[Int64] {
   let words : Array[Int64] = []
   for _ in 0..<((acknowledged.length() + 63) / 64) {
@@ -88,7 +88,7 @@ async fn BatchAckTracker::ack(
   id : MessageId,
   ack_type : @proto.CommandAck_AckType,
   txn? : Transaction,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
   dispatcher? : AckDispatcher,
 ) -> Unit {
   self.mu.acquire()

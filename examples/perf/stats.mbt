@@ -13,7 +13,7 @@ fn Stats::new() -> Stats {
 }
 
 ///|
-fn Stats::record(self : Stats, bytes : Int, latency_us : Double) -> Unit {
+fn Stats::record(self : Stats, bytes : Int32, latency_us : Double) -> Unit {
   let index = if latency_us > 60000000.0 {
     600001
   } else {
@@ -37,7 +37,7 @@ fn Stats::percentile(self : Stats, percentile : Double) -> Json {
   for i in 0..<600001 {
     cumulative += self.buckets[i]
     if cumulative >= rank {
-      return (i * 100).to_json()
+      return Json(i * 100)
     }
   }
   null

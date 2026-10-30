@@ -6,7 +6,7 @@ async test "broker frame bytes are charged through dispatch then released" {
     let send : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
       kind=@aqueue.Kind::Blocking(1),
     )
-    let charged : @aqueue.Queue[(Int, Int)] = @aqueue.Queue::Queue(
+    let charged : @aqueue.Queue[(Int32, Int32)] = @aqueue.Queue::Queue(
       kind=@aqueue.Kind::Blocking(1),
     )
     let addr = start_mock_broker(group, async fn(_addr, peer) {
@@ -108,7 +108,7 @@ async test "oversized inbound frame reports memory error to consumer without ret
       addr,
       memory_limiter=limiter,
     )
-    let retries : Ref[Int] = { val: 0, }
+    let retries : Ref[Int32] = { val: 0, }
     let consumer = SingleConsumer::create_with_memory(
       group,
       conn,

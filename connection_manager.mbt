@@ -8,9 +8,9 @@ pub struct ConnectionManager {
   priv auth_provider : (() -> AuthData)?
   priv async_auth_provider : (async () -> AuthData)?
   priv connections : Map[String, Array[PoolConnection]]
-  priv next_connection : Map[String, Int]
-  priv max_connections_per_broker : Int
-  priv connection_idle_timeout_ms : Int?
+  priv next_connection : Map[String, Int32]
+  priv max_connections_per_broker : Int32
+  priv connection_idle_timeout_ms : Int32?
   priv pool_mu : @async.Mutex
   priv default_tls : Bool
   priv tls_insecure : Bool
@@ -21,9 +21,9 @@ pub struct ConnectionManager {
   priv tls_max_version : TlsVersion?
   priv tls_cipher_list : String?
   priv tls13_ciphersuites : String?
-  priv connection_timeout_ms : Int
-  priv operation_timeout_ms : Int
-  priv keepalive_interval_ms : Int
+  priv connection_timeout_ms : Int32
+  priv operation_timeout_ms : Int32
+  priv keepalive_interval_ms : Int32
   priv listener_name : String?
   priv lookup_properties : Map[String, String]
   priv mut memory_limiter : ClientMemoryLimiter?
@@ -42,8 +42,8 @@ pub fn ConnectionManager::new(
   group : @async.TaskGroup[Unit],
   auth? : AuthData,
   auth_provider? : () -> AuthData,
-  tls? : Bool = false,
-  tls_insecure? : Bool = false,
+  tls~ : Bool = false,
+  tls_insecure~ : Bool = false,
   tls_trust? : @tls.TrustedRoot,
   tls_identity? : TlsIdentity,
   tls_identity_provider? : async () -> TlsIdentity,
@@ -51,14 +51,14 @@ pub fn ConnectionManager::new(
   tls_max_version? : TlsVersion,
   tls_cipher_list? : String,
   tls13_ciphersuites? : String,
-  connection_timeout_ms? : Int = 10000,
-  operation_timeout_ms? : Int = 60000,
-  keepalive_interval_ms? : Int = 30000,
+  connection_timeout_ms~ : Int32 = 10000,
+  operation_timeout_ms~ : Int32 = 60000,
+  keepalive_interval_ms~ : Int32 = 30000,
   listener_name? : String,
-  lookup_properties? : Map[String, String] = {},
+  lookup_properties~ : Map[String, String] = {},
   async_auth_provider? : async () -> AuthData,
-  max_connections_per_broker? : Int = 1,
-  connection_idle_timeout_ms? : Int,
+  max_connections_per_broker~ : Int32 = 1,
+  connection_idle_timeout_ms? : Int32,
 ) -> ConnectionManager raise PulsarError {
   guard max_connections_per_broker > 0 else {
     raise InvalidFrame("max connections per broker must be positive")

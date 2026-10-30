@@ -6,8 +6,8 @@ async test "keepalive silent peer closes once and fails a pending request" {
   @async.with_timeout(5000, () => {
     @async.with_task_group(group => {
       let limiter = ClientMemoryLimiter::new(65536)
-      let closes : Ref[Int] = { val: 0, }
-      let ping_count : Ref[Int] = { val: 0, }
+      let closes : Ref[Int32] = { val: 0, }
+      let ping_count : Ref[Int32] = { val: 0, }
       let pings : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(kind=Unbounded)
       let requested : @aqueue.Queue[Unit] = @aqueue.Queue::Queue(
         kind=Blocking(1),
@@ -130,7 +130,7 @@ async test "keepalive close interrupts a long timer and cancellation retires tra
     @async.with_task_group(group => {
       for cancel in [false, true] {
         let limiter = ClientMemoryLimiter::new(65536)
-        let closes : Ref[Int] = { val: 0, }
+        let closes : Ref[Int32] = { val: 0, }
         let frames : Array[IncomingFrame] = []
         let (conn, _) = lifecycle_memory_connection(
           group,
@@ -165,8 +165,8 @@ struct KeepaliveBlockedWriter {
   inner : &@io.Writer
   started : @aqueue.Queue[Unit]
   unblock : @aqueue.Queue[Unit]
-  mut active : Int
-  mut prefix_bytes : Int
+  mut active : Int32
+  mut prefix_bytes : Int32
 }
 
 ///|
@@ -200,7 +200,7 @@ async test "keepalive bounds partial PING writes and close cancels the writer" {
       // Timeout, explicit close, and task cancellation while a byte is written.
       for action in 0..<3 {
         let limiter = ClientMemoryLimiter::new(65536)
-        let closes : Ref[Int] = { val: 0, }
+        let closes : Ref[Int32] = { val: 0, }
         let writer : Ref[KeepaliveBlockedWriter?] = { val: None, }
         let (conn, _) = lifecycle_memory_connection(
           group,
@@ -253,7 +253,7 @@ async test "keepalive bounds write lock waits and close interrupts lock admissio
     @async.with_task_group(group => {
       for explicit_close in [false, true] {
         let limiter = ClientMemoryLimiter::new(65536)
-        let closes : Ref[Int] = { val: 0, }
+        let closes : Ref[Int32] = { val: 0, }
         let frames : Array[IncomingFrame] = []
         let (conn, _) = lifecycle_memory_connection(
           group,

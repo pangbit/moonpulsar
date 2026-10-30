@@ -23,17 +23,17 @@ pub fn broker_addr_of(String) -> (String, Bool) raise PulsarError
 
 pub fn compress(CompressionCodec, Bytes) -> Bytes raise PulsarError
 
-pub fn crc32c(BytesView) -> UInt
+pub fn crc32c(BytesView) -> UInt32
 
 pub fn decode_frame_body(Bytes) -> IncomingFrame raise PulsarError
 
-pub fn decompress(CompressionCodec, Bytes, uncompressed_size? : Int) -> Bytes raise PulsarError
+pub fn decompress(CompressionCodec, Bytes, uncompressed_size? : Int32) -> Bytes raise PulsarError
 
 pub fn encode_command_frame(@proto.BaseCommand) -> Bytes raise
 
 pub fn encode_send_frame(@proto.BaseCommand, @proto.MessageMetadata, Bytes) -> Bytes raise
 
-pub async fn get_partition_count(ConnectionManager, String, String) -> Int
+pub async fn get_partition_count(ConnectionManager, String, String) -> Int32
 
 pub async fn get_topics_of_namespace(ConnectionManager, String, String, pattern? : String, mode? : NamespaceTopicMode) -> Array[String]
 
@@ -45,7 +45,7 @@ pub fn lz4_compress_block(BytesView) -> Bytes
 
 pub fn lz4_decompress(Bytes) -> Bytes raise PulsarError
 
-pub fn lz4_decompress_block_to(BytesView, Int) -> Bytes raise PulsarError
+pub fn lz4_decompress_block_to(BytesView, Int32) -> Bytes raise PulsarError
 
 pub fn oauth2_client_credentials_provider(String, String, String, audience? : String, scope? : String) -> (async () -> AuthData) raise PulsarError
 
@@ -55,19 +55,19 @@ pub fn snappy_compress(Bytes) -> Bytes
 
 pub fn snappy_decompress(Bytes) -> Bytes raise PulsarError
 
-pub fn split_host_port(String) -> (String, Int) raise PulsarError
+pub fn split_host_port(String) -> (String, Int32) raise PulsarError
 
 pub fn token_file_provider(String) -> async () -> AuthData
 
 pub async fn[T] with_retry(RetryPolicy, async () -> T) -> T
 
-pub fn xxhash32(BytesView) -> UInt
+pub fn xxhash32(BytesView) -> UInt32
 
 // Errors
 pub(all) suberror PulsarError {
   ConnectionClosed
   ConnectFailed(String)
-  ServerError(code~ : Int, message~ : String)
+  ServerError(code~ : Int32, message~ : String)
   UnexpectedResponse(String)
   LookupFailed(String)
   TooManyRedirects
@@ -92,30 +92,30 @@ type AckDispatcher
 pub struct AckGroupingOptions {
   // private fields
 }
-pub fn AckGroupingOptions::new(max_size? : Int, max_time_ms? : Int) -> Self raise PulsarError
+pub fn AckGroupingOptions::new(max_size? : Int32, max_time_ms? : Int32) -> Self raise PulsarError
 
 pub struct Admin {
   // private fields
 }
-pub async fn Admin::create_partitioned_topic(Self, String, Int) -> Unit
+pub async fn Admin::create_partitioned_topic(Self, String, Int32) -> Unit
 pub async fn Admin::create_subscription(Self, String, String, initial_position? : SubscriptionInitialPosition) -> Unit
 pub async fn Admin::create_topic(Self, String) -> Unit
 pub async fn Admin::delete_partitioned_topic(Self, String, force? : Bool) -> Unit
 pub async fn Admin::delete_subscription(Self, String, String, force? : Bool) -> Unit
 pub async fn Admin::delete_topic(Self, String, force? : Bool) -> Unit
-pub async fn Admin::expire_messages(Self, String, String, Int) -> Unit
+pub async fn Admin::expire_messages(Self, String, String, Int32) -> Unit
 pub async fn Admin::list_partitioned_topics(Self, String, String, domain? : String) -> Array[String]
 pub async fn Admin::list_subscriptions(Self, String) -> Array[String]
 pub async fn Admin::list_topics(Self, String, String, domain? : String) -> Array[String]
 pub fn Admin::new(String, token? : String) -> Self
-pub async fn Admin::partition_count(Self, String) -> Int
+pub async fn Admin::partition_count(Self, String) -> Int32
 pub async fn Admin::partitioned_topic_stats(Self, String, per_partition? : Bool) -> Json
 pub async fn Admin::remove_topic_property(Self, String, String) -> Unit
 pub async fn Admin::skip_all_messages(Self, String, String) -> Unit
-pub async fn Admin::skip_messages(Self, String, String, Int) -> Unit
+pub async fn Admin::skip_messages(Self, String, String, Int32) -> Unit
 pub async fn Admin::topic_properties(Self, String) -> Map[String, String]
 pub async fn Admin::topic_stats(Self, String) -> Json
-pub async fn Admin::update_partitioned_topic(Self, String, Int) -> Unit
+pub async fn Admin::update_partitioned_topic(Self, String, Int32) -> Unit
 pub async fn Admin::update_topic_properties(Self, String, Map[String, String]) -> Unit
 
 pub(all) struct AthenzZtsOptions {
@@ -129,13 +129,13 @@ pub(all) struct AthenzZtsOptions {
   key_id : String
   role : String
   principal_header : String
-  min_expiry_secs : Int
-  max_expiry_secs : Int
-  refresh_before_ms : Int
-  max_retries : Int
-  retry_delay_ms : Int
+  min_expiry_secs : Int32
+  max_expiry_secs : Int32
+  refresh_before_ms : Int32
+  max_retries : Int32
+  retry_delay_ms : Int32
 }
-pub fn AthenzZtsOptions::new(String, String, String, String, String, certificate_file? : String, ca_pem_file? : String, key_id? : String, role? : String, principal_header? : String, min_expiry_secs? : Int, max_expiry_secs? : Int, refresh_before_ms? : Int, max_retries? : Int, retry_delay_ms? : Int) -> Self raise PulsarError
+pub fn AthenzZtsOptions::new(String, String, String, String, String, certificate_file? : String, ca_pem_file? : String, key_id? : String, role? : String, principal_header? : String, min_expiry_secs? : Int32, max_expiry_secs? : Int32, refresh_before_ms? : Int32, max_retries? : Int32, retry_delay_ms? : Int32) -> Self raise PulsarError
 
 pub(all) struct AuthData {
   method_name : String
@@ -155,9 +155,9 @@ pub impl Authentication for BasicAuth
 type BatchAckTracker
 
 pub(all) struct BatchingConfig {
-  max_messages : Int
-  max_bytes : Int
-  max_delay_ms : Int
+  max_messages : Int32
+  max_bytes : Int32
+  max_delay_ms : Int32
 } derive(@debug.Debug)
 pub fn BatchingConfig::default() -> Self
 pub fn BatchingConfig::to_repr(Self) -> @debug.Repr
@@ -167,7 +167,7 @@ type ChunkAssembler
 pub struct ChunkAssemblyPolicy {
   // private fields
 }
-pub fn ChunkAssemblyPolicy::new(expiry_ms? : Int, max_pending_messages? : Int, auto_ack_incomplete? : Bool) -> Self raise PulsarError
+pub fn ChunkAssemblyPolicy::new(expiry_ms? : Int32, max_pending_messages? : Int32, auto_ack_incomplete? : Bool) -> Self raise PulsarError
 
 pub struct Client {
   // private fields
@@ -177,17 +177,17 @@ pub async fn Client::connect(@async.TaskGroup[Unit], String, auth? : &Authentica
 pub async fn Client::connect_tls_insecure(@async.TaskGroup[Unit], String, auth? : &Authentication) -> Self
 pub async fn Client::connect_tls_with_ca(@async.TaskGroup[Unit], String, String, auth? : &Authentication) -> Self
 pub async fn Client::connect_with_options(@async.TaskGroup[Unit], ClientOptions) -> Self
-pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, encryption_key_names? : Array[String], partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
-pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, encryption_key_names? : Array[String], partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
-pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, encryption_key_names? : Array[String], partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
-pub async fn Client::create_producer(Self, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, compression? : CompressionCodec, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], chunk_size? : Int, automatic_chunking? : Bool, schema? : SchemaInfo, partition_refresh_ms? : Int, routing? : ProducerRoutingMode, max_pending_messages? : Int, block_if_queue_full? : Bool, send_timeout_ms? : Int, interceptors? : Array[ProducerInterceptor]) -> Producer
-pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, partition_refresh_ms? : Int, include_start_message_id? : Bool, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String, chunk_policy? : ChunkAssemblyPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction) -> Reader
-pub async fn Client::create_retry_consumer(Self, String, String, String, DeadLetterPolicy, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, encryption_key_names? : Array[String], partition_refresh_ms? : Int, chunk_policy? : ChunkAssemblyPolicy, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
-pub async fn Client::create_table_view(Self, String, partition_refresh_ms? : Int, schema? : SchemaInfo, message_crypto? : MessageCrypto) -> TableView
-pub async fn[T] Client::create_typed_table_view(Self, String, SchemaCodec[T], partition_refresh_ms? : Int, message_crypto? : MessageCrypto) -> TypedTableView[T]
+pub async fn Client::create_consumer(Self, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int32, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int32, ack_timeout_ms? : Int32, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, encryption_key_names? : Array[String], partition_refresh_ms? : Int32, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
+pub async fn Client::create_multi_topic_consumer(Self, Array[String], String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int32, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int32, ack_timeout_ms? : Int32, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, encryption_key_names? : Array[String], partition_refresh_ms? : Int32, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
+pub async fn Client::create_pattern_consumer(Self, String, String, String, refresh_interval_ms? : Int32, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int32, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int32, ack_timeout_ms? : Int32, nack_backoff? : NackBackoff, dead_letter_policy? : DeadLetterPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, encryption_key_names? : Array[String], partition_refresh_ms? : Int32, chunk_policy? : ChunkAssemblyPolicy, retry_topic? : String, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
+pub async fn Client::create_producer(Self, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, compression? : CompressionCodec, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], chunk_size? : Int32, automatic_chunking? : Bool, schema? : SchemaInfo, partition_refresh_ms? : Int32, routing? : ProducerRoutingMode, max_pending_messages? : Int32, block_if_queue_full? : Bool, send_timeout_ms? : Int32, interceptors? : Array[ProducerInterceptor]) -> Producer
+pub async fn Client::create_reader(Self, String, start_message_id? : MessageId, receiver_queue_size? : Int32, read_compacted? : Bool, partition_refresh_ms? : Int32, include_start_message_id? : Bool, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String, chunk_policy? : ChunkAssemblyPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction) -> Reader
+pub async fn Client::create_retry_consumer(Self, String, String, String, DeadLetterPolicy, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int32, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int32, ack_timeout_ms? : Int32, nack_backoff? : NackBackoff, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, encryption_key_names? : Array[String], partition_refresh_ms? : Int32, chunk_policy? : ChunkAssemblyPolicy, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, interceptors? : Array[ConsumerInterceptor]) -> Consumer
+pub async fn Client::create_table_view(Self, String, partition_refresh_ms? : Int32, schema? : SchemaInfo, message_crypto? : MessageCrypto) -> TableView
+pub async fn[T] Client::create_typed_table_view(Self, String, SchemaCodec[T], partition_refresh_ms? : Int32, message_crypto? : MessageCrypto) -> TypedTableView[T]
 pub async fn[T] Client::decode_avro(Self, Message, SchemaCodec[T]) -> T
 pub async fn Client::get_schema(Self, String, version? : Bytes) -> VersionedSchema
-pub async fn Client::partitions_of(Self, String) -> Int
+pub async fn Client::partitions_of(Self, String) -> Int32
 pub async fn Client::topics_of_namespace(Self, String, pattern? : String, mode? : NamespaceTopicMode) -> Array[String]
 pub async fn Client::transaction_coordinator(Self, UInt64) -> TransactionCoordinator
 
@@ -243,7 +243,7 @@ pub(all) enum ClientOperation {
 pub struct ClientOptions {
   // private fields
 }
-pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, tls_insecure? : Bool, ca_pem_file? : String, tls_identity? : TlsIdentity, tls_identity_provider? : async () -> TlsIdentity, tls_min_version? : TlsVersion, tls_max_version? : TlsVersion, tls_cipher_list? : String, tls13_ciphersuites? : String, listener_name? : String, lookup_properties? : Map[String, String], reconnect_policy? : RetryPolicy, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int, max_memory_bytes? : Int, on_event? : (ClientEvent) -> Unit, on_span? : (ClientSpanEvent) -> Unit) -> Self raise PulsarError
+pub fn ClientOptions::new(String, auth? : &Authentication, auth_provider? : async () -> AuthData, connection_timeout_ms? : Int32, operation_timeout_ms? : Int32, keepalive_interval_ms? : Int32, tls_insecure? : Bool, ca_pem_file? : String, tls_identity? : TlsIdentity, tls_identity_provider? : async () -> TlsIdentity, tls_min_version? : TlsVersion, tls_max_version? : TlsVersion, tls_cipher_list? : String, tls13_ciphersuites? : String, listener_name? : String, lookup_properties? : Map[String, String], reconnect_policy? : RetryPolicy, max_connections_per_broker? : Int32, connection_idle_timeout_ms? : Int32, max_memory_bytes? : Int32, on_event? : (ClientEvent) -> Unit, on_span? : (ClientSpanEvent) -> Unit) -> Self raise PulsarError
 
 pub(all) struct ClientSpan {
   id : Int64
@@ -273,13 +273,13 @@ pub struct Connection {
   // private fields
 }
 pub fn Connection::close(Self) -> Unit
-pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, tls_identity? : TlsIdentity, tls_identity_provider? : async () -> TlsIdentity, tls_min_version? : TlsVersion, tls_max_version? : TlsVersion, tls_cipher_list? : String, tls13_ciphersuites? : String, keepalive_interval_ms? : Int, timeout_ms? : Int, connection_timeout_ms? : Int, async_auth_provider? : async () -> AuthData) -> Self
+pub async fn Connection::connect(@async.TaskGroup[Unit], String, auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, tls_identity? : TlsIdentity, tls_identity_provider? : async () -> TlsIdentity, tls_min_version? : TlsVersion, tls_max_version? : TlsVersion, tls_cipher_list? : String, tls13_ciphersuites? : String, keepalive_interval_ms? : Int32, timeout_ms? : Int32, connection_timeout_ms? : Int32, async_auth_provider? : async () -> AuthData) -> Self
 pub fn Connection::is_closed(Self) -> Bool
-pub fn Connection::max_message_size(Self) -> Int?
+pub fn Connection::max_message_size(Self) -> Int32?
 pub fn Connection::next_request_id(Self) -> UInt64
 pub fn Connection::on_close(Self, (Error?) -> Unit) -> Unit
-pub fn Connection::remote_protocol_version(Self) -> Int
-pub async fn Connection::request(Self, @proto.BaseCommand, timeout_ms? : Int) -> @proto.BaseCommand
+pub fn Connection::remote_protocol_version(Self) -> Int32
+pub async fn Connection::request(Self, @proto.BaseCommand, timeout_ms? : Int32) -> @proto.BaseCommand
 pub async fn Connection::send_command(Self, @proto.BaseCommand) -> Unit
 pub async fn Connection::send_payload_frame(Self, @proto.BaseCommand, @proto.MessageMetadata, Bytes) -> Unit
 pub fn Connection::server_version(Self) -> String
@@ -290,7 +290,7 @@ pub struct ConnectionManager {
 pub fn ConnectionManager::close(Self) -> Unit
 pub async fn ConnectionManager::get(Self, String) -> Connection
 pub fn ConnectionManager::is_closed(Self) -> Bool
-pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, tls_identity? : TlsIdentity, tls_identity_provider? : async () -> TlsIdentity, tls_min_version? : TlsVersion, tls_max_version? : TlsVersion, tls_cipher_list? : String, tls13_ciphersuites? : String, connection_timeout_ms? : Int, operation_timeout_ms? : Int, keepalive_interval_ms? : Int, listener_name? : String, lookup_properties? : Map[String, String], async_auth_provider? : async () -> AuthData, max_connections_per_broker? : Int, connection_idle_timeout_ms? : Int) -> Self raise PulsarError
+pub fn ConnectionManager::new(@async.TaskGroup[Unit], auth? : AuthData, auth_provider? : () -> AuthData, tls? : Bool, tls_insecure? : Bool, tls_trust? : @tls.TrustedRoot, tls_identity? : TlsIdentity, tls_identity_provider? : async () -> TlsIdentity, tls_min_version? : TlsVersion, tls_max_version? : TlsVersion, tls_cipher_list? : String, tls13_ciphersuites? : String, connection_timeout_ms? : Int32, operation_timeout_ms? : Int32, keepalive_interval_ms? : Int32, listener_name? : String, lookup_properties? : Map[String, String], async_auth_provider? : async () -> AuthData, max_connections_per_broker? : Int32, connection_idle_timeout_ms? : Int32) -> Self raise PulsarError
 pub fn ConnectionManager::uses_tls(Self) -> Bool
 
 pub struct Consumer {
@@ -306,7 +306,7 @@ pub async fn Consumer::last_message_ids(Self) -> Map[String, MessageId]
 pub async fn Consumer::nack(Self, MessageId) -> Unit
 pub fn Consumer::partitioned(@async.TaskGroup[Unit], Array[Self]) -> Self
 pub async fn Consumer::receive(Self) -> Message
-pub async fn Consumer::reconsume_later(Self, Message, delay_ms? : Int, custom_properties? : Map[String, String]) -> Unit
+pub async fn Consumer::reconsume_later(Self, Message, delay_ms? : Int32, custom_properties? : Map[String, String]) -> Unit
 pub async fn Consumer::seek(Self, SeekPosition) -> Unit
 pub fn Consumer::subscription(Self) -> String
 pub fn Consumer::topic(Self) -> String
@@ -322,8 +322,8 @@ pub fn ConsumerInterceptor::new(before_consume? : (Message) -> Unit, on_receive_
 pub struct DeadLetterPolicy {
   // private fields
 }
-pub fn DeadLetterPolicy::max_deliveries(Self) -> UInt
-pub fn DeadLetterPolicy::new(UInt, String) -> Self raise PulsarError
+pub fn DeadLetterPolicy::max_deliveries(Self) -> UInt32
+pub fn DeadLetterPolicy::new(UInt32, String) -> Self raise PulsarError
 pub fn DeadLetterPolicy::topic(Self) -> String
 
 pub(all) enum DecryptionFailureAction {
@@ -346,7 +346,7 @@ pub(all) struct IncomingFrame {
   cmd : @proto.BaseCommand
   metadata : @proto.MessageMetadata?
   payload : Bytes?
-  wire_size : Int
+  wire_size : Int32
 } derive(@debug.Debug)
 pub fn IncomingFrame::to_repr(Self) -> @debug.Repr
 
@@ -354,7 +354,7 @@ pub struct KeySharedPolicy {
   // private fields
 }
 pub fn KeySharedPolicy::auto_split(allow_out_of_order_delivery? : Bool) -> Self
-pub fn KeySharedPolicy::sticky(Array[(Int, Int)], allow_out_of_order_delivery? : Bool) -> Self raise PulsarError
+pub fn KeySharedPolicy::sticky(Array[(Int32, Int32)], allow_out_of_order_delivery? : Bool) -> Self raise PulsarError
 
 pub struct Message {
   publish_time : UInt64
@@ -373,7 +373,7 @@ pub fn Message::payload(Self) -> Bytes
 pub fn Message::producer_name(Self) -> String
 pub fn Message::properties(Self) -> Map[String, String]
 pub fn Message::publish_time(Self) -> UInt64
-pub fn Message::redelivery_count(Self) -> UInt
+pub fn Message::redelivery_count(Self) -> UInt32
 pub fn Message::schema_version(Self) -> Bytes?
 pub fn Message::sequence_id(Self) -> UInt64?
 pub fn Message::topic(Self) -> String
@@ -392,13 +392,13 @@ pub fn MessageCrypto::new(public_key_reader? : (String) -> Bytes?, private_key_r
 pub(all) struct MessageId {
   ledger_id : UInt64
   entry_id : UInt64
-  batch_index : Int
-  partition : Int
+  batch_index : Int32
+  partition : Int32
 } derive(Compare, Eq, Hash, @debug.Debug)
-pub fn MessageId::compare(Self, Self) -> Int
+pub fn MessageId::compare(Self, Self) -> Int32
 pub fn MessageId::earliest() -> Self
 pub fn MessageId::equal(Self, Self) -> Bool
-pub fn MessageId::hash(Self) -> Int
+pub fn MessageId::hash(Self) -> Int32
 pub fn MessageId::hash_combine(Self, Hasher) -> Unit
 pub fn MessageId::latest() -> Self
 pub fn MessageId::not_equal(Self, Self) -> Bool
@@ -412,8 +412,8 @@ pub struct NackBackoff {
   // private fields
 }
 pub fn NackBackoff::default() -> Self
-pub fn NackBackoff::delay_ms(Self, UInt) -> Int
-pub fn NackBackoff::new(Int, Int) -> Self raise PulsarError
+pub fn NackBackoff::delay_ms(Self, UInt32) -> Int32
+pub fn NackBackoff::new(Int32, Int32) -> Self raise PulsarError
 
 pub(all) enum NamespaceTopicMode {
   Persistent
@@ -436,7 +436,7 @@ pub async fn Producer::flush(Self) -> Unit
 pub fn Producer::is_closed(Self) -> Bool
 pub fn Producer::last_sequence_id(Self) -> UInt64?
 pub fn Producer::name(Self) -> String
-pub fn Producer::partition_count(Self) -> Int
+pub fn Producer::partition_count(Self) -> Int32
 pub fn Producer::partitioned(Array[Self], routing? : ProducerRoutingMode) -> Self
 pub async fn Producer::send(Self, ProducerMessage) -> SendReceipt
 pub async fn Producer::send_async(Self, ProducerMessage) -> ReceiptFuture
@@ -474,7 +474,7 @@ pub(all) enum ProducerRoutingMode {
   KeyHash
   RoundRobin
   SinglePartition
-  Custom((ProducerMessage, Int) -> Int)
+  Custom((ProducerMessage, Int32) -> Int32)
 }
 
 pub struct Reader {
@@ -495,9 +495,9 @@ pub struct ReceiptFuture {
 pub async fn ReceiptFuture::wait(Self) -> SendReceipt
 
 pub(all) struct RetryPolicy {
-  max_retries : Int
-  initial_backoff_ms : Int
-  max_backoff_ms : Int
+  max_retries : Int32
+  initial_backoff_ms : Int32
+  max_backoff_ms : Int32
 } derive(@debug.Debug)
 pub fn RetryPolicy::default() -> Self
 pub fn RetryPolicy::to_repr(Self) -> @debug.Repr
@@ -513,10 +513,10 @@ pub fn SchemaCodec::double() -> Self[Double]
 pub fn[T] SchemaCodec::encode(Self[T], T) -> Bytes raise PulsarError
 pub fn SchemaCodec::float() -> Self[Float]
 pub fn[T] SchemaCodec::info(Self[T]) -> SchemaInfo
-pub fn SchemaCodec::int16(little_endian? : Bool) -> Self[Int]
-pub fn SchemaCodec::int32(little_endian? : Bool) -> Self[Int]
+pub fn SchemaCodec::int16(little_endian? : Bool) -> Self[Int32]
+pub fn SchemaCodec::int32(little_endian? : Bool) -> Self[Int32]
 pub fn SchemaCodec::int64(little_endian? : Bool) -> Self[Int64]
-pub fn SchemaCodec::int8() -> Self[Int]
+pub fn SchemaCodec::int8() -> Self[Int32]
 pub fn[T : ToJson + @json.FromJson] SchemaCodec::json(Bytes) -> Self[T]
 pub fn[T] SchemaCodec::new(SchemaInfo, (T) -> Bytes raise PulsarError, (Bytes) -> T raise PulsarError) -> Self[T]
 pub fn[M : @protobuf.Read + @protobuf.Write] SchemaCodec::protobuf(Bytes) -> Self[M]
@@ -566,7 +566,7 @@ pub async fn SingleConsumer::ack_cumulative(Self, MessageId, await_response? : B
 pub async fn SingleConsumer::ack_ids(Self, Array[MessageId], await_response? : Bool) -> Unit
 pub async fn SingleConsumer::ack_txn(Self, Transaction, MessageId, await_response? : Bool) -> Unit
 pub async fn SingleConsumer::close(Self) -> Unit
-pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int, ack_timeout_ms? : Int, nack_backoff? : NackBackoff, reconnect_with? : async () -> Connection, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, reconnect_policy? : RetryPolicy, chunk_policy? : ChunkAssemblyPolicy, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, on_event? : (ClientEvent) -> Unit) -> Self
+pub async fn SingleConsumer::create(@async.TaskGroup[Unit], Connection, String, String, sub_type? : SubscriptionType, key_shared_policy? : KeySharedPolicy, consumer_name? : String, initial_position? : SubscriptionInitialPosition, priority_level? : Int32, durable? : Bool, read_compacted? : Bool, properties? : Map[String, String], subscription_properties? : Map[String, String], receiver_queue_size? : Int32, ack_timeout_ms? : Int32, nack_backoff? : NackBackoff, reconnect_with? : async () -> Connection, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction, reconnect_policy? : RetryPolicy, chunk_policy? : ChunkAssemblyPolicy, enable_batch_index_ack? : Bool, ack_grouping? : AckGroupingOptions, auto_scaled_receiver_queue? : Bool, on_event? : (ClientEvent) -> Unit) -> Self
 pub fn SingleConsumer::is_closed(Self) -> Bool
 pub async fn SingleConsumer::last_message_id(Self) -> MessageId
 pub async fn SingleConsumer::nack(Self, MessageId) -> Unit
@@ -581,7 +581,7 @@ pub struct SingleProducer {
   // private fields
 }
 pub async fn SingleProducer::close(Self) -> Unit
-pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], chunk_size? : Int, automatic_chunking? : Bool, schema? : SchemaInfo, reconnect_policy? : RetryPolicy, max_pending_messages? : Int, block_if_queue_full? : Bool, send_timeout_ms? : Int) -> Self
+pub async fn SingleProducer::create(@async.TaskGroup[Unit], Connection, String, name? : String, properties? : Map[String, String], access_mode? : ProducerAccessMode, batching? : BatchingConfig, reconnect_with? : async () -> Connection, compression? : CompressionCodec, message_crypto? : MessageCrypto, encryption_key_names? : Array[String], chunk_size? : Int32, automatic_chunking? : Bool, schema? : SchemaInfo, reconnect_policy? : RetryPolicy, max_pending_messages? : Int32, block_if_queue_full? : Bool, send_timeout_ms? : Int32) -> Self
 pub async fn SingleProducer::flush(Self) -> Unit
 pub fn SingleProducer::last_sequence_id(Self) -> UInt64?
 pub fn SingleProducer::name(Self) -> String
@@ -594,7 +594,7 @@ pub struct SingleReader {
   // private fields
 }
 pub async fn SingleReader::close(Self) -> Unit
-pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int, read_compacted? : Bool, include_start_message_id? : Bool, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String, chunk_policy? : ChunkAssemblyPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction) -> Self
+pub async fn SingleReader::create(@async.TaskGroup[Unit], Connection, String, start_message_id? : MessageId, receiver_queue_size? : Int32, read_compacted? : Bool, include_start_message_id? : Bool, name? : String, properties? : Map[String, String], subscription_name? : String, subscription_role_prefix? : String, chunk_policy? : ChunkAssemblyPolicy, schema? : SchemaInfo, message_crypto? : MessageCrypto, decryption_failure_action? : DecryptionFailureAction) -> Self
 pub async fn SingleReader::has_message_available(Self) -> Bool
 pub async fn SingleReader::last_message_id(Self) -> MessageId
 pub async fn SingleReader::next(Self) -> Message?
@@ -629,7 +629,7 @@ pub fn TableView::for_each_and_listen(Self, (String, Bytes?) -> Unit) -> Unit
 pub fn TableView::get(Self, String) -> Bytes?
 pub fn TableView::is_empty(Self) -> Bool
 pub fn TableView::keys(Self) -> Array[String]
-pub fn TableView::size(Self) -> Int
+pub fn TableView::size(Self) -> Int32
 
 pub(all) struct TlsIdentity {
   certificate_file : String
@@ -688,7 +688,7 @@ pub fn[T] TypedTableView::for_each_and_listen(Self[T], (String, Result[T?, Pulsa
 pub fn[T] TypedTableView::get(Self[T], String) -> T? raise PulsarError
 pub fn[T] TypedTableView::is_empty(Self[T]) -> Bool
 pub fn[T] TypedTableView::keys(Self[T]) -> Array[String]
-pub fn[T] TypedTableView::size(Self[T]) -> Int
+pub fn[T] TypedTableView::size(Self[T]) -> Int32
 
 pub(all) struct VersionedSchema {
   info : SchemaInfo

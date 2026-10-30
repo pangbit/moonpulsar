@@ -1,10 +1,11 @@
-///|
+----
 import {
   "moonbitlang/async@0.22.1",
   "moonbitlang/async@0.22.1/fs",
   "moonbitlang/async@0.22.1/shell",
   "moonbitlang/core/env",
 }
+----
 
 ///|
 // Resolve only the archive reported by this successful packaging command.

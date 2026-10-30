@@ -4,8 +4,8 @@
 #warnings("-alert_internal")
 async fn start_tls_mock_broker(
   group : @async.TaskGroup[Unit],
-  connections? : Int = 1,
-  keep_open? : Bool = false,
+  connections~ : Int32 = 1,
+  keep_open~ : Bool = false,
 ) -> String {
   let server = @socket.TcpServer::TcpServer(@socket.Addr::parse("127.0.0.1:0"))
   let addr = server.addr.to_string()
@@ -164,7 +164,7 @@ async test "native TLS rejects untrusted broker and missing client key" {
 async test "native TLS identity supplier refreshes on reconnect" {
   @async.with_task_group(async fn(group) {
     let addr = start_tls_mock_broker(group, connections=2)
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     let client = Client::connect_with_options(
       group,
       ClientOptions::new(

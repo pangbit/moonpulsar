@@ -1,7 +1,7 @@
 // Batch acknowledgment wire behavior and retry state.
 
 ///|
-fn batch_test_payload(size : Int) -> Bytes raise {
+fn batch_test_payload(size : Int32) -> Bytes raise {
   let messages : Array[ProducerMessage] = []
   for index in 0..<size {
     messages.push(ProducerMessage::new(@utf8.encode(index.to_string())))
@@ -12,7 +12,7 @@ fn batch_test_payload(size : Int) -> Bytes raise {
 ///|
 async test "default batch ACK waits for every index before acknowledging entry" {
   @async.with_task_group(async fn(group) {
-    let valid : @aqueue.Queue[Int] = @aqueue.Queue::Queue(
+    let valid : @aqueue.Queue[Int32] = @aqueue.Queue::Queue(
       kind=@aqueue.Kind::Blocking(1),
     )
     let addr = start_mock_broker(group, async fn(_addr, peer) {

@@ -27,8 +27,8 @@ extern "C" fn tls_new(
   insecure : Bool,
   cert_file : Bytes,
   key_file : Bytes,
-  min_version : Int,
-  max_version : Int,
+  min_version : Int32,
+  max_version : Int32,
   cipher_list : Bytes,
   tls13_ciphersuites : Bytes,
 ) -> Handle = "moonpulsar_tls_new"
@@ -43,7 +43,7 @@ extern "C" fn tls_close(handle : Handle) -> Unit = "moonpulsar_tls_close"
 
 ///|
 #borrow(handle)
-extern "C" fn tls_handshake(handle : Handle) -> Int = "moonpulsar_tls_handshake"
+extern "C" fn tls_handshake(handle : Handle) -> Int32 = "moonpulsar_tls_handshake"
 
 ///|
 #borrow(handle)
@@ -51,11 +51,11 @@ extern "C" fn tls_verified(handle : Handle) -> Bool = "moonpulsar_tls_verified"
 
 ///|
 #borrow(handle)
-extern "C" fn tls_last_error(handle : Handle) -> Int = "moonpulsar_tls_last_error"
+extern "C" fn tls_last_error(handle : Handle) -> Int32 = "moonpulsar_tls_last_error"
 
 ///|
 #borrow(handle, data)
-extern "C" fn tls_feed(handle : Handle, data : Bytes, length : Int) -> Int = "moonpulsar_tls_feed"
+extern "C" fn tls_feed(handle : Handle, data : Bytes, length : Int32) -> Int32 = "moonpulsar_tls_feed"
 
 ///|
 #borrow(handle)
@@ -66,18 +66,18 @@ extern "C" fn tls_drain(handle : Handle) -> Bytes = "moonpulsar_tls_drain"
 extern "C" fn tls_read(
   handle : Handle,
   buf : FixedArray[Byte],
-  offset : Int,
-  length : Int,
-) -> Int = "moonpulsar_tls_read"
+  offset : Int32,
+  length : Int32,
+) -> Int32 = "moonpulsar_tls_read"
 
 ///|
 #borrow(handle, buf)
 extern "C" fn tls_write(
   handle : Handle,
   buf : Bytes,
-  offset : Int,
-  length : Int,
-) -> Int = "moonpulsar_tls_write"
+  offset : Int32,
+  length : Int32,
+) -> Int32 = "moonpulsar_tls_write"
 
 ///|
 extern "C" fn tls_error() -> Bytes = "moonpulsar_tls_error"
@@ -103,14 +103,14 @@ fn native_tls_error() -> TlsError {
 pub async fn NativeTls::connect(
   tcp : @socket.Tcp,
   host : String,
-  ca_file? : String = "",
-  insecure? : Bool = false,
-  cert_file? : String = "",
-  key_file? : String = "",
-  min_version? : Int = 0,
-  max_version? : Int = 0,
-  cipher_list? : String = "",
-  tls13_ciphersuites? : String = "",
+  ca_file~ : String = "",
+  insecure~ : Bool = false,
+  cert_file~ : String = "",
+  key_file~ : String = "",
+  min_version~ : Int32 = 0,
+  max_version~ : Int32 = 0,
+  cipher_list~ : String = "",
+  tls13_ciphersuites~ : String = "",
 ) -> NativeTls {
   let handle = tls_new(
     @utf8.encode(host),

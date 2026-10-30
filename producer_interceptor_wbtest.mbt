@@ -215,8 +215,8 @@ async test "producer interceptor runs once across unconfirmed send replay" {
       two_stage_lookup(peer, disconnected, recovered)
     })
     let client = Client::connect(group, "pulsar://\{lookup}")
-    let before_count : Ref[Int] = { val: 0, }
-    let after_count : Ref[Int] = { val: 0, }
+    let before_count : Ref[Int32] = { val: 0, }
+    let after_count : Ref[Int32] = { val: 0, }
     let producer = client.create_producer(
       "persistent://public/default/interceptor-reconnect",
       interceptors=[

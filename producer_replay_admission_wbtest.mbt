@@ -60,7 +60,7 @@ async test "replay drains newly admitted frames without repeating unconfirmed wr
       )
       defer second.close()
       let owner : Ref[SingleProducer?] = { val: None, }
-      let attempts : Ref[Int] = { val: 0, }
+      let attempts : Ref[Int32] = { val: 0, }
       let producer = SingleProducer::create_with_memory(
         group,
         first,
@@ -173,7 +173,7 @@ async test "replay retry rewrites surviving frames in the next registration epoc
         replacement.push(frame)
       })
       defer third.close()
-      let attempts : Ref[Int] = { val: 0, }
+      let attempts : Ref[Int32] = { val: 0, }
       let producer = SingleProducer::create_with_memory(
         group,
         first,

@@ -8,7 +8,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 
 ## 0.1.2 scope
 
-This maintenance release fixes transport cleanup, bounded recovery and producer replay when another send arrives during reconnection. It keeps the public API and pinned dependencies unchanged. The [maintenance changes and verification record](docs/verification-0.1.2.md#maintenance-changes) identifies the implementation commits and their test scope.
+The published 0.1.2 maintenance release fixes transport cleanup, bounded recovery and producer replay when another send arrives during reconnection. That release kept the public API and pinned dependencies unchanged. The [maintenance changes and verification record](docs/verification-0.1.2.md#maintenance-changes) identifies the implementation commits and their test scope.
 
 On the recorded source snapshot, Pulsar 4.2.4 completed ten sends, ten matching receives and ten confirmed ACKs. A separate live Writer case completed both original receipt futures when a second send arrived during replay; it received and acknowledged the initial A, replayed A and B. Duplicate delivery is possible. Retaining an unconfirmed send's original future across a Broker restart remains unverified and is deferred beyond 0.1.2. These focused results do not replace the final candidate's CI; see [verification boundaries](docs/verification-0.1.2.md#live-verification-on-2026-10-29).
 
@@ -17,22 +17,23 @@ On the recorded source snapshot, Pulsar 4.2.4 completed ten sends, ten matching 
 ### Build environment
 
 - Use the **native** backend; JS and Wasm are not supported by this client. CI runs on **Linux (Ubuntu 24.04)**. macOS has been tested locally; Windows is not verified.
-- Install the [supported MoonBit toolchain](#toolchain-compatibility) and a C compiler with the system SDK/libc development files. CI pins and verifies the same toolchain; this is a specific tested combination, not a minimum-version claim.
+- Install the [MoonBit toolchain selected for this checkout](#toolchain-compatibility) and a C compiler with the system SDK/libc development files. CI pins and checks the same toolchain; this is not a minimum-version claim.
 - Building the library does **not** require OpenSSL or zlib development headers. Run `moon update` to fetch MoonBit dependencies.
 
 ### Toolchain compatibility
 
-The supported, verified combination is:
+The current checkout targets the following combination. This compatibility update is not part of the published 0.1.2 archive.
 
 | Component | Version |
 | --- | --- |
-| `moon` / `moonrun` | `0.1.20260920` (`914d7da`) |
-| `moonc` | `v0.10.14+7d59c7ec9` |
-| Protobuf runtime dependency | `moonbitlang/protobuf@0.1.3` |
+| `moon` / `moonrun` | `0.1.20261028` (`e1e1f15`) |
+| `moonc` | `v0.10.18+6c83a7f62` |
+| Protobuf runtime dependency | `moonbitlang/protobuf@0.2.0` |
+| Protocol generator (only for regeneration) | `moonbitlang/protoc-gen-mbt@0.3.0` |
 
-The same Protobuf runtime is known to fail compilation with `moon 0.1.20261020` / `moonc v0.10.16+b1a0e846e` because it declares the reserved type name `Option`. See the [compatibility record and upstream issue](docs/verification-0.1.2.md#supported-toolchain). Other combinations are unverified.
+The published 0.1.2 archive used the September SDK with `protobuf@0.1.3`; that dependency fails on the newer compiler because it declares the reserved type name `Option`. The checkout uses the official fixed runtime and regenerated bindings. See the [release compatibility record](docs/verification-0.1.2.md#supported-toolchain) and [regeneration commands](docs/testing.md#test-scenarios-and-generated-protocol). Other combinations are unverified.
 
-Ordinary producer/consumer applications do not need to declare Protobuf separately. Applications that generate their own Protobuf messages directly use its `Read`/`Write` interfaces. This library maintains its dependency compatibility and will update after an official upstream fix is released and verified. Users do not need to patch upstream code.
+Ordinary producer/consumer applications do not need to declare Protobuf separately. Applications that generate their own Protobuf messages directly use its `Read`/`Write` interfaces and should regenerate with the matching generator. In the upstream well-known types, `google.protobuf.Option` is now exposed as `Option_`; code using that type directly must use the new name. Users do not need to patch upstream code.
 
 The CI pin controls this repository's runners. Applications are compiled with the toolchain selected by their own environment, so installing this library does not switch the application's SDK.
 

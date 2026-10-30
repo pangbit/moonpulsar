@@ -29,7 +29,7 @@ async test "close during producer registration targets the replacement and rejec
         observe=frame => replacement.push(frame),
       )
       defer second.close()
-      let attempts : Ref[Int] = { val: 0, }
+      let attempts : Ref[Int32] = { val: 0, }
       let producer = SingleProducer::create_with_memory(
         group,
         first,

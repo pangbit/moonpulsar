@@ -58,7 +58,7 @@ async test "Athenz service NToken carries a verifiable RSA signature" {
 ///|
 async test "Athenz ZTS role-token exchange caches and refreshes early" {
   @async.with_task_group(async fn(group) {
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     with_mock_admin(
       group,
       (request, _) => {
@@ -110,7 +110,7 @@ async test "Athenz ZTS role-token exchange caches and refreshes early" {
 ///|
 async test "Athenz ZTS rejects client errors without retry and reports missing key" {
   @async.with_task_group(async fn(group) {
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     with_mock_admin(
       group,
       fn(_request, _) {
@@ -151,7 +151,7 @@ async test "Athenz ZTS rejects client errors without retry and reports missing k
 ///|
 async test "Athenz ZTS retries server failure and keeps valid cached token" {
   @async.with_task_group(async fn(group) {
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     with_mock_admin(
       group,
       fn(_request, _) {
@@ -223,7 +223,7 @@ async test "Athenz ZTS rejects malformed and expired role tokens" {
 ///|
 async test "Athenz ZTS refreshes role token on broker challenge" {
   @async.with_task_group(async fn(group) {
-    let issued : Ref[Int] = { val: 0, }
+    let issued : Ref[Int32] = { val: 0, }
     with_mock_admin(
       group,
       fn(_request, _) {

@@ -4,24 +4,24 @@ struct Config {
   url : String
   topic : String
   subscription : String
-  warmup_ms : Int
-  duration_ms : Int
-  size : Int
-  concurrency : Int
-  rate : Int
-  batch_messages : Int
-  batch_delay_ms : Int
-  queue_size : Int
-  timeout_ms : Int
+  warmup_ms : Int32
+  duration_ms : Int32
+  size : Int32
+  concurrency : Int32
+  rate : Int32
+  batch_messages : Int32
+  batch_delay_ms : Int32
+  queue_size : Int32
+  timeout_ms : Int32
 }
 
 ///|
 fn bounded_int(
   name : String,
   value : String,
-  min : Int,
-  max : Int,
-) -> Int raise {
+  min : Int32,
+  max : Int32,
+) -> Int32 raise {
   let parsed = @string.parse_int(value)
   guard parsed >= min && parsed <= max else {
     fail("\{name} must be in [\{min}, \{max}]")
@@ -30,7 +30,12 @@ fn bounded_int(
 }
 
 ///|
-fn setting(name : String, default : Int, min : Int, max : Int) -> Int raise {
+fn setting(
+  name : String,
+  default : Int32,
+  min : Int32,
+  max : Int32,
+) -> Int32 raise {
   bounded_int(
     name,
     @env.get_env_var(name).unwrap_or(default.to_string()),

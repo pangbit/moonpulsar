@@ -5,7 +5,7 @@
 /// (status code, body). Stops when the client disconnects.
 async fn with_mock_admin(
   group : @async.TaskGroup[Unit],
-  respond : (@http.Request, Bytes) -> (Int, String) raise,
+  respond : (@http.Request, Bytes) -> (Int32, String) raise,
   body : async (String) -> Unit,
 ) -> Unit {
   let server = @http.Server::Server(@socket.Addr::parse("127.0.0.1:0"))
@@ -264,7 +264,7 @@ async test "partition metadata rejects missing or fractional counts" {
       group,
       (_request, _payload) => (200, "{\"partitions\":1.5}"),
       async fn(url) {
-        let result : Result[Int, Error] = Ok(
+        let result : Result[Int32, Error] = Ok(
           Admin::new(url).partition_count("persistent://public/default/events"),
         ) catch {
           e => Err(e)
@@ -350,7 +350,7 @@ async test "delete subscription" {
 ///|
 async test "create subscription sends earliest and latest cursor positions" {
   @async.with_task_group(async fn(group) {
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     with_mock_admin(
       group,
       (request, payload) => {
@@ -384,7 +384,7 @@ async test "create subscription sends earliest and latest cursor positions" {
 ///|
 async test "admin subscription backlog operations use documented endpoints" {
   @async.with_task_group(async fn(group) {
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     with_mock_admin(
       group,
       (request, payload) => {

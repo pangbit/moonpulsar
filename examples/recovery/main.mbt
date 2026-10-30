@@ -1,10 +1,10 @@
 ///|
-fn setting(name : String, fallback : Int) -> Int raise {
+fn setting(name : String, fallback : Int32) -> Int32 raise {
   @string.parse_int(@env.get_env_var(name).unwrap_or(fallback.to_string()))
 }
 
 ///|
-fn payload(id : Int, size : Int) -> Bytes {
+fn payload(id : Int32, size : Int32) -> Bytes {
   Bytes::makei(size, i => ((i + id) % 251).to_byte())
 }
 
@@ -30,7 +30,7 @@ async fn main {
   }
   let clock = @bench.monotonic_clock_start()
   let elapsed = fn() { @bench.monotonic_clock_end(clock) / 1000.0 }
-  let log = fn(event : String, id : Int, detail : String) {
+  let log = fn(event : String, id : Int32, detail : String) {
     let record : Json = {
       "event": event,
       "id": id,

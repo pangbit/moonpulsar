@@ -87,7 +87,7 @@ fn avro_default_datum(
   root : @avro_schema.Schema,
   schema : @avro_schema.Schema,
   value : Json,
-  depth : Int,
+  depth : Int32,
 ) -> @avro_codec.Datum raise PulsarError {
   guard depth < 64 else {
     return avro_incompatible("Avro default nesting exceeds 64")
@@ -209,7 +209,7 @@ fn resolve_avro_datum(
   writer : @avro_schema.Schema,
   reader : @avro_schema.Schema,
   datum : @avro_codec.Datum,
-  depth : Int,
+  depth : Int32,
 ) -> @avro_codec.Datum raise PulsarError {
   guard depth < 64 else {
     return avro_incompatible("Avro schema nesting exceeds 64")

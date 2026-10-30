@@ -9,7 +9,7 @@ fn service_url() -> String {
 async fn consume_loop(
   name : String,
   consumer : @pulsar.Consumer,
-  budget : Ref[Int],
+  budget : Ref[Int32],
 ) -> Unit {
   // workers race for the remaining budget; whichever the broker's shared
   // dispatcher picks drains the queue
@@ -41,7 +41,7 @@ async fn main {
       initial_position=Earliest,
     )
     // 10 messages total, split between the two workers
-    let budget : Ref[Int] = { val: 10, }
+    let budget : Ref[Int32] = { val: 10, }
     let t1 = group.spawn(async fn() { consume_loop("worker-1", c1, budget) })
     let t2 = group.spawn(async fn() { consume_loop("worker-2", c2, budget) })
     t1.wait()

@@ -6,9 +6,9 @@ pub(all) struct MessageId {
   ledger_id : UInt64
   entry_id : UInt64
   /// index within a batch, -1 when not batched
-  batch_index : Int
+  batch_index : Int32
   /// partition index, -1 for non-partitioned topics
-  partition : Int
+  partition : Int32
 } derive(Eq, Compare, Hash, Debug)
 
 ///|
@@ -98,7 +98,7 @@ pub(all) struct ProducerMessage {
 pub fn ProducerMessage::new(
   payload : Bytes,
   key? : String,
-  properties? : Map[String, String] = {},
+  properties~ : Map[String, String] = {},
   event_time? : UInt64,
   sequence_id? : UInt64,
   ordering_key? : Bytes,
@@ -118,7 +118,7 @@ pub fn ProducerMessage::new(
 }
 
 ///|
-fn ProducerMessage::retained_bytes(self : ProducerMessage) -> Int {
+fn ProducerMessage::retained_bytes(self : ProducerMessage) -> Int32 {
   let mut size = self.payload.length()
   if self.key is Some(key) {
     size += @utf8.encode(key).length()
@@ -160,8 +160,8 @@ pub struct Message {
   priv sequence_id : UInt64?
   priv schema_version : Bytes?
   priv decryption_failed : Bool
-  priv redelivery_count : UInt
-  priv ack_tracker : Map[MessageId, Int]?
+  priv redelivery_count : UInt32
+  priv ack_tracker : Map[MessageId, Int32]?
   priv batch_ack_tracker : BatchAckTracker?
   priv ack_dispatcher : AckDispatcher?
   priv chunk_ids : Array[MessageId]?
@@ -176,7 +176,7 @@ pub struct Message {
 }
 
 ///|
-fn Message::retained_bytes(self : Message) -> Int {
+fn Message::retained_bytes(self : Message) -> Int32 {
   let mut size = self.payload.length() + @utf8.encode(self.topic).length()
   size += @utf8.encode(self.producer_name).length()
   if self.subscription is Some(value) {
@@ -304,7 +304,7 @@ pub fn Message::decryption_failed(self : Message) -> Bool {
 
 ///|
 /// How many times the broker redelivered this message.
-pub fn Message::redelivery_count(self : Message) -> UInt {
+pub fn Message::redelivery_count(self : Message) -> UInt32 {
   self.redelivery_count
 }
 
@@ -312,7 +312,7 @@ pub fn Message::redelivery_count(self : Message) -> UInt {
 /// Acknowledge this message individually.
 pub async fn Message::ack(
   self : Message,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   let span = self.span_recorder.map(fn(recorder) {
     recorder.begin(Ack, self.topic, message_id=self.id)
@@ -382,7 +382,7 @@ async fn Message::ack_raw(self : Message, await_response : Bool) -> Unit {
 pub async fn Message::ack_txn(
   self : Message,
   txn : Transaction,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
 ) -> Unit {
   let span = self.span_recorder.map(fn(recorder) {
     recorder.begin(Ack, self.topic, message_id=self.id)
@@ -498,9 +498,9 @@ async fn send_ack(
   ack_type : @proto.CommandAck_AckType,
   ids : Array[MessageId],
   txn? : Transaction,
-  await_response? : Bool = false,
+  await_response~ : Bool = false,
   batch_ack_set? : Array[Int64],
-  batch_size? : Int,
+  batch_size? : Int32,
 ) -> Unit {
   if await_response && conn.remote_protocol_version() < 17 {
     raise InvalidFrame("broker protocol does not support ACK responses")

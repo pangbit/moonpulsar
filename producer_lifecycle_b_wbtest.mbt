@@ -134,11 +134,11 @@ struct LifecycleBWriter {
   transport_closed : Ref[Bool]?
   started : @aqueue.Queue[Unit]
   unblock : @aqueue.Queue[Unit]
-  mut active : Int
-  mut prefix_bytes : Int
+  mut active : Int32
+  mut prefix_bytes : Int32
   mut armed : Bool
-  mut injected_errors : Int
-  mut last_failed_offset : Int?
+  mut injected_errors : Int32
+  mut last_failed_offset : Int32?
 }
 
 ///|
@@ -385,7 +385,7 @@ async test "deadline during a partial write joins the writer and retires only it
     @async.with_task_group(group => {
       let limiter = ClientMemoryLimiter::new(65536)
       let writer : Ref[LifecycleBWriter?] = { val: None, }
-      let closes : Ref[Int] = { val: 0, }
+      let closes : Ref[Int32] = { val: 0, }
       let (conn, _) = lifecycle_memory_connection(
         group,
         limiter,

@@ -57,7 +57,7 @@ fn TableView::apply(self : TableView, message : Message) -> Unit {
 }
 
 ///|
-pub fn TableView::size(self : TableView) -> Int {
+pub fn TableView::size(self : TableView) -> Int32 {
   self.data.length()
 }
 
@@ -144,7 +144,7 @@ fn[T] TypedTableView::wrap(
 }
 
 ///|
-pub fn[T] TypedTableView::size(self : TypedTableView[T]) -> Int {
+pub fn[T] TypedTableView::size(self : TypedTableView[T]) -> Int32 {
   self.raw.size()
 }
 

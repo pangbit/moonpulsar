@@ -1,10 +1,11 @@
-///|
+----
 import {
   "moonbit-community/flate@0.8.3",
 }
+----
 
 ///|
-fn observe(input : Bytes) -> (String, Int, Int, Bool) raise {
+fn observe(input : Bytes) -> (String, Int32, Int32, Bool) raise {
   let decoder = @flate.Inflater()
   let output = FixedArray::make(6, b'\x00')
   let status = decoder.step_into(input[:], output)

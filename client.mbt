@@ -273,21 +273,21 @@ pub async fn Client::create_producer(
   self : Client,
   topic : String,
   name? : String,
-  properties? : Map[String, String] = {},
-  access_mode? : ProducerAccessMode = Shared,
+  properties~ : Map[String, String] = {},
+  access_mode~ : ProducerAccessMode = Shared,
   batching? : BatchingConfig,
-  compression? : CompressionCodec = None,
+  compression~ : CompressionCodec = None,
   message_crypto? : MessageCrypto,
-  encryption_key_names? : Array[String] = [],
-  chunk_size? : Int,
-  automatic_chunking? : Bool = false,
+  encryption_key_names~ : Array[String] = [],
+  chunk_size? : Int32,
+  automatic_chunking~ : Bool = false,
   schema? : SchemaInfo,
-  partition_refresh_ms? : Int = 60000,
-  routing? : ProducerRoutingMode = KeyHash,
-  max_pending_messages? : Int,
-  block_if_queue_full? : Bool = false,
-  send_timeout_ms? : Int,
-  interceptors? : Array[ProducerInterceptor] = [],
+  partition_refresh_ms~ : Int32 = 60000,
+  routing~ : ProducerRoutingMode = KeyHash,
+  max_pending_messages? : Int32,
+  block_if_queue_full~ : Bool = false,
+  send_timeout_ms? : Int32,
+  interceptors~ : Array[ProducerInterceptor] = [],
 ) -> Producer {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -332,7 +332,7 @@ pub async fn Client::create_producer(
     producer.set_span_recorder(self.span_recorder)
     return producer
   }
-  let create_partition = async fn(i : Int) -> Producer {
+  let create_partition = async fn(i : Int32) -> Producer {
     let partition_topic = "\{topic}-partition-\{i}"
     let conn = lookup_topic(manager, addr, partition_topic)
     Producer::single(
@@ -408,30 +408,30 @@ pub async fn Client::create_consumer(
   self : Client,
   topic : String,
   subscription : String,
-  sub_type? : SubscriptionType = Exclusive,
+  sub_type~ : SubscriptionType = Exclusive,
   key_shared_policy? : KeySharedPolicy,
   consumer_name? : String,
-  initial_position? : SubscriptionInitialPosition = Latest,
-  priority_level? : Int = 0,
-  durable? : Bool = true,
-  read_compacted? : Bool = false,
-  properties? : Map[String, String] = {},
-  subscription_properties? : Map[String, String] = {},
-  receiver_queue_size? : Int = 1000,
-  ack_timeout_ms? : Int = 0,
+  initial_position~ : SubscriptionInitialPosition = Latest,
+  priority_level~ : Int32 = 0,
+  durable~ : Bool = true,
+  read_compacted~ : Bool = false,
+  properties~ : Map[String, String] = {},
+  subscription_properties~ : Map[String, String] = {},
+  receiver_queue_size~ : Int32 = 1000,
+  ack_timeout_ms~ : Int32 = 0,
   nack_backoff? : NackBackoff,
   dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
-  decryption_failure_action? : DecryptionFailureAction = Fail,
-  encryption_key_names? : Array[String] = [],
-  partition_refresh_ms? : Int = 60000,
+  decryption_failure_action~ : DecryptionFailureAction = Fail,
+  encryption_key_names~ : Array[String] = [],
+  partition_refresh_ms~ : Int32 = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   retry_topic? : String,
-  enable_batch_index_ack? : Bool = false,
+  enable_batch_index_ack~ : Bool = false,
   ack_grouping? : AckGroupingOptions,
-  auto_scaled_receiver_queue? : Bool = false,
-  interceptors? : Array[ConsumerInterceptor] = [],
+  auto_scaled_receiver_queue~ : Bool = false,
+  interceptors~ : Array[ConsumerInterceptor] = [],
 ) -> Consumer {
   if retry_topic is Some(retry) {
     guard dead_letter_policy is Some(policy) else {
@@ -525,7 +525,7 @@ pub async fn Client::create_consumer(
     )
     return self.observe_consumer(consumer, interceptors)
   }
-  let create_partition = async fn(i : Int) -> Consumer {
+  let create_partition = async fn(i : Int32) -> Consumer {
     let partition_topic = "\{topic}-partition-\{i}"
     let conn = lookup_topic(manager, addr, partition_topic)
     Consumer::single(
@@ -573,7 +573,7 @@ pub async fn Client::create_consumer(
     subs.push(sub)
   }
   let consumer = Consumer::partitioned(self.manager.group, subs)
-  let known : Ref[Int] = { val: partitions, }
+  let known : Ref[Int32] = { val: partitions, }
   self.manager.group.spawn_bg(
     async fn() {
       while !consumer.is_closed() && !manager.is_closed() {
@@ -611,7 +611,7 @@ async fn Client::with_dead_letter(
   consumer : Consumer,
   policy : DeadLetterPolicy?,
   message_crypto? : MessageCrypto,
-  encryption_key_names? : Array[String] = [],
+  encryption_key_names~ : Array[String] = [],
 ) -> Consumer {
   if policy is Some(config) {
     errdefer (consumer.close() catch { _ => () })
@@ -633,7 +633,7 @@ async fn Client::attach_retry_source(
   policy : DeadLetterPolicy,
   create_retry_source : async () -> Consumer,
   message_crypto? : MessageCrypto,
-  encryption_key_names? : Array[String] = [],
+  encryption_key_names~ : Array[String] = [],
 ) -> Consumer {
   errdefer (consumer.close() catch { _ => () })
   let source = create_retry_source()
@@ -666,28 +666,28 @@ pub async fn Client::create_retry_consumer(
   subscription : String,
   retry_topic : String,
   dead_letter_policy : DeadLetterPolicy,
-  sub_type? : SubscriptionType = Shared,
+  sub_type~ : SubscriptionType = Shared,
   key_shared_policy? : KeySharedPolicy,
   consumer_name? : String,
-  initial_position? : SubscriptionInitialPosition = Latest,
-  priority_level? : Int = 0,
-  durable? : Bool = true,
-  read_compacted? : Bool = false,
-  properties? : Map[String, String] = {},
-  subscription_properties? : Map[String, String] = {},
-  receiver_queue_size? : Int = 1000,
-  ack_timeout_ms? : Int = 0,
+  initial_position~ : SubscriptionInitialPosition = Latest,
+  priority_level~ : Int32 = 0,
+  durable~ : Bool = true,
+  read_compacted~ : Bool = false,
+  properties~ : Map[String, String] = {},
+  subscription_properties~ : Map[String, String] = {},
+  receiver_queue_size~ : Int32 = 1000,
+  ack_timeout_ms~ : Int32 = 0,
   nack_backoff? : NackBackoff,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
-  decryption_failure_action? : DecryptionFailureAction = Fail,
-  encryption_key_names? : Array[String] = [],
-  partition_refresh_ms? : Int = 60000,
+  decryption_failure_action~ : DecryptionFailureAction = Fail,
+  encryption_key_names~ : Array[String] = [],
+  partition_refresh_ms~ : Int32 = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
-  enable_batch_index_ack? : Bool = false,
+  enable_batch_index_ack~ : Bool = false,
   ack_grouping? : AckGroupingOptions,
-  auto_scaled_receiver_queue? : Bool = false,
-  interceptors? : Array[ConsumerInterceptor] = [],
+  auto_scaled_receiver_queue~ : Bool = false,
+  interceptors~ : Array[ConsumerInterceptor] = [],
 ) -> Consumer {
   guard retry_topic != "" &&
     retry_topic != topic &&
@@ -758,30 +758,30 @@ pub async fn Client::create_multi_topic_consumer(
   self : Client,
   topics : Array[String],
   subscription : String,
-  sub_type? : SubscriptionType = Exclusive,
+  sub_type~ : SubscriptionType = Exclusive,
   key_shared_policy? : KeySharedPolicy,
   consumer_name? : String,
-  initial_position? : SubscriptionInitialPosition = Latest,
-  priority_level? : Int = 0,
-  durable? : Bool = true,
-  read_compacted? : Bool = false,
-  properties? : Map[String, String] = {},
-  subscription_properties? : Map[String, String] = {},
-  receiver_queue_size? : Int = 1000,
-  ack_timeout_ms? : Int = 0,
+  initial_position~ : SubscriptionInitialPosition = Latest,
+  priority_level~ : Int32 = 0,
+  durable~ : Bool = true,
+  read_compacted~ : Bool = false,
+  properties~ : Map[String, String] = {},
+  subscription_properties~ : Map[String, String] = {},
+  receiver_queue_size~ : Int32 = 1000,
+  ack_timeout_ms~ : Int32 = 0,
   nack_backoff? : NackBackoff,
   dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
-  decryption_failure_action? : DecryptionFailureAction = Fail,
-  encryption_key_names? : Array[String] = [],
-  partition_refresh_ms? : Int = 60000,
+  decryption_failure_action~ : DecryptionFailureAction = Fail,
+  encryption_key_names~ : Array[String] = [],
+  partition_refresh_ms~ : Int32 = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   retry_topic? : String,
-  enable_batch_index_ack? : Bool = false,
+  enable_batch_index_ack~ : Bool = false,
   ack_grouping? : AckGroupingOptions,
-  auto_scaled_receiver_queue? : Bool = false,
-  interceptors? : Array[ConsumerInterceptor] = [],
+  auto_scaled_receiver_queue~ : Bool = false,
+  interceptors~ : Array[ConsumerInterceptor] = [],
 ) -> Consumer {
   guard !topics.is_empty() else {
     raise InvalidFrame("multi-topic consumer requires at least one topic")
@@ -893,18 +893,18 @@ pub async fn Client::create_reader(
   self : Client,
   topic : String,
   start_message_id? : MessageId,
-  receiver_queue_size? : Int = 1000,
-  read_compacted? : Bool = false,
-  partition_refresh_ms? : Int = 60000,
-  include_start_message_id? : Bool = false,
+  receiver_queue_size~ : Int32 = 1000,
+  read_compacted~ : Bool = false,
+  partition_refresh_ms~ : Int32 = 60000,
+  include_start_message_id~ : Bool = false,
   name? : String,
-  properties? : Map[String, String] = {},
+  properties~ : Map[String, String] = {},
   subscription_name? : String,
-  subscription_role_prefix? : String = "reader",
+  subscription_role_prefix~ : String = "reader",
   chunk_policy? : ChunkAssemblyPolicy,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
-  decryption_failure_action? : DecryptionFailureAction = Fail,
+  decryption_failure_action~ : DecryptionFailureAction = Fail,
 ) -> Reader {
   guard partition_refresh_ms > 0 else {
     raise InvalidFrame("partition refresh interval must be positive")
@@ -935,7 +935,7 @@ pub async fn Client::create_reader(
       ),
     )
   }
-  let create_partition = async fn(i : Int) -> SingleReader {
+  let create_partition = async fn(i : Int32) -> SingleReader {
     let partition_topic = "\{topic}-partition-\{i}"
     let conn = lookup_topic(manager, addr, partition_topic)
     SingleReader::create_with_memory(
@@ -968,7 +968,7 @@ pub async fn Client::create_reader(
     subs.push(sub)
   }
   let reader = Reader::partitioned(self.manager.group, subs)
-  let known : Ref[Int] = { val: partitions, }
+  let known : Ref[Int32] = { val: partitions, }
   self.manager.group.spawn_bg(
     async fn() {
       while !reader.is_closed() && !manager.is_closed() {
@@ -1001,7 +1001,7 @@ pub async fn Client::create_reader(
 pub async fn Client::create_table_view(
   self : Client,
   topic : String,
-  partition_refresh_ms? : Int = 60000,
+  partition_refresh_ms~ : Int32 = 60000,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
 ) -> TableView {
@@ -1024,7 +1024,7 @@ pub async fn[T] Client::create_typed_table_view(
   self : Client,
   topic : String,
   codec : SchemaCodec[T],
-  partition_refresh_ms? : Int = 60000,
+  partition_refresh_ms~ : Int32 = 60000,
   message_crypto? : MessageCrypto,
 ) -> TypedTableView[T] {
   let raw = self.create_table_view(
@@ -1041,7 +1041,7 @@ pub async fn[T] Client::create_typed_table_view(
 
 ///|
 /// Number of partitions of a topic (0 or 1 for non-partitioned topics).
-pub async fn Client::partitions_of(self : Client, topic : String) -> Int {
+pub async fn Client::partitions_of(self : Client, topic : String) -> Int32 {
   get_partition_count(self.manager, self.service_addr, topic)
 }
 
@@ -1084,7 +1084,7 @@ pub async fn Client::topics_of_namespace(
   self : Client,
   ns : String,
   pattern? : String,
-  mode? : NamespaceTopicMode = Persistent,
+  mode~ : NamespaceTopicMode = Persistent,
 ) -> Array[String] {
   get_topics_of_namespace(self.manager, self.service_addr, ns, pattern?, mode~)
 }
@@ -1097,31 +1097,31 @@ pub async fn Client::create_pattern_consumer(
   ns : String,
   pattern : String,
   subscription : String,
-  refresh_interval_ms? : Int = 60000,
-  sub_type? : SubscriptionType = Exclusive,
+  refresh_interval_ms~ : Int32 = 60000,
+  sub_type~ : SubscriptionType = Exclusive,
   key_shared_policy? : KeySharedPolicy,
   consumer_name? : String,
-  initial_position? : SubscriptionInitialPosition = Latest,
-  priority_level? : Int = 0,
-  durable? : Bool = true,
-  read_compacted? : Bool = false,
-  properties? : Map[String, String] = {},
-  subscription_properties? : Map[String, String] = {},
-  receiver_queue_size? : Int = 1000,
-  ack_timeout_ms? : Int = 0,
+  initial_position~ : SubscriptionInitialPosition = Latest,
+  priority_level~ : Int32 = 0,
+  durable~ : Bool = true,
+  read_compacted~ : Bool = false,
+  properties~ : Map[String, String] = {},
+  subscription_properties~ : Map[String, String] = {},
+  receiver_queue_size~ : Int32 = 1000,
+  ack_timeout_ms~ : Int32 = 0,
   nack_backoff? : NackBackoff,
   dead_letter_policy? : DeadLetterPolicy,
   schema? : SchemaInfo,
   message_crypto? : MessageCrypto,
-  decryption_failure_action? : DecryptionFailureAction = Fail,
-  encryption_key_names? : Array[String] = [],
-  partition_refresh_ms? : Int = 60000,
+  decryption_failure_action~ : DecryptionFailureAction = Fail,
+  encryption_key_names~ : Array[String] = [],
+  partition_refresh_ms~ : Int32 = 60000,
   chunk_policy? : ChunkAssemblyPolicy,
   retry_topic? : String,
-  enable_batch_index_ack? : Bool = false,
+  enable_batch_index_ack~ : Bool = false,
   ack_grouping? : AckGroupingOptions,
-  auto_scaled_receiver_queue? : Bool = false,
-  interceptors? : Array[ConsumerInterceptor] = [],
+  auto_scaled_receiver_queue~ : Bool = false,
+  interceptors~ : Array[ConsumerInterceptor] = [],
 ) -> Consumer {
   guard refresh_interval_ms > 0 else {
     raise InvalidFrame("topic refresh interval must be positive")

@@ -3,14 +3,14 @@
 // content checksum, no block checksum, no content size.
 
 ///|
-const LZ4_FRAME_MAGIC : UInt = 0x184d2204
+const LZ4_FRAME_MAGIC : UInt32 = 0x184d2204
 
 ///|
 /// 64KB block maximum (BD code 4).
-const LZ4_BLOCK_SIZE : Int = 65536
+const LZ4_BLOCK_SIZE : Int32 = 65536
 
 ///|
-fn write_le32(buf : @buffer.Buffer, v : UInt) -> Unit {
+fn write_le32(buf : @buffer.Buffer, v : UInt32) -> Unit {
   buf.write_byte(v.to_byte())
   buf.write_byte((v >> 8).to_byte())
   buf.write_byte((v >> 16).to_byte())
@@ -18,13 +18,13 @@ fn write_le32(buf : @buffer.Buffer, v : UInt) -> Unit {
 }
 
 ///|
-fn lz4_hash(seq : UInt) -> Int {
+fn lz4_hash(seq : UInt32) -> Int32 {
   // multiplicative hash, 12-bit table
   ((seq * 2654435761) >> 20).reinterpret_as_int() & 0xfff
 }
 
 ///|
-fn write_len(out : @buffer.Buffer, len : Int) -> Unit {
+fn write_len(out : @buffer.Buffer, len : Int32) -> Unit {
   let mut rem = len
   while rem >= 255 {
     out.write_byte(255)
@@ -106,7 +106,7 @@ pub fn lz4_compress_block(data : BytesView) -> Bytes {
 /// Decompress a raw LZ4 block to exactly `size` bytes.
 pub fn lz4_decompress_block_to(
   data : BytesView,
-  size : Int,
+  size : Int32,
 ) -> Bytes raise PulsarError {
   let out : Array[Byte] = []
   lz4_decompress_block(data, out, size)
@@ -122,7 +122,7 @@ pub fn lz4_decompress_block_to(
 fn lz4_decompress_block(
   data : BytesView,
   out : Array[Byte],
-  limit : Int,
+  limit : Int32,
 ) -> Unit raise PulsarError {
   let len = data.length()
   let mut pos = 0

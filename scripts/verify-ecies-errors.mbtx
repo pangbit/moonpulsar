@@ -1,12 +1,12 @@
+----
 // Deterministic ECIES adapter checks, without a broker or TLS connection.
-
-///|
 import {
   "moonbitlang/async@0.22.1",
   "moonbitlang/async@0.22.1/fs",
   "moonbitlang/async@0.22.1/shell",
   "moonbitlang/core/env",
 }
+----
 
 ///|
 async fn checked(label : String, cmd : @shell.Cmd, report : String) -> Unit {

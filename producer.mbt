@@ -21,7 +21,7 @@ pub(all) enum ProducerRoutingMode {
   KeyHash
   RoundRobin
   SinglePartition
-  Custom((ProducerMessage, Int) -> Int)
+  Custom((ProducerMessage, Int32) -> Int32)
 }
 
 ///|
@@ -40,11 +40,11 @@ fn ProducerAccessMode::to_proto(
 /// Batching configuration for a producer.
 pub(all) struct BatchingConfig {
   /// flush the batch after this many messages
-  max_messages : Int
+  max_messages : Int32
   /// flush the batch after this many payload bytes
-  max_bytes : Int
+  max_bytes : Int32
   /// flush the batch this long after the first message
-  max_delay_ms : Int
+  max_delay_ms : Int32
 } derive(Debug)
 
 ///|
@@ -69,7 +69,7 @@ priv struct PendingSend {
   mut message : ProducerMessage?
   waiter : @aqueue.Queue[SendReceipt]
   token : UInt64
-  size : Int
+  size : Int32
   deadline : Int64?
   mut done : Bool
   mut frame : UInt64?
@@ -78,8 +78,8 @@ priv struct PendingSend {
 
 ///|
 priv struct PendingFrame {
-  entries : Array[(PendingSend, Int)]
-  mut remaining : Int
+  entries : Array[(PendingSend, Int32)]
+  mut remaining : Int32
   chunk_waiter : @aqueue.Queue[SendReceipt]?
   mut write_epoch : UInt64?
   mut write_task : Ref[@async.Task[Unit]?]
@@ -108,7 +108,7 @@ pub struct SingleProducer {
   priv mut deadline_worker : @async.Task[Unit]?
   /// encoded SEND frames awaiting a receipt, for replay after reconnect
   priv payloads : Map[UInt64, Bytes]
-  priv frame_charges : Map[UInt64, Int]
+  priv frame_charges : Map[UInt64, Int32]
   priv reconnect_with : (async () -> Connection)?
   priv reconnect_policy : RetryPolicy
   priv reconnecting : Ref[Bool]
@@ -118,11 +118,11 @@ pub struct SingleProducer {
   priv on_event : ((ClientEvent) -> Unit)?
   priv span_recorder : ClientSpanRecorder?
   priv block_if_queue_full : Bool
-  priv send_timeout_ms : Int?
+  priv send_timeout_ms : Int32?
   priv compression : CompressionCodec
   priv message_crypto : MessageCrypto?
   priv encryption_key_names : Array[String]
-  priv chunk_size : Int?
+  priv chunk_size : Int32?
   priv automatic_chunking : Bool
   priv chunk_mu : @async.Mutex
   priv schema : SchemaInfo?
@@ -130,7 +130,7 @@ pub struct SingleProducer {
   priv batching : BatchingConfig?
   priv batch_mu : @async.Mutex
   priv mut batch_entries : Array[PendingSend]
-  priv mut batch_bytes : Int
+  priv mut batch_bytes : Int32
   priv mut batch_timer_running : Bool
   priv mut batch_timer : @async.Task[Unit]?
   priv mut batch_timer_generation : UInt64
@@ -154,20 +154,20 @@ pub async fn SingleProducer::create(
   conn : Connection,
   topic : String,
   name? : String,
-  properties? : Map[String, String] = {},
-  access_mode? : ProducerAccessMode = Shared,
+  properties~ : Map[String, String] = {},
+  access_mode~ : ProducerAccessMode = Shared,
   batching? : BatchingConfig,
   reconnect_with? : async () -> Connection,
-  compression? : CompressionCodec = None,
+  compression~ : CompressionCodec = None,
   message_crypto? : MessageCrypto,
-  encryption_key_names? : Array[String] = [],
-  chunk_size? : Int,
-  automatic_chunking? : Bool = false,
+  encryption_key_names~ : Array[String] = [],
+  chunk_size? : Int32,
+  automatic_chunking~ : Bool = false,
   schema? : SchemaInfo,
-  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
-  max_pending_messages? : Int,
-  block_if_queue_full? : Bool = false,
-  send_timeout_ms? : Int,
+  reconnect_policy~ : RetryPolicy = RetryPolicy::default(),
+  max_pending_messages? : Int32,
+  block_if_queue_full~ : Bool = false,
+  send_timeout_ms? : Int32,
 ) -> SingleProducer {
   SingleProducer::create_with_memory(
     group,
@@ -197,20 +197,20 @@ async fn SingleProducer::create_with_memory(
   conn : Connection,
   topic : String,
   name? : String,
-  properties? : Map[String, String] = {},
-  access_mode? : ProducerAccessMode = Shared,
+  properties~ : Map[String, String] = {},
+  access_mode~ : ProducerAccessMode = Shared,
   batching? : BatchingConfig,
   reconnect_with? : async () -> Connection,
-  compression? : CompressionCodec = None,
+  compression~ : CompressionCodec = None,
   message_crypto? : MessageCrypto,
-  encryption_key_names? : Array[String] = [],
-  chunk_size? : Int,
-  automatic_chunking? : Bool = false,
+  encryption_key_names~ : Array[String] = [],
+  chunk_size? : Int32,
+  automatic_chunking~ : Bool = false,
   schema? : SchemaInfo,
-  reconnect_policy? : RetryPolicy = RetryPolicy::default(),
-  max_pending_messages? : Int,
-  block_if_queue_full? : Bool = false,
-  send_timeout_ms? : Int,
+  reconnect_policy~ : RetryPolicy = RetryPolicy::default(),
+  max_pending_messages? : Int32,
+  block_if_queue_full~ : Bool = false,
+  send_timeout_ms? : Int32,
   memory_limiter? : ClientMemoryLimiter,
   on_event? : (ClientEvent) -> Unit,
   span_recorder? : ClientSpanRecorder,
@@ -804,7 +804,7 @@ async fn SingleProducer::send_encoded(
   self : SingleProducer,
   sequence_id : UInt64,
   frame : Bytes,
-  entries : Array[(PendingSend, Int)],
+  entries : Array[(PendingSend, Int32)],
   chunk_waiter? : @aqueue.Queue[SendReceipt],
 ) -> Unit {
   let live = entries.filter(pair => !pair.0.done)
@@ -1044,7 +1044,7 @@ async fn SingleProducer::enqueue_batch(
 ///|
 async fn SingleProducer::flush_after(
   self : SingleProducer,
-  delay_ms : Int,
+  delay_ms : Int32,
   generation : UInt64,
 ) -> Unit {
   @async.sleep(delay_ms)
@@ -1144,7 +1144,7 @@ pub fn SingleProducer::last_sequence_id(self : SingleProducer) -> UInt64? {
 ///|
 priv enum ProducerImpl {
   Single(SingleProducer)
-  Partitioned(Array[Producer], Ref[Int], ProducerRoutingMode)
+  Partitioned(Array[Producer], Ref[Int32], ProducerRoutingMode)
 }
 
 ///|
@@ -1172,7 +1172,7 @@ fn Producer::single(p : SingleProducer) -> Producer {
 /// Create a producer on a partitioned topic from one producer per partition.
 pub fn Producer::partitioned(
   partitions : Array[Producer],
-  routing? : ProducerRoutingMode = KeyHash,
+  routing~ : ProducerRoutingMode = KeyHash,
 ) -> Producer {
   {
     inner: ProducerImpl::Partitioned(partitions, { val: 0, }, routing),
@@ -1252,7 +1252,7 @@ async fn Producer::add_partition(self : Producer, partition : Producer) -> Unit 
 
 ///|
 /// Number of producer partitions currently available for routing.
-pub fn Producer::partition_count(self : Producer) -> Int {
+pub fn Producer::partition_count(self : Producer) -> Int32 {
   match self.inner {
     ProducerImpl::Single(_) => 1
     ProducerImpl::Partitioned(parts, _, _) => parts.length()

@@ -250,7 +250,7 @@ struct IoPeer {
 async fn IoPeer::write(
   self : IoPeer,
   raw : Bytes,
-  fragment? : Bool = false,
+  fragment~ : Bool = false,
 ) -> Unit {
   self.mutex.acquire()
   defer self.mutex.release()
@@ -266,7 +266,7 @@ async fn IoPeer::write(
 }
 
 ///|
-async fn io_read_exact(tcp : @socket.Tcp, length : Int) -> Bytes {
+async fn io_read_exact(tcp : @socket.Tcp, length : Int32) -> Bytes {
   let mut raw = b""
   while raw.length() < length {
     guard tcp.read_some(max_len=length - raw.length()) is Some(chunk) else {
@@ -301,10 +301,10 @@ struct IoMock {
   mut original_send : Bytes?
   mut consumer_id : UInt64?
   mut cut_requested : Bool
-  mut accepted : Int
-  mut sends : Int
-  mut lookups : Int
-  mut confirmed_acks : Int
+  mut accepted : Int32
+  mut sends : Int32
+  mut lookups : Int32
+  mut confirmed_acks : Int32
 }
 
 ///|
@@ -330,7 +330,7 @@ fn io_send_receipt(send : @proto.CommandSend, entry : UInt64) -> Bytes raise {
 ///|
 async fn io_mock_session(
   peer : IoPeer,
-  epoch : Int,
+  epoch : Int32,
   mock : IoMock,
   decoy : String,
 ) -> Unit {
@@ -452,7 +452,7 @@ async fn io_mock_session(
 ///|
 async fn io_command(
   journal : Journal,
-  index : Int,
+  index : Int32,
   command : String,
   challenge : String,
 ) -> Unit {
@@ -478,7 +478,7 @@ fn io_field(value : Json, key : String) -> Json? {
 }
 
 ///|
-async fn io_acknowledged(journal : Journal, index : Int) -> Unit {
+async fn io_acknowledged(journal : Journal, index : Int32) -> Unit {
   println("IO_COMMAND_WAIT index=\{index}")
   @async.with_timeout(3000, async fn() {
     while true {

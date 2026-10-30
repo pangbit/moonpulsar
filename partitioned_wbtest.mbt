@@ -6,9 +6,9 @@
 /// lookups with Connect to itself, then runs `on_peer`.
 async fn start_partitioned_broker(
   group : @async.TaskGroup[Unit],
-  partitions : Int,
+  partitions : Int32,
   on_peer : async (String, MockPeer) -> Unit,
-  partitions_ref? : Ref[Int],
+  partitions_ref? : Ref[Int32],
 ) -> String {
   // metadata/lookup answers must keep working while the scenario runs,
   // because partition creation interleaves lookups and PRODUCER/SUBSCRIBE
@@ -116,15 +116,15 @@ async test "partitioned producer routes keyed messages consistently" {
 ///|
 async fn check_producer_routing(
   routing : ProducerRoutingMode,
-  expected : Array[Int],
-  rejects_bad_route? : Bool = false,
+  expected : Array[Int32],
+  rejects_bad_route~ : Bool = false,
 ) -> Unit {
   @async.with_task_group(async fn(group) {
-    let got : @aqueue.Queue[Int] = @aqueue.Queue::Queue(
+    let got : @aqueue.Queue[Int32] = @aqueue.Queue::Queue(
       kind=@aqueue.Kind::Unbounded,
     )
     let addr = start_partitioned_broker(group, 3, async fn(_addr, peer) {
-      let partitions : Map[UInt64, Int] = Map([])
+      let partitions : Map[UInt64, Int32] = Map([])
       for _ in 0..<(3 + expected.length()) {
         let frame = peer.next()
         if frame.cmd.producer is Some(req) {

@@ -244,8 +244,8 @@ async test "composite consumer intercepts only application delivery" {
       ),
     )
     let combined = Consumer::partitioned(group, [source])
-    let delivered : Ref[Int] = { val: 0, }
-    let acked : Ref[Int] = { val: 0, }
+    let delivered : Ref[Int32] = { val: 0, }
+    let acked : Ref[Int32] = { val: 0, }
     combined.set_interceptors([
       ConsumerInterceptor::new(
         before_consume=fn(_message) { delivered.val += 1 },

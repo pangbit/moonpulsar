@@ -1,7 +1,7 @@
 // Unit tests for CRC32-C and frame codec.
 
 ///|
-fn be32(buf : @buffer.Buffer, v : Int) -> Unit {
+fn be32(buf : @buffer.Buffer, v : Int32) -> Unit {
   buf.write_byte((v >> 24).to_byte())
   buf.write_byte((v >> 16).to_byte())
   buf.write_byte((v >> 8).to_byte())

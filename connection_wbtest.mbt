@@ -78,7 +78,7 @@ async test "authentication challenge during handshake gets a response" {
       no_wait=true,
       allow_failure=true,
     )
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     let conn = Connection::connect(group, addr, auth_provider=fn() {
       calls.val += 1
       { method_name: "token", data: @utf8.encode("token-\{calls.val}"), }
@@ -107,7 +107,7 @@ async test "asynchronous authentication provider refreshes on challenge" {
       }
       seen.put(data.auth_data == Some(b"token-2"))
     })
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     let client = Client::connect_with_options(
       group,
       ClientOptions::new("pulsar://\{addr}", auth_provider=async fn() {
@@ -370,7 +370,7 @@ async test "handshake rejects too many authentication challenges" {
       no_wait=true,
       allow_failure=true,
     )
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     let result : Result[Connection, Error] = Ok(
       Connection::connect(group, addr, auth_provider=fn() {
         calls.val += 1

@@ -1,7 +1,7 @@
 // Compression codec tests: roundtrips and format sanity.
 
 ///|
-fn zlib_decode_for_test(bytes : Bytes, size : Int) -> Bytes? {
+fn zlib_decode_for_test(bytes : Bytes, size : Int32) -> Bytes? {
   Some(decompress(Zlib, bytes, uncompressed_size=size)) catch {
     _ => None
   }
@@ -33,7 +33,7 @@ test "lz4 roundtrip" {
 test "lz4 roundtrip of incompressible data" {
   // pseudo-random bytes stored as uncompressed blocks
   let buf = @buffer.Buffer()
-  let mut x : UInt = 0x12345678
+  let mut x : UInt32 = 0x12345678
   for _ in 0..<70000 {
     x = x * 1103515245 + 12345
     buf.write_byte((x >> 16).to_byte())
@@ -175,7 +175,7 @@ test "snappy roundtrip" {
   // empty and incompressible inputs
   assert_eq(decompress(Snappy, compress(Snappy, b"")), b"")
   let buf = @buffer.Buffer()
-  let mut x : UInt = 99
+  let mut x : UInt32 = 99
   for _ in 0..<70000 {
     x = x * 1103515245 + 12345
     buf.write_byte((x >> 16).to_byte())

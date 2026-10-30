@@ -18,8 +18,8 @@ pub struct EncryptionPrivateKey {
 ///|
 fn der_read(
   data : Bytes,
-  offset : Ref[Int],
-  tag : Int,
+  offset : Ref[Int32],
+  tag : Int32,
 ) -> Bytes raise PulsarError {
   guard offset.val < data.length() && data[offset.val].to_int() == tag else {
     raise InvalidFrame("invalid RSA key DER tag")
@@ -64,7 +64,7 @@ fn der_sequence(data : Bytes) -> Bytes raise PulsarError {
 }
 
 ///|
-fn der_integer(data : Bytes, offset : Ref[Int]) -> Bytes raise PulsarError {
+fn der_integer(data : Bytes, offset : Ref[Int32]) -> Bytes raise PulsarError {
   let value = der_read(data, offset, 0x02)
   guard value.length() > 0 && value[0].to_int() < 128 else {
     raise InvalidFrame("invalid RSA key integer")
@@ -330,7 +330,7 @@ pub async fn MessageCrypto::load_private_key_file(
 }
 
 ///|
-async fn encryption_random(length : Int) -> Bytes raise PulsarError {
+async fn encryption_random(length : Int32) -> Bytes raise PulsarError {
   let file = @fs.open("/dev/urandom", mode=ReadOnly) catch {
     _ => raise InvalidFrame("could not open system random source")
   }

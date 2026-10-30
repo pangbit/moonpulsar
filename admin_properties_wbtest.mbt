@@ -1,7 +1,7 @@
 ///|
 async test "admin topic properties update read and remove" {
   @async.with_task_group(async fn(group) {
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     with_mock_admin(
       group,
       (request, payload) => {

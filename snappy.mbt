@@ -8,15 +8,15 @@
 //   chunk 0x01 carries uncompressed data instead
 
 ///|
-const SNAPPY_FRAMED_CHUNK_MAX : Int = 65536
+const SNAPPY_FRAMED_CHUNK_MAX : Int32 = 65536
 
 ///|
-fn mask_crc(crc : UInt) -> UInt {
+fn mask_crc(crc : UInt32) -> UInt32 {
   ((crc >> 15) | (crc << 17)) + 0xa282ead8
 }
 
 ///|
-fn write_le24(buf : @buffer.Buffer, v : Int) -> Unit {
+fn write_le24(buf : @buffer.Buffer, v : Int32) -> Unit {
   buf.write_byte(v.to_byte())
   buf.write_byte((v >> 8).to_byte())
   buf.write_byte((v >> 16).to_byte())
@@ -25,14 +25,14 @@ fn write_le24(buf : @buffer.Buffer, v : Int) -> Unit {
 ///|
 
 ///|
-fn read_le24(data : BytesView, at : Int) -> Int {
+fn read_le24(data : BytesView, at : Int32) -> Int32 {
   data[at].to_int() |
   (data[at + 1].to_int() << 8) |
   (data[at + 2].to_int() << 16)
 }
 
 ///|
-fn snappy_write_varint(out : @buffer.Buffer, value : Int) -> Unit {
+fn snappy_write_varint(out : @buffer.Buffer, value : Int32) -> Unit {
   let mut v = value
   while v >= 128 {
     out.write_byte(((v & 0x7f) | 0x80).to_byte())
@@ -73,7 +73,7 @@ fn snappy_emit_literal(out : @buffer.Buffer, data : BytesView) -> Unit {
 }
 
 ///|
-fn snappy_emit_copy(out : @buffer.Buffer, offset : Int, len : Int) -> Unit {
+fn snappy_emit_copy(out : @buffer.Buffer, offset : Int32, len : Int32) -> Unit {
   let mut len = len
   while len > 0 {
     let n = if len > 64 { 64 } else { len }
@@ -86,7 +86,7 @@ fn snappy_emit_copy(out : @buffer.Buffer, offset : Int, len : Int) -> Unit {
 }
 
 ///|
-fn snappy_hash(seq : UInt) -> Int {
+fn snappy_hash(seq : UInt32) -> Int32 {
   ((seq * 0x1e35a7bd) >> 20).reinterpret_as_int() & 0xfff
 }
 
@@ -222,8 +222,8 @@ fn snappy_decompress_block(
 ///|
 fn snappy_copy_from(
   out : Array[Byte],
-  offset : Int,
-  len : Int,
+  offset : Int32,
+  len : Int32,
 ) -> Unit raise PulsarError {
   if offset <= 0 || offset > out.length() {
     raise InvalidFrame("snappy: invalid copy offset")

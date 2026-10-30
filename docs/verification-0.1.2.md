@@ -82,15 +82,21 @@ own acceptance; these runs do not certify a later package automatically.
 
 ## Supported toolchain
 
-For the 0.1.2 maintenance line, the supported, verified combination is `moon` and `moonrun` 0.1.20260920 (`914d7da`), `moonc v0.10.14+7d59c7ec9`, and `moonbitlang/protobuf@0.1.3`. This is not a lower-bound claim for every newer SDK. The library and examples already declare the runtime dependency; minimal version selection can choose a higher version if an application's dependency graph requires one, so that combination needs its own verification.
+For the published 0.1.2 archive, the supported, verified combination is `moon` and `moonrun` 0.1.20260920 (`914d7da`), `moonc v0.10.14+7d59c7ec9`, and `moonbitlang/protobuf@0.1.3`. This is not a lower-bound claim for every newer SDK. The library and examples declare the runtime dependency; minimal version selection can choose a higher version if an application's dependency graph requires one, so that combination needs its own verification.
+
+The subsequent, unreleased checkout adapts to Moon/moonrun 0.1.20261028
+(`e1e1f15`), moonc 0.10.18+6c83a7f62 and official `protobuf@0.2.0`, using
+`protoc-gen-mbt@0.3.0` to regenerate the unchanged Pulsar protocol definition.
+The [README](../README.md#toolchain-compatibility) describes that source
+combination. It does not change the published archive, tag or historical runs.
 
 The public main baseline [`d01d434`](https://github.com/pangbit/moonpulsar/commit/d01d4344a95ef9c60b13da97aaf0cd00745a957a) has the same library tree and exact 74-file ZIP as the separately verified identity/documentation candidate. That ZIP (`d4a2777998268e00ba8862bc52284704adfd900709a0b212d7a4eb689893f2cb`) passed a fresh Linux external-consumer build and run in debug and release with the supported toolchain, including decoded CONNECT and AUTH_RESPONSE identity checks. Its nine intermediate commits also passed their targeted native debug regressions (82 test executions). These results do not certify a complete release build of every workspace example.
 
 That baseline's [CI run on 2026-10-21](https://github.com/pangbit/moonpulsar/actions/runs/39561084202) installed `moon 0.1.20261020` / `moonc v0.10.16+b1a0e846e`. All five jobs were blocked by `protobuf@0.1.3` declaring `Option`, now a reserved type name (Error 4003). Native tests and later broker checks skipped after the failed build are not passing results.
 
-[Upstream issue/fix discussion #143](https://github.com/moonbitlang/protoc-gen-mbt/pull/143) records the incompatibility. This library will track the issue and adopt an official fixed release after its own compatibility validation. It does not patch, fork or vendor the upstream fix, or depend on an unmerged PR.
+[Upstream issue/fix discussion #143](https://github.com/moonbitlang/protoc-gen-mbt/pull/143) records the incompatibility and was merged on 2026-10-29. The subsequent official releases are `protobuf@0.2.0` and `protoc-gen-mbt@0.3.0`. The checkout uses those releases without patching, forking or vendoring the dependency.
 
-CI selects the supported SDK using the official installer's `MOONBIT_INSTALL_VERSION=0.10.14+7d59c7ec9`, then checks the actual `moon`, `moonc` and `moonrun` versions. The isolated native dependency matrix copies that installed toolchain. The CI selection does not change a consumer's SDK: source dependencies are compiled by the toolchain selected in the consumer's environment. Ordinary client applications do not need an extra Protobuf declaration; Protobuf-specific schema APIs expose the runtime's `Read`/`Write` traits.
+The published release's CI selected the SDK using the official installer's `MOONBIT_INSTALL_VERSION=0.10.14+7d59c7ec9`; the subsequent checkout selects `0.10.18+6c83a7f62`. Both check the actual `moon`, `moonc` and `moonrun` versions. The isolated native dependency matrix copies that installed toolchain. The CI selection does not change a consumer's SDK: source dependencies are compiled by the toolchain selected in the consumer's environment. Ordinary client applications do not need an extra Protobuf declaration; Protobuf-specific schema APIs expose the runtime's `Read`/`Write` traits.
 
 The supported-version CI still runs the existing gates. Its own candidate-specific outcome must be checked before publication; the earlier failed CI and whole-workspace release timeout below remain part of the record.
 

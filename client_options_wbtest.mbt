@@ -77,7 +77,7 @@ async test "Athenz role token supplier refreshes on broker challenge" {
         data.auth_data == Some(b"role-2"),
       )
     })
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     let provider = athenz_role_token_provider(fn() {
       calls.val += 1
       "role-\{calls.val}"
@@ -118,7 +118,7 @@ async test "Athenz role token file rotates and empty tokens fail" {
 ///|
 async test "OAuth2 client credentials encode form and refresh tokens" {
   @async.with_task_group(async fn(group) {
-    let calls : Ref[Int] = { val: 0, }
+    let calls : Ref[Int32] = { val: 0, }
     with_mock_admin(
       group,
       (request, payload) => {
@@ -188,7 +188,7 @@ async test "OAuth2 token endpoint failures reject authentication" {
 ///|
 async test "OAuth2 provider refreshes for a broker authentication challenge" {
   @async.with_task_group(async fn(group) {
-    let issued : Ref[Int] = { val: 0, }
+    let issued : Ref[Int32] = { val: 0, }
     with_mock_admin(
       group,
       fn(_request, _payload) {

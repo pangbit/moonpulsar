@@ -25,8 +25,8 @@ fn ProducerMemoryAdmission::close(self : ProducerMemoryAdmission) -> Unit {
 
 ///|
 struct ClientMemoryLimiter {
-  limit : Int
-  mut used : Int
+  limit : Int32
+  mut used : Int32
   mu : @async.Mutex
   mut waiters : Array[MemoryWaiter]
   mut next_token : UInt64
@@ -36,14 +36,14 @@ struct ClientMemoryLimiter {
 ///|
 struct ClientMemoryLease {
   limiter : ClientMemoryLimiter
-  size : Int
+  size : Int32
   released : Ref[Bool]
 }
 
 ///|
 fn ClientMemoryLease::new(
   limiter : ClientMemoryLimiter,
-  size : Int,
+  size : Int32,
 ) -> ClientMemoryLease raise PulsarError {
   limiter.reserve_now(size)
   { limiter, size, released: { val: false, }, }
@@ -58,7 +58,7 @@ fn ClientMemoryLease::release(self : ClientMemoryLease) -> Unit {
 }
 
 ///|
-fn ClientMemoryLimiter::new(limit : Int) -> ClientMemoryLimiter {
+fn ClientMemoryLimiter::new(limit : Int32) -> ClientMemoryLimiter {
   {
     limit,
     used: 0,
@@ -72,7 +72,7 @@ fn ClientMemoryLimiter::new(limit : Int) -> ClientMemoryLimiter {
 ///|
 async fn ClientMemoryLimiter::acquire(
   self : ClientMemoryLimiter,
-  size : Int,
+  size : Int32,
   block : Bool,
   owner? : ProducerMemoryAdmission,
 ) -> Unit {
@@ -122,7 +122,7 @@ fn ClientMemoryLimiter::close(self : ClientMemoryLimiter) -> Unit {
 ///|
 fn ClientMemoryLimiter::reserve_now(
   self : ClientMemoryLimiter,
-  size : Int,
+  size : Int32,
 ) -> Unit raise PulsarError {
   if self.closed {
     raise ProducerClosed
@@ -136,7 +136,7 @@ fn ClientMemoryLimiter::reserve_now(
 ///|
 fn ClientMemoryLimiter::release_now(
   self : ClientMemoryLimiter,
-  size : Int,
+  size : Int32,
 ) -> Unit {
   self.used -= size
   let waiters = self.waiters

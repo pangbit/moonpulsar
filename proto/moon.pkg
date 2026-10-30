@@ -2,7 +2,3 @@ import {
   "moonbitlang/protobuf" @lib,
   "moonbitlang/core/json",
 }
-
-// protoc-gen-mbt emits trait implementations without explicit method extensions.
-
-warnings = "-implicit_impl_as_method"

@@ -8,7 +8,7 @@
 
 ## 0.1.2 范围
 
-本次维护版本修复传输资源清理、有界恢复，以及重连回放期间接纳新发送的问题；公开 API 和固定依赖保持不变。[维护变更与验证记录](docs/verification-0.1.2.md#maintenance-changes) 列出了实现提交及各自的验证范围。
+已发布的 0.1.2 维护版本修复传输资源清理、有界恢复，以及重连回放期间接纳新发送的问题；该发布版的公开 API 和固定依赖保持不变。[维护变更与验证记录](docs/verification-0.1.2.md#maintenance-changes) 列出了实现提交及各自的验证范围。
 
 记录中的源码快照已在 Pulsar 4.2.4 完成十次发送、十次匹配接收和十次确认 ACK。另一项真实 Writer 用例在回放期间接纳第二次发送后，完成两份原始回执 Future，并接收、确认初次 A、回放 A 和 B；消息可能重复投递。保留未确认发送的原始 Future 并跨越 Broker 重启仍未验证，延期至 0.1.2 之后。这些定点结果不能替代最终候选 CI，详见[验证边界](docs/verification-0.1.2.md#live-verification-on-2026-10-29)。
 
@@ -17,22 +17,23 @@
 ### 构建环境
 
 - 使用 **native** 后端；本客户端不支持 JS 或 Wasm。CI 覆盖 **Linux（Ubuntu 24.04）**；macOS 已做本地验证，Windows 尚未验证。
-- 安装[受支持的 MoonBit 工具链](#工具链兼容性)、C 编译器及系统 SDK/libc 开发文件。CI 固定并检查同一工具链；这是具体的已验证组合，不代表最低版本要求。
+- 安装[当前源码指定的 MoonBit 工具链](#工具链兼容性)、C 编译器及系统 SDK/libc 开发文件。CI 固定并检查同一工具链，不代表最低版本要求。
 - 构建库**不需要** OpenSSL 或 zlib 开发头文件。通过 `moon update` 获取 MoonBit 依赖。
 
 ### 工具链兼容性
 
-当前支持并已验证的组合是：
+当前源码适配以下组合；此次兼容性更新尚未包含在已发布的 0.1.2 归档中。
 
 | 组件 | 版本 |
 | --- | --- |
-| `moon` / `moonrun` | `0.1.20260920`（`914d7da`） |
-| `moonc` | `v0.10.14+7d59c7ec9` |
-| Protobuf 运行库依赖 | `moonbitlang/protobuf@0.1.3` |
+| `moon` / `moonrun` | `0.1.20261028`（`e1e1f15`） |
+| `moonc` | `v0.10.18+6c83a7f62` |
+| Protobuf 运行库依赖 | `moonbitlang/protobuf@0.2.0` |
+| 协议生成器（仅重新生成时需要） | `moonbitlang/protoc-gen-mbt@0.3.0` |
 
-同一个 Protobuf 运行库在 `moon 0.1.20261020` / `moonc v0.10.16+b1a0e846e` 下存在已知编译失败：它声明了保留类型名 `Option`。详见[兼容记录与上游问题](docs/verification-0.1.2.md#supported-toolchain)。其他组合尚未验证。
+已发布的 0.1.2 归档使用九月 SDK 和 `protobuf@0.1.3`；该依赖声明了保留类型名 `Option`，无法通过新版编译器。当前源码采用上游正式修复版运行库，并重新生成绑定。详见[发布兼容记录](docs/verification-0.1.2.md#supported-toolchain)和[重新生成命令](docs/testing.zh-CN.md#测试场景与协议生成)。其他组合尚未验证。
 
-普通生产与消费应用无需单独声明 Protobuf。自行生成 Protobuf 消息的应用会直接使用它的 `Read`/`Write` 接口。依赖兼容性由本库维护；上游正式发布修复后，本库再统一升级并验证，使用者无需修改上游代码。
+普通生产与消费应用无需单独声明 Protobuf。自行生成 Protobuf 消息的应用会直接使用它的 `Read`/`Write` 接口，应使用匹配的生成器重新生成。上游 well-known 类型中的 `google.protobuf.Option` 现以 `Option_` 导出，直接使用该类型的代码需调整名称。使用者无需修改上游代码。
 
 CI 固定版本只控制本仓库的运行环境。应用由自身环境选定的工具链编译，安装本库不会自动切换应用的 SDK。
 

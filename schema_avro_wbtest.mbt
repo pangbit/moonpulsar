@@ -1,6 +1,6 @@
 ///|
 struct AvroTestRecord {
-  id : Int
+  id : Int32
   name : String
 } derive(Eq, Debug)
 

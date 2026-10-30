@@ -2,8 +2,8 @@
 #warnings("-alert_internal")
 async fn start_mock_certificate_zts(
   group : @async.TaskGroup[Unit],
-  statuses : Array[Int],
-  response_format? : Int = 0,
+  statuses : Array[Int32],
+  response_format~ : Int32 = 0,
 ) -> String {
   let server = @socket.TcpServer::TcpServer(@socket.Addr::parse("127.0.0.1:0"))
   let addr = server.addr.to_string()
