@@ -270,7 +270,11 @@ async fn Connection::connect_with_memory(
   let mut connected = false
   for _ in 0..<8 {
     let (reply, lease) = @async.with_timeout(timeout_ms, async fn() {
-      read_frame_with_budget(conn.reader, conn.memory_limiter)
+      read_frame_with_budget(
+        conn.reader,
+        conn.memory_limiter,
+        diagnostic_phase="connect",
+      )
     }) catch {
       @async.TimeoutError => raise ConnectFailed("handshake timeout: \{addr}")
       e => raise e
@@ -634,6 +638,7 @@ async fn Connection::reader_loop(self : Connection) -> Unit {
     let (frame, lease) = read_frame_with_budget(
       self.reader,
       self.memory_limiter,
+      diagnostic_phase="reader",
     ) catch {
       e => {
         connection_diagnostic("reader-close", Some(e))

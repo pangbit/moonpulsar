@@ -96,7 +96,12 @@ pub fn encode_send_frame(
 /// Read one frame from an async byte stream: 4-byte big-endian total size,
 /// then the frame body.
 pub async fn[R : @io.Reader] read_frame(reader : R) -> IncomingFrame {
-  let header = reader.read_exactly(4) catch { _ => raise ConnectionClosed }
+  let header = reader.read_exactly(4) catch {
+    error => {
+      connection_diagnostic("frame-header-read", Some(error))
+      raise ConnectionClosed
+    }
+  }
   let total = ((header[0].to_uint() << 24) |
   (header[1].to_uint() << 16) |
   (header[2].to_uint() << 8) |
@@ -104,7 +109,12 @@ pub async fn[R : @io.Reader] read_frame(reader : R) -> IncomingFrame {
   if total < 4 {
     raise InvalidFrame("invalid frame size")
   }
-  let body = reader.read_exactly(total) catch { _ => raise ConnectionClosed }
+  let body = reader.read_exactly(total) catch {
+    error => {
+      connection_diagnostic("frame-body-read", Some(error))
+      raise ConnectionClosed
+    }
+  }
   decode_frame_body(body)
 }
 
@@ -114,8 +124,17 @@ pub async fn[R : @io.Reader] read_frame(reader : R) -> IncomingFrame {
 async fn[R : @io.Reader] read_frame_with_budget(
   reader : R,
   limiter : ClientMemoryLimiter?,
+  diagnostic_phase~ : String,
 ) -> (IncomingFrame, ClientMemoryLease?) {
-  let header = reader.read_exactly(4) catch { _ => raise ConnectionClosed }
+  let header = reader.read_exactly(4) catch {
+    error => {
+      connection_diagnostic(
+        "\{diagnostic_phase}-frame-header-read",
+        Some(error),
+      )
+      raise ConnectionClosed
+    }
+  }
   let total = ((header[0].to_uint() << 24) |
   (header[1].to_uint() << 16) |
   (header[2].to_uint() << 8) |
@@ -128,7 +147,12 @@ async fn[R : @io.Reader] read_frame_with_budget(
     None => None
   }
   errdefer (if lease is Some(reservation) { reservation.release() })
-  let body = reader.read_exactly(total) catch { _ => raise ConnectionClosed }
+  let body = reader.read_exactly(total) catch {
+    error => {
+      connection_diagnostic("\{diagnostic_phase}-frame-body-read", Some(error))
+      raise ConnectionClosed
+    }
+  }
   (decode_frame_body(body), lease)
 }
 

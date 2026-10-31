@@ -46,11 +46,12 @@ moon test --release --target native
 
 ### 连接关闭诊断
 
-设置 `MOONPULSAR_CONNECTION_DIAGNOSTICS=1` 可输出 reader/dispatch 错误类别，
-以及存在时的八位 OpenSSL 错误码；诊断省略对端地址和自由格式错误文本。
+设置 `MOONPULSAR_CONNECTION_DIAGNOSTICS=1` 可在读取错误转换为 `ConnectionClosed` 前
+输出帧读取/dispatch 错误类别，以及存在时的八位 OpenSSL 错误码或数字 OS errno。
+客户端帧读取区分 CONNECT 握手与后台 reader 阶段；诊断省略对端地址和自由格式错误文本。
 CI 在 native debug 测试中启用诊断并记录 runner 的 OpenSSL 版本，release 测试保持默认设置。
-自定义 CA 重连断言曾在 `5b6d0bb` 的 CI 中失败一次；随后本地定向检查通过，
-根因尚未确定。诊断日志不改变该断言、重试策略或 TLS 校验。
+自定义 CA 重连测试在 `5b6d0bb` 和 `76aa6dd` 的 CI 中失败；本地定向检查通过，
+包括使用相同 libssl 构建的检查，根因仍未确定。诊断日志不改变该断言、重试策略或 TLS 校验。
 
 ## 维护约定
 

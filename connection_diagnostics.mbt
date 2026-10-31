@@ -23,6 +23,7 @@ fn connection_error_kind(error : Error) -> String {
       "native-tls-error" + connection_openssl_code(message)
     @tls.ConnectionClosed => "tls-peer-closed"
     @io.ReaderClosed => "reader-closed"
+    @os_error.OSError(errno, context=_) => "os-error errno=\{errno}"
     ConnectionClosed => "connection-closed"
     InvalidFrame(_) => "invalid-frame"
     ChecksumMismatch => "checksum-mismatch"

@@ -130,6 +130,12 @@ test "connection diagnostics omit free-form TLS and broker details" {
     ),
     "server-error code=5",
   )
+  assert_eq(
+    connection_error_kind(
+      @os_error.OSError(11, context="synthetic-private-detail"),
+    ),
+    "os-error errno=11",
+  )
 }
 
 ///|

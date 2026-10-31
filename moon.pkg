@@ -6,6 +6,7 @@ import {
   "moonbitlang/protobuf/google/protobuf" @descriptor,
   "moonbitlang/async",
   "moonbitlang/async/io",
+  "moonbitlang/async/os_error",
   "moonbitlang/async/aqueue",
   "moonbitlang/async/socket",
   "moonbitlang/async/fs",
