@@ -9,7 +9,7 @@ Compared with the public APIs of [pulsar-rs](https://github.com/streamnative/pul
 and [pulsar-client-go](https://github.com/apache/pulsar-client-go). This is a
 functional comparison, not an API-by-API claim of parity.
 
-The Status column describes the 0.1.2 development candidate source in this checkout.
+The Status column describes the 0.1.3 source in this checkout, retaining the functional behavior of 0.1.2.
 The [checkout SDK and Protobuf combination](../README.md#toolchain-compatibility) is distinct from the [published 0.1.2 combination](verification-0.1.2.md#supported-toolchain); newer SDKs are not implied by a dependency version alone.
 Most Verification entries summarize historical runs recorded through 2026-09-28;
 dated maintenance updates are described in the [candidate verification summary](verification-0.1.2.md).

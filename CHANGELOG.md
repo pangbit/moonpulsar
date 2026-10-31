@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.3 — 2026-10-31
+
+- Adapt the native library, examples and scripts to Moon/moonrun 0.1.20261028 (`e1e1f15`) and moonc 0.10.18+6c83a7f62.
+- Upgrade the official Protobuf runtime to 0.2.0 and regenerate the unchanged Pulsar protocol with protoc-gen-mbt 0.3.0. This removes the upstream reserved `Option` declaration that blocked 0.1.2 documentation builds with newer compilers.
+- Migrate integer/default-parameter syntax and deprecated JSON construction; make script imports explicit frontmatter.
+- Bound Linux test compilation to a 32 MiB subprocess stack, then run the test executables separately at the normal stack limit. This is a measured workaround for input-sensitive compilation, not a proven compiler version regression.
+- Align CONNECT/AUTH_RESPONSE identity, example dependencies and CI archive consumers with 0.1.3.
+
+No existing client or protocol declarations were removed or renamed. Integer aliases are rendered as `Int32`/`UInt32`, and the generator explicitly exports trait methods. Applications directly using upstream `google.protobuf.Option` must migrate to `Option_`; custom Protobuf users should use the matching generator/runtime. The selected SDK and dependency upgrade may require consumer changes, so this is not a zero-migration claim for every application. Other SDK combinations remain unverified. Check registry availability before installation; actual publication is recorded in the matching GitHub Release.
+
+The functional behavior and verification limits of 0.1.2 remain. The compatibility source passed native debug/release CI and isolated Pulsar 3.3.9/4.2.4 checks; final version-specific CI and registry documentation results are recorded with the 0.1.3 Release.
+
 ## 0.1.2 — 2026-10-29
 
 - Close the TCP transport owned by an ordinary TLS connection when TLS resources are released.

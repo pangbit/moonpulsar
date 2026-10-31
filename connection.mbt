@@ -7,7 +7,7 @@ const PROTOCOL_VERSION : Int32 = 21
 
 ///|
 // Shared by CONNECT and AUTH_RESPONSE; checked against moon.mod in regression.
-const CLIENT_VERSION : String = "moonpulsar 0.1.2"
+const CLIENT_VERSION : String = "moonpulsar 0.1.3"
 
 ///|
 /// Default keepalive probe interval and response/write timeout.

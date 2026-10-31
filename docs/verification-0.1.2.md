@@ -84,7 +84,7 @@ own acceptance; these runs do not certify a later package automatically.
 
 For the published 0.1.2 archive, the supported, verified combination is `moon` and `moonrun` 0.1.20260920 (`914d7da`), `moonc v0.10.14+7d59c7ec9`, and `moonbitlang/protobuf@0.1.3`. This is not a lower-bound claim for every newer SDK. The library and examples declare the runtime dependency; minimal version selection can choose a higher version if an application's dependency graph requires one, so that combination needs its own verification.
 
-The subsequent, unreleased checkout adapts to Moon/moonrun 0.1.20261028
+The subsequent 0.1.3 source line adapts to Moon/moonrun 0.1.20261028
 (`e1e1f15`), moonc 0.10.18+6c83a7f62 and official `protobuf@0.2.0`, using
 `protoc-gen-mbt@0.3.0` to regenerate the unchanged Pulsar protocol definition.
 The [README](../README.md#toolchain-compatibility) describes that source

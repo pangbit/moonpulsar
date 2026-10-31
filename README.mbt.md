@@ -6,7 +6,9 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 
 [Source repository](https://github.com/pangbit/moonpulsar) | [Documentation](docs/README.md)
 
-## 0.1.2 scope
+## 0.1.3 scope
+
+This patch adapts the library to the selected October 28 MoonBit SDK and the official Protobuf 0.2.0 runtime. It regenerates the same Pulsar wire schema, migrates source/script syntax and bounds Linux test compilation separately from normal-stack test execution. Existing client and protocol declarations are retained. Direct upstream Protobuf users may need migration; see [toolchain compatibility](#toolchain-compatibility) and the [changelog](CHANGELOG.md).
 
 The published 0.1.2 maintenance release fixes transport cleanup, bounded recovery and producer replay when another send arrives during reconnection. That release kept the public API and pinned dependencies unchanged. The [maintenance changes and verification record](docs/verification-0.1.2.md#maintenance-changes) identifies the implementation commits and their test scope.
 
@@ -22,7 +24,7 @@ On the recorded source snapshot, Pulsar 4.2.4 completed ten sends, ten matching 
 
 ### Toolchain compatibility
 
-The current checkout targets the following combination. This compatibility update is not part of the published 0.1.2 archive.
+Version 0.1.3 targets the following combination. The older 0.1.2 archive does not contain this compatibility update; confirm registry availability before installation.
 
 | Component | Version |
 | --- | --- |
@@ -67,13 +69,13 @@ limitation. See [verification scope](docs/verification-0.1.2.md).
 
 ## Installation
 
-These instructions target `0.1.2`. Check registry availability before adding the dependency:
+These instructions target `0.1.3`. Check registry availability before adding the dependency:
 
 ```sh
 moon view pangbit/moonpulsar --versions --json
 ```
 
-If `0.1.2` is unavailable, or to run repository examples and tests, use the source workspace:
+If `0.1.3` is unavailable, or to run repository examples and tests, use the source workspace:
 
 ```sh
 git clone https://github.com/pangbit/moonpulsar.git
@@ -103,7 +105,7 @@ moon run examples/roundtrip --target native
 
 A successful run checks ten payloads, prints ten `verified:` lines followed by `roundtrip OK`, and closes the client. Stop the disposable container after use with `docker stop moonpulsar-demo`. This minimal example demonstrates ordinary send/receive; the separate Writer result above used a controlled test fixture. For development checks, see [testing](docs/testing.md).
 
-Once registry availability is confirmed, a separate executable can declare `"pangbit/moonpulsar@0.1.2"` and `"moonbitlang/async@0.22.1"` in `moon.mod`, set `preferred_target = "native"`, and use this `moon.pkg`:
+Once registry availability is confirmed, a separate executable can declare `"pangbit/moonpulsar@0.1.3"` and `"moonbitlang/async@0.22.1"` in `moon.mod`, set `preferred_target = "native"`, and use this `moon.pkg`:
 
 ```text
 import {
