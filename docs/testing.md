@@ -56,6 +56,16 @@ release tests were not executed. These are SDK compatibility results. This
 workaround does not alter the protocol, generated bindings, test selection or
 assertions.
 
+### Connection-close diagnostics
+
+Set `MOONPULSAR_CONNECTION_DIAGNOSTICS=1` to print reader/dispatch error categories
+and, when present, an eight-digit OpenSSL error code. Diagnostics omit peer
+addresses and free-form error messages. CI enables them for native debug tests
+and records the runner's OpenSSL version; release tests keep the default setting.
+The custom-CA reconnect assertion failed once in CI at `5b6d0bb`; focused local
+checks subsequently passed, and the cause has not been established. Diagnostic
+logging does not change its assertion, retry policy or TLS verification.
+
 ## Maintenance
 
 - Keep changes focused; include meaningful regression coverage for behavior fixes.

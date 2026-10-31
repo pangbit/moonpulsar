@@ -12,7 +12,7 @@ async fn start_tls_mock_broker(
   group.spawn_bg(
     async fn() {
       defer server.close()
-      for _ in 0..<connections {
+      for index in 0..<connections {
         let (tcp, _) = server.accept()
         let tls = @tls.Tls::server(
           tcp,
@@ -21,9 +21,17 @@ async fn start_tls_mock_broker(
           certificate_file="testdata/tls/server.crt",
           certificate_type=@tls.X509FileType::PEM,
         ) catch {
-          _ => return
+          error => {
+            connection_diagnostic("mock-\{index}-tls-handshake", Some(error))
+            return
+          }
         }
-        let hello = read_frame(tls) catch { _ => return }
+        let hello = read_frame(tls) catch {
+          error => {
+            connection_diagnostic("mock-\{index}-connect-read", Some(error))
+            return
+          }
+        }
         guard hello.cmd.type_ is @proto.BaseCommand_Type::CONNECT else {
           fail("expected CONNECT over TLS")
         }
@@ -33,7 +41,16 @@ async fn start_tls_mock_broker(
         info.server_version = "tls-mock"
         info.protocol_version = Some(21)
         connected.connected = Some(info)
-        tls.write(encode_command_frame(connected))
+        let written : Result[Unit, Error] = Ok(
+          tls.write(encode_command_frame(connected)),
+        ) catch {
+          error => Err(error)
+        }
+        if written is Err(error) {
+          connection_diagnostic("mock-\{index}-connected-write", Some(error))
+          raise error
+        }
+        connection_diagnostic("mock-\{index}-connected", None)
         if keep_open {
           group.spawn_bg(
             async fn() {
@@ -43,7 +60,11 @@ async fn start_tls_mock_broker(
                   ignore(read_frame(tls))
                 }
               } catch {
-                _ => ()
+                error =>
+                  connection_diagnostic(
+                    "mock-\{index}-reader-close",
+                    Some(error),
+                  )
               }
             },
             no_wait=true,
@@ -74,15 +95,41 @@ async test "custom CA is reused after reconnect" {
     let first = client.manager.get(addr) catch {
       e => fail("cached custom-CA connection: \{e}")
     }
+    connection_diagnostic("reconnect-first-close", None)
     first.close()
     let second = @async.with_timeout(5000, async fn() {
       client.manager.get(addr)
     }) catch {
       e => fail("replacement custom-CA connection: \{e}")
     }
+    connection_diagnostic(
+      if second.is_closed() {
+        "reconnect-returned-closed"
+      } else {
+        "reconnect-returned-open"
+      },
+      None,
+    )
     assert_true(!second.is_closed())
     client.close()
   })
+}
+
+///|
+test "connection diagnostics omit free-form TLS and broker details" {
+  assert_eq(
+    connection_openssl_code("error:0A000126:synthetic-private-detail"),
+    " openssl=0A000126",
+  )
+  assert_eq(connection_openssl_code("synthetic-private-detail"), "")
+  assert_eq(connection_openssl_code("error:not-a-hex-code"), "")
+  assert_eq(connection_openssl_code("error:0A00"), "")
+  assert_eq(
+    connection_error_kind(
+      ServerError(code=5, message="synthetic-private-detail"),
+    ),
+    "server-error code=5",
+  )
 }
 
 ///|

@@ -146,7 +146,15 @@ jobs:
       - name: Check library and examples
         run: moon check --target native
 
+      - name: Record runner OpenSSL version
+        run: |
+          openssl version -a
+          dpkg-query --show libssl3t64
+          sha256sum /usr/lib/x86_64-linux-gnu/libssl.so.3
+
       - name: Run native tests
+        env:
+          MOONPULSAR_CONNECTION_DIAGNOSTICS: "1"
         run: |
           # Bound compiler stack for the large whitebox IR; tests keep the runner default.
           prlimit --stack=33554432:33554432 -- moon test --target native --build-only

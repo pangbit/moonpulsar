@@ -636,6 +636,7 @@ async fn Connection::reader_loop(self : Connection) -> Unit {
       self.memory_limiter,
     ) catch {
       e => {
+        connection_diagnostic("reader-close", Some(e))
         self.notify_closed(Some(e))
         self.close_transport_once()
         return
@@ -649,6 +650,7 @@ async fn Connection::reader_loop(self : Connection) -> Unit {
       reservation.release()
     }
     if dispatched is Err(error) {
+      connection_diagnostic("dispatch-close", Some(error))
       self.notify_closed(Some(error))
       self.close_transport_once()
       return

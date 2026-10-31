@@ -44,6 +44,14 @@ moon test --release --target native
 成功构建，未运行 release 测试。这些结果用于验证 SDK 兼容性；该规避配置不改变协议、
 生成绑定、用例选择或断言。
 
+### 连接关闭诊断
+
+设置 `MOONPULSAR_CONNECTION_DIAGNOSTICS=1` 可输出 reader/dispatch 错误类别，
+以及存在时的八位 OpenSSL 错误码；诊断省略对端地址和自由格式错误文本。
+CI 在 native debug 测试中启用诊断并记录 runner 的 OpenSSL 版本，release 测试保持默认设置。
+自定义 CA 重连断言曾在 `5b6d0bb` 的 CI 中失败一次；随后本地定向检查通过，
+根因尚未确定。诊断日志不改变该断言、重试策略或 TLS 校验。
+
 ## 维护约定
 
 - 修改聚焦具体问题；行为修复应包含有意义的回归验证。

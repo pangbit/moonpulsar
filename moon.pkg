@@ -17,6 +17,7 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/core/debug",
   "moonbitlang/core/bench",
+  "moonbitlang/core/env",
   "moonbitlang/core/encoding/base64",
   "moonbit-community/flate/zlib",
   "moonbit-community/flate",
@@ -25,7 +26,3 @@ import {
   "yugonlian/moon-avro/schema" @avro_schema,
   "cc06b/mooncry/lib" @crypto,
 }
-
-import {
-  "moonbitlang/core/env",
-} for "wbtest"
