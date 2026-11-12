@@ -64,6 +64,7 @@ pub async fn[T] with_retry(RetryPolicy, async () -> T) -> T
 pub fn xxhash32(BytesView) -> UInt32
 
 // Errors
+#derive(@debug.Debug)
 pub(all) suberror PulsarError {
   ConnectionClosed
   ConnectFailed(String)
@@ -80,7 +81,7 @@ pub(all) suberror PulsarError {
   SchemaIncompatible(String)
   RequestTimeout
   AuthenticationFailed(String)
-} derive(@debug.Debug)
+}
 pub fn PulsarError::output(Self, &Logger) -> Unit
 pub fn PulsarError::to_repr(Self) -> @debug.Repr
 pub fn PulsarError::to_string(Self) -> String
@@ -109,12 +110,12 @@ pub async fn Admin::list_subscriptions(Self, String) -> Array[String]
 pub async fn Admin::list_topics(Self, String, String, domain? : String) -> Array[String]
 pub fn Admin::new(String, token? : String) -> Self
 pub async fn Admin::partition_count(Self, String) -> Int32
-pub async fn Admin::partitioned_topic_stats(Self, String, per_partition? : Bool) -> Json
+pub async fn Admin::partitioned_topic_stats(Self, String, per_partition? : Bool) -> @json.Json
 pub async fn Admin::remove_topic_property(Self, String, String) -> Unit
 pub async fn Admin::skip_all_messages(Self, String, String) -> Unit
 pub async fn Admin::skip_messages(Self, String, String, Int32) -> Unit
 pub async fn Admin::topic_properties(Self, String) -> Map[String, String]
-pub async fn Admin::topic_stats(Self, String) -> Json
+pub async fn Admin::topic_stats(Self, String) -> @json.Json
 pub async fn Admin::update_partitioned_topic(Self, String, Int32) -> Unit
 pub async fn Admin::update_topic_properties(Self, String, Map[String, String]) -> Unit
 
@@ -137,10 +138,11 @@ pub(all) struct AthenzZtsOptions {
 }
 pub fn AthenzZtsOptions::new(String, String, String, String, String, certificate_file? : String, ca_pem_file? : String, key_id? : String, role? : String, principal_header? : String, min_expiry_secs? : Int32, max_expiry_secs? : Int32, refresh_before_ms? : Int32, max_retries? : Int32, retry_delay_ms? : Int32) -> Self raise PulsarError
 
+#derive(@debug.Debug)
 pub(all) struct AuthData {
   method_name : String
   data : Bytes
-} derive(@debug.Debug)
+}
 pub fn AuthData::to_repr(Self) -> @debug.Repr
 
 pub(all) struct BasicAuth {
@@ -154,11 +156,12 @@ pub impl Authentication for BasicAuth
 
 type BatchAckTracker
 
+#derive(@debug.Debug)
 pub(all) struct BatchingConfig {
   max_messages : Int32
   max_bytes : Int32
   max_delay_ms : Int32
-} derive(@debug.Debug)
+}
 pub fn BatchingConfig::default() -> Self
 pub fn BatchingConfig::to_repr(Self) -> @debug.Repr
 
@@ -216,6 +219,7 @@ pub fn ClientMetrics::record(Self, ClientEvent) -> Unit
 pub fn ClientMetrics::record_span(Self, ClientSpanEvent) -> Unit
 pub fn ClientMetrics::snapshot(Self) -> ClientMetricsSnapshot
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ClientMetricsSnapshot {
   sends : Int64
   send_failures : Int64
@@ -228,7 +232,7 @@ pub(all) struct ClientMetricsSnapshot {
   producer_reconnects : Int64
   consumer_reconnects : Int64
   reconnect_failures : Int64
-} derive(Eq, @debug.Debug)
+}
 pub fn ClientMetricsSnapshot::equal(Self, Self) -> Bool
 pub fn ClientMetricsSnapshot::not_equal(Self, Self) -> Bool
 pub fn ClientMetricsSnapshot::to_repr(Self) -> @debug.Repr
@@ -258,13 +262,14 @@ pub(all) enum ClientSpanEvent {
   Finished(ClientSpan, Int64, Bool, String?)
 }
 
+#derive(Eq, @debug.Debug)
 pub(all) enum CompressionCodec {
   None
   Lz4
   Zlib
   Zstd
   Snappy
-} derive(Eq, @debug.Debug)
+}
 pub fn CompressionCodec::equal(Self, Self) -> Bool
 pub fn CompressionCodec::not_equal(Self, Self) -> Bool
 pub fn CompressionCodec::to_repr(Self) -> @debug.Repr
@@ -342,12 +347,13 @@ pub struct EncryptionPublicKey {
 }
 pub fn EncryptionPublicKey::from_pem(Bytes) -> Self raise PulsarError
 
+#derive(@debug.Debug)
 pub(all) struct IncomingFrame {
   cmd : @proto.BaseCommand
   metadata : @proto.MessageMetadata?
   payload : Bytes?
   wire_size : Int32
-} derive(@debug.Debug)
+}
 pub fn IncomingFrame::to_repr(Self) -> @debug.Repr
 
 pub struct KeySharedPolicy {
@@ -389,12 +395,13 @@ pub async fn MessageCrypto::load_private_key_file(Self, String, String) -> Unit 
 pub async fn MessageCrypto::load_public_key_file(Self, String, String) -> Unit raise PulsarError
 pub fn MessageCrypto::new(public_key_reader? : (String) -> Bytes?, private_key_reader? : (String) -> Bytes?) -> Self
 
+#derive(Compare, Eq, Hash, @debug.Debug)
 pub(all) struct MessageId {
   ledger_id : UInt64
   entry_id : UInt64
   batch_index : Int32
   partition : Int32
-} derive(Compare, Eq, Hash, @debug.Debug)
+}
 pub fn MessageId::compare(Self, Self) -> Int32
 pub fn MessageId::earliest() -> Self
 pub fn MessageId::equal(Self, Self) -> Bool
@@ -415,11 +422,12 @@ pub fn NackBackoff::default() -> Self
 pub fn NackBackoff::delay_ms(Self, UInt32) -> Int32
 pub fn NackBackoff::new(Int32, Int32) -> Self raise PulsarError
 
+#derive(Eq, @debug.Debug)
 pub(all) enum NamespaceTopicMode {
   Persistent
   NonPersistent
   AllTopics
-} derive(Eq, @debug.Debug)
+}
 pub fn NamespaceTopicMode::equal(Self, Self) -> Bool
 pub fn NamespaceTopicMode::not_equal(Self, Self) -> Bool
 pub fn NamespaceTopicMode::to_repr(Self) -> @debug.Repr
@@ -443,12 +451,13 @@ pub async fn Producer::send_async(Self, ProducerMessage) -> ReceiptFuture
 pub async fn Producer::send_txn(Self, Transaction, ProducerMessage) -> SendReceipt
 pub fn Producer::topic(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ProducerAccessMode {
   Shared
   Exclusive
   WaitForExclusive
   ExclusiveWithFencing
-} derive(Eq, @debug.Debug)
+}
 pub fn ProducerAccessMode::equal(Self, Self) -> Bool
 pub fn ProducerAccessMode::not_equal(Self, Self) -> Bool
 pub fn ProducerAccessMode::to_repr(Self) -> @debug.Repr
@@ -494,11 +503,12 @@ pub struct ReceiptFuture {
 }
 pub async fn ReceiptFuture::wait(Self) -> SendReceipt
 
+#derive(@debug.Debug)
 pub(all) struct RetryPolicy {
   max_retries : Int32
   initial_backoff_ms : Int32
   max_backoff_ms : Int32
-} derive(@debug.Debug)
+}
 pub fn RetryPolicy::default() -> Self
 pub fn RetryPolicy::to_repr(Self) -> @debug.Repr
 
@@ -517,18 +527,19 @@ pub fn SchemaCodec::int16(little_endian? : Bool) -> Self[Int32]
 pub fn SchemaCodec::int32(little_endian? : Bool) -> Self[Int32]
 pub fn SchemaCodec::int64(little_endian? : Bool) -> Self[Int64]
 pub fn SchemaCodec::int8() -> Self[Int32]
-pub fn[T : ToJson + @json.FromJson] SchemaCodec::json(Bytes) -> Self[T]
+pub fn[T : @json.ToJson + @json.FromJson] SchemaCodec::json(Bytes) -> Self[T]
 pub fn[T] SchemaCodec::new(SchemaInfo, (T) -> Bytes raise PulsarError, (Bytes) -> T raise PulsarError) -> Self[T]
 pub fn[M : @protobuf.Read + @protobuf.Write] SchemaCodec::protobuf(Bytes) -> Self[M]
 pub fn[M : @protobuf.Read + @protobuf.Write] SchemaCodec::protobuf_native(Bytes, String, String) -> Self[M] raise PulsarError
 pub fn SchemaCodec::string() -> Self[String]
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SchemaInfo {
   name : String
   type_ : @proto.Schema_Type
   schema_data : Bytes
   properties : Map[String, String]
-} derive(Eq, @debug.Debug)
+}
 pub fn SchemaInfo::avro(Bytes) -> Self
 pub fn SchemaInfo::bytes() -> Self
 pub fn SchemaInfo::double() -> Self
@@ -550,12 +561,13 @@ pub(all) enum SeekPosition {
   PositionTimestamp(UInt64)
 }
 
+#derive(@debug.Debug)
 pub(all) struct SendReceipt {
   message_id : MessageId
   sequence_id : UInt64
   producer_id : UInt64
   producer_name : String
-} derive(@debug.Debug)
+}
 pub fn SendReceipt::to_repr(Self) -> @debug.Repr
 
 pub struct SingleConsumer {
@@ -600,20 +612,22 @@ pub async fn SingleReader::last_message_id(Self) -> MessageId
 pub async fn SingleReader::next(Self) -> Message?
 pub async fn SingleReader::seek(Self, SeekPosition) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SubscriptionInitialPosition {
   Latest
   Earliest
-} derive(Eq, @debug.Debug)
+}
 pub fn SubscriptionInitialPosition::equal(Self, Self) -> Bool
 pub fn SubscriptionInitialPosition::not_equal(Self, Self) -> Bool
 pub fn SubscriptionInitialPosition::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SubscriptionType {
   Exclusive
   Shared
   Failover
   KeyShared
-} derive(Eq, @debug.Debug)
+}
 pub fn SubscriptionType::equal(Self, Self) -> Bool
 pub fn SubscriptionType::not_equal(Self, Self) -> Bool
 pub fn SubscriptionType::to_repr(Self) -> @debug.Repr
@@ -650,12 +664,13 @@ pub fn TokenAuth::method_name(Self) -> String
 pub fn TokenAuth::new(String) -> Self
 pub impl Authentication for TokenAuth
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TopicName {
   domain : String
   tenant : String
   namespace_ : String
   topic : String
-} derive(Eq, @debug.Debug)
+}
 pub fn TopicName::equal(Self, Self) -> Bool
 pub fn TopicName::not_equal(Self, Self) -> Bool
 pub fn TopicName::parse(String) -> Self raise PulsarError
@@ -690,10 +705,11 @@ pub fn[T] TypedTableView::is_empty(Self[T]) -> Bool
 pub fn[T] TypedTableView::keys(Self[T]) -> Array[String]
 pub fn[T] TypedTableView::size(Self[T]) -> Int32
 
+#derive(Eq, @debug.Debug)
 pub(all) struct VersionedSchema {
   info : SchemaInfo
   version : Bytes?
-} derive(Eq, @debug.Debug)
+}
 pub fn VersionedSchema::equal(Self, Self) -> Bool
 pub fn VersionedSchema::not_equal(Self, Self) -> Bool
 pub fn VersionedSchema::to_repr(Self) -> @debug.Repr

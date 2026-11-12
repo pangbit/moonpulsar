@@ -13,17 +13,17 @@ async fn main {
   let actual = output.stdout()
   println(actual)
   let expected = [
-    "moon 0.1.20261028 (e1e1f15 ", "moonc v0.10.18+6c83a7f62 ", "moonrun 0.1.20261028 (e1e1f15 ",
+    "moon 0.1.20261104 (940aa18 ", "moonc v0.10.20+65efd5b93 ", "moonrun 0.1.20261104 (940aa18 ",
   ]
   for prefix in expected {
     guard actual.split("\n").any(line => line.has_prefix(prefix)) else {
       fail(
-        "Unsupported MoonBit toolchain; expected moon/moonrun 0.1.20261028 (e1e1f15) and moonc v0.10.18+6c83a7f62. See README toolchain compatibility.",
+        "Unsupported MoonBit toolchain; expected moon/moonrun 0.1.20261104 (940aa18) and moonc v0.10.20+65efd5b93. See README toolchain compatibility.",
       )
     }
   }
   if @env.get_env_var("MOONBIT_INSTALL_VERSION") is Some(version) {
-    assert_eq(version, "0.10.18+6c83a7f62")
+    assert_eq(version, "0.10.20+65efd5b93")
   }
   println("PASS supported MoonBit toolchain for protobuf 0.2.0")
 }

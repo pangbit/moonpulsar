@@ -30,6 +30,13 @@ instructions and run them only in an authorized test environment.
 
 ### Linux compiler stack
 
+The current checkout selects the November SDK listed in the README. Failed
+construction cleanup shields each owned producer/consumer/reader leaf separately
+for at most one second, retaining the original error. Cancellation regressions
+cover waiter removal, error preservation and a stalled partition CLOSE followed
+by cleanup of the remaining partition. These deadlines apply to failure cleanup,
+not to the public `close` API. The stack measurements below are historical.
+
 With moonc `0.10.18+6c83a7f62`, the full native debug whitebox IR reproduced a
 `link-core` stack overflow at an 8 MiB process stack and compiled successfully
 at 32 MiB using the same compiler, IR and arguments. This establishes stack

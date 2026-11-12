@@ -2,6 +2,7 @@
 
 ///|
 /// Errors raised by the Pulsar client.
+#derive(Debug)
 pub(all) suberror PulsarError {
   /// The connection to the broker was closed.
   ConnectionClosed
@@ -33,7 +34,7 @@ pub(all) suberror PulsarError {
   RequestTimeout
   /// Authentication failed.
   AuthenticationFailed(String)
-} derive(Debug)
+}
 
 ///|
 pub impl Show for PulsarError with fn output(self, logger) {

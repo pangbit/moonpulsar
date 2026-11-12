@@ -3,10 +3,11 @@
 // No environment guard, credentials, DNS hostnames, or product API changes.
 
 ///|
+#derive(Debug)
 suberror ReplayTcpFault {
   InjectedAfterPrefix
   ReplacementNotPrepared
-} derive(Debug)
+}
 
 ///|
 pub extend ReplayTcpFault with @debug.Debug::{to_repr}

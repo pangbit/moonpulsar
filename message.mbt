@@ -2,6 +2,7 @@
 
 ///|
 /// Identifies a persisted message in a topic.
+#derive(Eq, Compare, Hash, Debug)
 pub(all) struct MessageId {
   ledger_id : UInt64
   entry_id : UInt64
@@ -9,7 +10,7 @@ pub(all) struct MessageId {
   batch_index : Int32
   /// partition index, -1 for non-partitioned topics
   partition : Int32
-} derive(Eq, Compare, Hash, Debug)
+}
 
 ///|
 /// The earliest available position.
@@ -134,12 +135,13 @@ fn ProducerMessage::retained_bytes(self : ProducerMessage) -> Int32 {
 
 ///|
 /// Confirmation that the broker persisted a message.
+#derive(Debug)
 pub(all) struct SendReceipt {
   message_id : MessageId
   sequence_id : UInt64
   producer_id : UInt64
   producer_name : String
-} derive(Debug)
+}
 
 ///|
 /// A message received by a consumer.

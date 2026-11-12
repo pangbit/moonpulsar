@@ -8,7 +8,7 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 
 ## 0.1.3 scope
 
-This patch adapts the library to the selected October 28 MoonBit SDK and the official Protobuf 0.2.0 runtime. It regenerates the same Pulsar wire schema, migrates source/script syntax and bounds Linux test compilation separately from normal-stack test execution. Existing client and protocol declarations are retained. Direct upstream Protobuf users may need migration; see [toolchain compatibility](#toolchain-compatibility) and the [changelog](CHANGELOG.md).
+This checkout adapts the library to the selected November MoonBit SDK while retaining the Protobuf 0.2.0 runtime. It regenerates the same Pulsar wire schema, migrates derived declarations and bounds failed-construction cleanup under cancellation. Existing client and protocol declarations are retained. Direct upstream Protobuf users may need migration; see [toolchain compatibility](#toolchain-compatibility) and the [changelog](CHANGELOG.md).
 
 The published 0.1.2 maintenance release fixes transport cleanup, bounded recovery and producer replay when another send arrives during reconnection. That release kept the public API and pinned dependencies unchanged. The [maintenance changes and verification record](docs/verification-0.1.2.md#maintenance-changes) identifies the implementation commits and their test scope.
 
@@ -24,12 +24,12 @@ On the recorded source snapshot, Pulsar 4.2.4 completed ten sends, ten matching 
 
 ### Toolchain compatibility
 
-Version 0.1.3 targets the following combination. The older 0.1.2 archive does not contain this compatibility update; confirm registry availability before installation.
+This development checkout targets the following combination. Previously published archives do not contain this November adaptation; confirm the source revision before installation.
 
 | Component | Version |
 | --- | --- |
-| `moon` / `moonrun` | `0.1.20261028` (`e1e1f15`) |
-| `moonc` | `v0.10.18+6c83a7f62` |
+| `moon` / `moonrun` | `0.1.20261104` (`940aa18`) |
+| `moonc` | `v0.10.20+65efd5b93` |
 | Protobuf runtime dependency | `moonbitlang/protobuf@0.2.0` |
 | Protocol generator (only for regeneration) | `moonbitlang/protoc-gen-mbt@0.3.0` |
 

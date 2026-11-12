@@ -57,10 +57,11 @@ pub struct Connection {
 
 ///|
 /// Authentication data attached to the CONNECT command.
+#derive(Debug)
 pub(all) struct AuthData {
   method_name : String
   data : Bytes
-} derive(Debug)
+}
 
 ///|
 /// Connect to `addr` ("host:port"), perform the protocol handshake and

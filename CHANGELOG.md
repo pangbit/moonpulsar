@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Select Moon/moonrun 0.1.20261104 (`940aa18`) and moonc 0.10.20+65efd5b93 without upgrading dependencies.
+- Migrate `#derive` declarations and regenerate interfaces; reproduce protocol bindings with the existing 0.3.0 generator and selected formatter.
+- Remove cancelled memory waiters synchronously. Bound failed-construction cleanup independently for each owned partition, preserve original errors, and test cancellation and stalled CLOSE responses.
+
 ## 0.1.3 — 2026-10-31
 
 - Adapt the native library, examples and scripts to Moon/moonrun 0.1.20261028 (`e1e1f15`) and moonc 0.10.18+6c83a7f62.

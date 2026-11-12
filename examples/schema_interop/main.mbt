@@ -1,8 +1,9 @@
 ///|
+#derive(Eq, Debug)
 struct AvroInteropRecord {
   id : Int32
   name : String
-} derive(Eq, Debug)
+}
 
 ///|
 fn avro_interop_codec() -> @pulsar.SchemaCodec[AvroInteropRecord] raise @pulsar.PulsarError {

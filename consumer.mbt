@@ -5,12 +5,13 @@ const COMPOSITE_CONSUMER_QUEUE_CAPACITY : Int32 = 1000
 
 ///|
 /// Subscription mode, mirroring `CommandSubscribe.SubType`.
+#derive(Eq, Debug)
 pub(all) enum SubscriptionType {
   Exclusive
   Shared
   Failover
   KeyShared
-} derive(Eq, Debug)
+}
 
 ///|
 fn SubscriptionType::to_proto(
@@ -90,10 +91,11 @@ fn KeySharedPolicy::to_proto(self : KeySharedPolicy) -> @proto.KeySharedMeta {
 
 ///|
 /// Where a subscription starts consuming.
+#derive(Eq, Debug)
 pub(all) enum SubscriptionInitialPosition {
   Latest
   Earliest
-} derive(Eq, Debug)
+}
 
 ///|
 /// Exponential delay before redelivering negatively acknowledged messages.

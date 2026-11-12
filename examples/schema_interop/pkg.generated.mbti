@@ -10,7 +10,8 @@ import {
 // Errors
 
 // Types and methods
-type AvroInteropRecord derive(Eq, @debug.Debug)
+#derive(Eq, @debug.Debug)
+type AvroInteropRecord
 
 // Type aliases
 

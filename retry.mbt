@@ -2,6 +2,7 @@
 
 ///|
 /// Retry policy for broker operations such as reconnect and lookup.
+#derive(Debug)
 pub(all) struct RetryPolicy {
   /// maximum number of attempts; negative means retry forever
   max_retries : Int32
@@ -9,7 +10,7 @@ pub(all) struct RetryPolicy {
   initial_backoff_ms : Int32
   /// upper bound of the backoff, in milliseconds
   max_backoff_ms : Int32
-} derive(Debug)
+}
 
 ///|
 /// Default policy: unlimited retries, 100ms initial backoff doubling up to

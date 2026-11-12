@@ -1,9 +1,10 @@
 // One mandatory async test, with two serialized scopes. No real Broker.
 
 ///|
+#derive(Debug)
 suberror IoMockError {
   PeerClosed
-} derive(Debug)
+}
 
 ///|
 struct IoOwned {

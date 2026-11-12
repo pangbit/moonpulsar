@@ -147,12 +147,12 @@ fn ClientMemoryLimiter::release_now(
 }
 
 ///|
-async fn ClientMemoryLimiter::remove_waiter(
+fn ClientMemoryLimiter::remove_waiter(
   self : ClientMemoryLimiter,
   token : UInt64,
 ) -> Unit {
-  self.mu.acquire()
-  defer self.mu.release()
+  // Queue mutations never suspend while holding mu. Like release_now, this
+  // synchronous removal cannot interleave with them, even during cancellation.
   for index in 0..<self.waiters.length() {
     if self.waiters[index].token == token {
       ignore(self.waiters.remove(index))

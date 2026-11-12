@@ -7,12 +7,13 @@
 
 ///|
 /// How a producer acquires permission to publish to a topic.
+#derive(Eq, Debug)
 pub(all) enum ProducerAccessMode {
   Shared
   Exclusive
   WaitForExclusive
   ExclusiveWithFencing
-} derive(Eq, Debug)
+}
 
 ///|
 /// Choose a partition for a partitioned producer. The default hashes keyed
@@ -38,6 +39,7 @@ fn ProducerAccessMode::to_proto(
 
 ///|
 /// Batching configuration for a producer.
+#derive(Debug)
 pub(all) struct BatchingConfig {
   /// flush the batch after this many messages
   max_messages : Int32
@@ -45,7 +47,7 @@ pub(all) struct BatchingConfig {
   max_bytes : Int32
   /// flush the batch this long after the first message
   max_delay_ms : Int32
-} derive(Debug)
+}
 
 ///|
 pub fn BatchingConfig::default() -> BatchingConfig {

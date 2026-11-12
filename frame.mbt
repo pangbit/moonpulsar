@@ -159,12 +159,13 @@ async fn[R : @io.Reader] read_frame_with_budget(
 ///|
 /// A frame received from the broker: the command plus, for MESSAGE frames,
 /// the message metadata and payload.
+#derive(Debug)
 pub(all) struct IncomingFrame {
   cmd : @proto.BaseCommand
   metadata : @proto.MessageMetadata?
   payload : Bytes?
   wire_size : Int32
-} derive(Debug)
+}
 
 ///|
 // The generated proto2 reader applies the declared default of 1 even when

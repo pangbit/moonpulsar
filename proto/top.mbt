@@ -1,11 +1,12 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum CompressionType {
   NONE
   LZ4
   ZLIB
   ZSTD
   SNAPPY
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CompressionType::to_enum(self : CompressionType) -> @lib.Enum {
@@ -98,12 +99,13 @@ pub extend CompressionType with ToJson::{to_json}
 pub extend CompressionType with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum ProducerAccessMode {
   Shared
   Exclusive
   WaitForExclusive
   ExclusiveWithFencing
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ProducerAccessMode::to_enum(self : ProducerAccessMode) -> @lib.Enum {
@@ -195,6 +197,7 @@ pub extend ProducerAccessMode with ToJson::{to_json}
 pub extend ProducerAccessMode with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum ServerError {
   UnknownError
   MetadataError
@@ -222,7 +225,7 @@ pub(all) enum ServerError {
   TransactionConflict
   TransactionNotFound
   ProducerFenced
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ServerError::to_enum(self : ServerError) -> @lib.Enum {
@@ -426,11 +429,12 @@ pub extend ServerError with ToJson::{to_json}
 pub extend ServerError with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum AuthMethod {
   AuthMethodNone
   AuthMethodYcaV1
   AuthMethodAthens
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn AuthMethod::to_enum(self : AuthMethod) -> @lib.Enum {
@@ -513,6 +517,7 @@ pub extend AuthMethod with ToJson::{to_json}
 pub extend AuthMethod with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum ProtocolVersion {
   V0
   V1
@@ -536,7 +541,7 @@ pub(all) enum ProtocolVersion {
   V19
   V20
   V21
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ProtocolVersion::to_enum(self : ProtocolVersion) -> @lib.Enum {
@@ -714,10 +719,11 @@ pub extend ProtocolVersion with ToJson::{to_json}
 pub extend ProtocolVersion with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum KeySharedMode {
   AUTO_SPLIT
   STICKY
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn KeySharedMode::to_enum(self : KeySharedMode) -> @lib.Enum {
@@ -795,10 +801,11 @@ pub extend KeySharedMode with ToJson::{to_json}
 pub extend KeySharedMode with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum SegmentState {
   ACTIVE
   SEALED
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn SegmentState::to_enum(self : SegmentState) -> @lib.Enum {
@@ -876,10 +883,11 @@ pub extend SegmentState with ToJson::{to_json}
 pub extend SegmentState with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum ScalableConsumerType {
   STREAM
   CHECKPOINT
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ScalableConsumerType::to_enum(self : ScalableConsumerType) -> @lib.Enum {
@@ -961,10 +969,11 @@ pub extend ScalableConsumerType with ToJson::{to_json}
 pub extend ScalableConsumerType with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum TxnAction {
   COMMIT
   ABORT
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn TxnAction::to_enum(self : TxnAction) -> @lib.Enum {
@@ -1042,6 +1051,7 @@ pub extend TxnAction with ToJson::{to_json}
 pub extend TxnAction with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Schema_Type {
   None
   String
@@ -1066,7 +1076,7 @@ pub(all) enum Schema_Type {
   ProtobufNative
   AutoConsume
   External
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn Schema_Type::to_enum(self : Schema_Type) -> @lib.Enum {
@@ -1249,12 +1259,13 @@ pub extend Schema_Type with ToJson::{to_json}
 pub extend Schema_Type with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Schema {
   mut name : String
   mut schema_data : Bytes
   mut type_ : Schema_Type
   mut properties : Array[KeyValue]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for Schema with fn size_of(self) {
@@ -1437,6 +1448,7 @@ pub extend Schema with ToJson::{to_json}
 pub extend Schema with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct MessageIdData {
   mut ledger_id : UInt64
   mut entry_id : UInt64
@@ -1445,7 +1457,7 @@ pub(all) struct MessageIdData {
   mut ack_set : Array[Int64]
   mut batch_size : Int32?
   mut first_chunk_message_id : MessageIdData?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for MessageIdData with fn size_of(self) {
@@ -1714,10 +1726,11 @@ pub extend MessageIdData with ToJson::{to_json}
 pub extend MessageIdData with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct KeyValue {
   mut key : String
   mut value : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for KeyValue with fn size_of(self) {
@@ -1852,10 +1865,11 @@ pub extend KeyValue with ToJson::{to_json}
 pub extend KeyValue with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct KeyLongValue {
   mut key : String
   mut value : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for KeyLongValue with fn size_of(self) {
@@ -1990,10 +2004,11 @@ pub extend KeyLongValue with ToJson::{to_json}
 pub extend KeyLongValue with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct IntRange {
   mut start : Int32
   mut end : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for IntRange with fn size_of(self) {
@@ -2128,11 +2143,12 @@ pub extend IntRange with ToJson::{to_json}
 pub extend IntRange with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct EncryptionKeys {
   mut key : String
   mut value : Bytes
   mut metadata : Array[KeyValue]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for EncryptionKeys with fn size_of(self) {
@@ -2298,6 +2314,7 @@ pub extend EncryptionKeys with ToJson::{to_json}
 pub extend EncryptionKeys with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct MessageMetadata {
   mut producer_name : String
   mut sequence_id : UInt64
@@ -2331,7 +2348,7 @@ pub(all) struct MessageMetadata {
   mut schema_id : Bytes?
   mut entry_hash_min : UInt32?
   mut entry_hash_max : UInt32?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for MessageMetadata with fn size_of(self) {
@@ -3189,6 +3206,7 @@ pub extend MessageMetadata with ToJson::{to_json}
 pub extend MessageMetadata with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct SingleMessageMetadata {
   mut properties : Array[KeyValue]
   mut partition_key : String?
@@ -3200,7 +3218,7 @@ pub(all) struct SingleMessageMetadata {
   mut sequence_id : UInt64?
   mut null_value : Bool?
   mut null_partition_key : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for SingleMessageMetadata with fn size_of(self) {
@@ -3539,10 +3557,11 @@ pub extend SingleMessageMetadata with ToJson::{to_json}
 pub extend SingleMessageMetadata with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct BrokerEntryMetadata {
   mut broker_timestamp : UInt64?
   mut index : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for BrokerEntryMetadata with fn size_of(self) {
@@ -3698,6 +3717,7 @@ pub extend BrokerEntryMetadata with ToJson::{to_json}
 pub extend BrokerEntryMetadata with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandConnect {
   mut client_version : String
   mut auth_method : AuthMethod?
@@ -3710,7 +3730,7 @@ pub(all) struct CommandConnect {
   mut original_auth_method : String?
   mut feature_flags : FeatureFlags?
   mut proxy_version : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandConnect with fn size_of(self) {
@@ -4085,6 +4105,7 @@ pub extend CommandConnect with ToJson::{to_json}
 pub extend CommandConnect with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct FeatureFlags {
   mut supports_auth_refresh : Bool?
   mut supports_broker_entry_metadata : Bool?
@@ -4095,7 +4116,7 @@ pub(all) struct FeatureFlags {
   mut supports_topic_watcher_reconcile : Bool?
   mut supports_scalable_topics : Bool?
   mut supports_tc_metadata_discovery : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for FeatureFlags with fn size_of(self) {
@@ -4459,12 +4480,13 @@ pub extend FeatureFlags with ToJson::{to_json}
 pub extend FeatureFlags with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandConnected {
   mut server_version : String
   mut protocol_version : Int32?
   mut max_message_size : Int32?
   mut feature_flags : FeatureFlags?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandConnected with fn size_of(self) {
@@ -4670,11 +4692,12 @@ pub extend CommandConnected with ToJson::{to_json}
 pub extend CommandConnected with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandAuthResponse {
   mut client_version : String?
   mut response : AuthData?
   mut protocol_version : Int32?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandAuthResponse with fn size_of(self) {
@@ -4856,11 +4879,12 @@ pub extend CommandAuthResponse with ToJson::{to_json}
 pub extend CommandAuthResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandAuthChallenge {
   mut server_version : String?
   mut challenge : AuthData?
   mut protocol_version : Int32?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandAuthChallenge with fn size_of(self) {
@@ -5042,10 +5066,11 @@ pub extend CommandAuthChallenge with ToJson::{to_json}
 pub extend CommandAuthChallenge with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct AuthData {
   mut auth_method_name : String?
   mut auth_data : Bytes?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for AuthData with fn size_of(self) {
@@ -5204,12 +5229,13 @@ pub extend AuthData with ToJson::{to_json}
 pub extend AuthData with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct KeySharedMeta {
   mut key_shared_mode : KeySharedMode
   mut hash_ranges : Array[IntRange]
   mut allow_out_of_order_delivery : Bool?
   mut entry_bucket_dispatch : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for KeySharedMeta with fn size_of(self) {
@@ -5421,12 +5447,13 @@ pub extend KeySharedMeta with ToJson::{to_json}
 pub extend KeySharedMeta with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandSubscribe_SubType {
   Exclusive
   Shared
   Failover
   Key_Shared
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CommandSubscribe_SubType::to_enum(
@@ -5522,10 +5549,11 @@ pub extend CommandSubscribe_SubType with ToJson::{to_json}
 pub extend CommandSubscribe_SubType with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandSubscribe_InitialPosition {
   Latest
   Earliest
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CommandSubscribe_InitialPosition::to_enum(
@@ -5611,6 +5639,7 @@ pub extend CommandSubscribe_InitialPosition with ToJson::{to_json}
 pub extend CommandSubscribe_InitialPosition with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandSubscribe {
   mut topic : String
   mut subscription : String
@@ -5631,7 +5660,7 @@ pub(all) struct CommandSubscribe {
   mut key_shared_meta : KeySharedMeta?
   mut subscription_properties : Array[KeyValue]
   mut consumer_epoch : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandSubscribe with fn size_of(self) {
@@ -6184,6 +6213,7 @@ pub extend CommandSubscribe with ToJson::{to_json}
 pub extend CommandSubscribe with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandPartitionedTopicMetadata {
   mut topic : String
   mut request_id : UInt64
@@ -6191,7 +6221,7 @@ pub(all) struct CommandPartitionedTopicMetadata {
   mut original_auth_data : String?
   mut original_auth_method : String?
   mut metadata_auto_creation_enabled : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandPartitionedTopicMetadata with fn size_of(self) {
@@ -6438,10 +6468,11 @@ pub extend CommandPartitionedTopicMetadata with ToJson::{to_json}
 pub extend CommandPartitionedTopicMetadata with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandPartitionedTopicMetadataResponse_LookupType {
   Success
   Failed
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CommandPartitionedTopicMetadataResponse_LookupType::to_enum(
@@ -6541,13 +6572,14 @@ pub extend CommandPartitionedTopicMetadataResponse_LookupType with @json.FromJso
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandPartitionedTopicMetadataResponse {
   mut partitions : UInt32?
   mut request_id : UInt64
   mut response : CommandPartitionedTopicMetadataResponse_LookupType?
   mut error : ServerError?
   mut message : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandPartitionedTopicMetadataResponse with fn size_of(
@@ -6788,6 +6820,7 @@ pub extend CommandPartitionedTopicMetadataResponse with @json.FromJson::{
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandLookupTopic {
   mut topic : String
   mut request_id : UInt64
@@ -6797,7 +6830,7 @@ pub(all) struct CommandLookupTopic {
   mut original_auth_method : String?
   mut advertised_listener_name : String?
   mut properties : Array[KeyValue]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandLookupTopic with fn size_of(self) {
@@ -7083,11 +7116,12 @@ pub extend CommandLookupTopic with ToJson::{to_json}
 pub extend CommandLookupTopic with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandLookupTopicResponse_LookupType {
   Redirect
   Connect
   Failed
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CommandLookupTopicResponse_LookupType::to_enum(
@@ -7180,6 +7214,7 @@ pub extend CommandLookupTopicResponse_LookupType with @json.FromJson::{
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandLookupTopicResponse {
   mut broker_service_url : String?
   mut broker_service_url_tls : String?
@@ -7189,7 +7224,7 @@ pub(all) struct CommandLookupTopicResponse {
   mut error : ServerError?
   mut message : String?
   mut proxy_through_service_url : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandLookupTopicResponse with fn size_of(self) {
@@ -7492,6 +7527,7 @@ pub extend CommandLookupTopicResponse with ToJson::{to_json}
 pub extend CommandLookupTopicResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandProducer {
   mut topic : String
   mut producer_id : UInt64
@@ -7506,7 +7542,7 @@ pub(all) struct CommandProducer {
   mut topic_epoch : UInt64?
   mut txn_enabled : Bool?
   mut initial_subscription_name : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandProducer with fn size_of(self) {
@@ -7908,6 +7944,7 @@ pub extend CommandProducer with ToJson::{to_json}
 pub extend CommandProducer with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandSend {
   mut producer_id : UInt64
   mut sequence_id : UInt64
@@ -7918,7 +7955,7 @@ pub(all) struct CommandSend {
   mut is_chunk : Bool?
   mut marker : Bool?
   mut message_id : MessageIdData?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandSend with fn size_of(self) {
@@ -8222,12 +8259,13 @@ pub extend CommandSend with ToJson::{to_json}
 pub extend CommandSend with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandSendReceipt {
   mut producer_id : UInt64
   mut sequence_id : UInt64
   mut message_id : MessageIdData?
   mut highest_sequence_id : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandSendReceipt with fn size_of(self) {
@@ -8423,12 +8461,13 @@ pub extend CommandSendReceipt with ToJson::{to_json}
 pub extend CommandSendReceipt with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandSendError {
   mut producer_id : UInt64
   mut sequence_id : UInt64
   mut error : ServerError
   mut message : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandSendError with fn size_of(self) {
@@ -8600,13 +8639,14 @@ pub extend CommandSendError with ToJson::{to_json}
 pub extend CommandSendError with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandMessage {
   mut consumer_id : UInt64
   mut message_id : MessageIdData
   mut redelivery_count : UInt32?
   mut ack_set : Array[Int64]
   mut consumer_epoch : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandMessage with fn size_of(self) {
@@ -8829,10 +8869,11 @@ pub extend CommandMessage with ToJson::{to_json}
 pub extend CommandMessage with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandAck_AckType {
   Individual
   Cumulative
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CommandAck_AckType::to_enum(self : CommandAck_AckType) -> @lib.Enum {
@@ -8914,13 +8955,14 @@ pub extend CommandAck_AckType with ToJson::{to_json}
 pub extend CommandAck_AckType with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandAck_ValidationError {
   UncompressedSizeCorruption
   DecompressionError
   ChecksumMismatch
   BatchDeSerializeError
   DecryptionError
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CommandAck_ValidationError::to_enum(
@@ -9025,6 +9067,7 @@ pub extend CommandAck_ValidationError with ToJson::{to_json}
 pub extend CommandAck_ValidationError with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandAck {
   mut consumer_id : UInt64
   mut ack_type : CommandAck_AckType
@@ -9034,7 +9077,7 @@ pub(all) struct CommandAck {
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut request_id : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandAck with fn size_of(self) {
@@ -9332,6 +9375,7 @@ pub extend CommandAck with ToJson::{to_json}
 pub extend CommandAck with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandAckResponse {
   mut consumer_id : UInt64
   mut txnid_least_bits : UInt64?
@@ -9339,7 +9383,7 @@ pub(all) struct CommandAckResponse {
   mut error : ServerError?
   mut message : String?
   mut request_id : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandAckResponse with fn size_of(self) {
@@ -9587,10 +9631,11 @@ pub extend CommandAckResponse with ToJson::{to_json}
 pub extend CommandAckResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandActiveConsumerChange {
   mut consumer_id : UInt64
   mut is_active : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandActiveConsumerChange with fn size_of(self) {
@@ -9742,10 +9787,11 @@ pub extend CommandActiveConsumerChange with ToJson::{to_json}
 pub extend CommandActiveConsumerChange with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandFlow {
   mut consumer_id : UInt64
   mut message_permits : UInt32
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandFlow with fn size_of(self) {
@@ -9888,11 +9934,12 @@ pub extend CommandFlow with ToJson::{to_json}
 pub extend CommandFlow with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandUnsubscribe {
   mut consumer_id : UInt64
   mut request_id : UInt64
   mut force : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandUnsubscribe with fn size_of(self) {
@@ -10056,12 +10103,13 @@ pub extend CommandUnsubscribe with ToJson::{to_json}
 pub extend CommandUnsubscribe with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandSeek {
   mut consumer_id : UInt64
   mut request_id : UInt64
   mut message_id : MessageIdData?
   mut message_publish_time : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandSeek with fn size_of(self) {
@@ -10249,9 +10297,10 @@ pub extend CommandSeek with ToJson::{to_json}
 pub extend CommandSeek with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandReachedEndOfTopic {
   mut consumer_id : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandReachedEndOfTopic with fn size_of(self) {
@@ -10380,10 +10429,11 @@ pub extend CommandReachedEndOfTopic with ToJson::{to_json}
 pub extend CommandReachedEndOfTopic with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandTopicMigrated_ResourceType {
   Producer
   Consumer
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CommandTopicMigrated_ResourceType::to_enum(
@@ -10469,12 +10519,13 @@ pub extend CommandTopicMigrated_ResourceType with ToJson::{to_json}
 pub extend CommandTopicMigrated_ResourceType with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandTopicMigrated {
   mut resource_id : UInt64
   mut resource_type : CommandTopicMigrated_ResourceType
   mut broker_service_url : String?
   mut broker_service_url_tls : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandTopicMigrated with fn size_of(self) {
@@ -10675,12 +10726,13 @@ pub extend CommandTopicMigrated with ToJson::{to_json}
 pub extend CommandTopicMigrated with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandCloseProducer {
   mut producer_id : UInt64
   mut request_id : UInt64
   mut assigned_broker_service_url : String?
   mut assigned_broker_service_url_tls : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandCloseProducer with fn size_of(self) {
@@ -10885,12 +10937,13 @@ pub extend CommandCloseProducer with ToJson::{to_json}
 pub extend CommandCloseProducer with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandCloseConsumer {
   mut consumer_id : UInt64
   mut request_id : UInt64
   mut assigned_broker_service_url : String?
   mut assigned_broker_service_url_tls : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandCloseConsumer with fn size_of(self) {
@@ -11095,11 +11148,12 @@ pub extend CommandCloseConsumer with ToJson::{to_json}
 pub extend CommandCloseConsumer with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandRedeliverUnacknowledgedMessages {
   mut consumer_id : UInt64
   mut message_ids : Array[MessageIdData]
   mut consumer_epoch : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandRedeliverUnacknowledgedMessages with fn size_of(
@@ -11286,10 +11340,11 @@ pub extend CommandRedeliverUnacknowledgedMessages with @json.FromJson::{
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandSuccess {
   mut request_id : UInt64
   mut schema : Schema?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandSuccess with fn size_of(self) {
@@ -11436,6 +11491,7 @@ pub extend CommandSuccess with ToJson::{to_json}
 pub extend CommandSuccess with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandProducerSuccess {
   mut request_id : UInt64
   mut producer_name : String
@@ -11443,7 +11499,7 @@ pub(all) struct CommandProducerSuccess {
   mut schema_version : Bytes?
   mut topic_epoch : UInt64?
   mut producer_ready : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandProducerSuccess with fn size_of(self) {
@@ -11685,11 +11741,12 @@ pub extend CommandProducerSuccess with ToJson::{to_json}
 pub extend CommandProducerSuccess with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandError {
   mut request_id : UInt64
   mut error : ServerError
   mut message : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandError with fn size_of(self) {
@@ -11844,7 +11901,8 @@ pub extend CommandError with ToJson::{to_json}
 pub extend CommandError with @json.FromJson::{from_json}
 
 ///|
-pub(all) struct CommandPing {} derive(Eq, Debug)
+#derive(Eq, Debug)
+pub(all) struct CommandPing {}
 
 ///|
 pub impl @lib.Sized for CommandPing with fn size_of(_) {
@@ -11922,7 +11980,8 @@ pub extend CommandPing with ToJson::{to_json}
 pub extend CommandPing with @json.FromJson::{from_json}
 
 ///|
-pub(all) struct CommandPong {} derive(Eq, Debug)
+#derive(Eq, Debug)
+pub(all) struct CommandPong {}
 
 ///|
 pub impl @lib.Sized for CommandPong with fn size_of(_) {
@@ -12000,10 +12059,11 @@ pub extend CommandPong with ToJson::{to_json}
 pub extend CommandPong with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandConsumerStats {
   mut request_id : UInt64
   mut consumer_id : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandConsumerStats with fn size_of(self) {
@@ -12147,6 +12207,7 @@ pub extend CommandConsumerStats with ToJson::{to_json}
 pub extend CommandConsumerStats with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandConsumerStatsResponse {
   mut request_id : UInt64
   mut error_code : ServerError?
@@ -12164,7 +12225,7 @@ pub(all) struct CommandConsumerStatsResponse {
   mut msg_rate_expired : Double?
   mut msg_backlog : UInt64?
   mut message_ack_rate : Double?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandConsumerStatsResponse with fn size_of(self) {
@@ -12648,10 +12709,11 @@ pub extend CommandConsumerStatsResponse with ToJson::{to_json}
 pub extend CommandConsumerStatsResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandGetLastMessageId {
   mut consumer_id : UInt64
   mut request_id : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandGetLastMessageId with fn size_of(self) {
@@ -12795,11 +12857,12 @@ pub extend CommandGetLastMessageId with ToJson::{to_json}
 pub extend CommandGetLastMessageId with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandGetLastMessageIdResponse {
   mut last_message_id : MessageIdData
   mut request_id : UInt64
   mut consumer_mark_delete_position : MessageIdData?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandGetLastMessageIdResponse with fn size_of(self) {
@@ -12985,11 +13048,12 @@ pub extend CommandGetLastMessageIdResponse with ToJson::{to_json}
 pub extend CommandGetLastMessageIdResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandGetTopicsOfNamespace_Mode {
   PERSISTENT
   NON_PERSISTENT
   ALL
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn CommandGetTopicsOfNamespace_Mode::to_enum(
@@ -13080,6 +13144,7 @@ pub extend CommandGetTopicsOfNamespace_Mode with ToJson::{to_json}
 pub extend CommandGetTopicsOfNamespace_Mode with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandGetTopicsOfNamespace {
   mut request_id : UInt64
   mut namespace_ : String
@@ -13087,7 +13152,7 @@ pub(all) struct CommandGetTopicsOfNamespace {
   mut topics_pattern : String?
   mut topics_hash : String?
   mut properties : Array[KeyValue]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandGetTopicsOfNamespace with fn size_of(self) {
@@ -13330,13 +13395,14 @@ pub extend CommandGetTopicsOfNamespace with ToJson::{to_json}
 pub extend CommandGetTopicsOfNamespace with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandGetTopicsOfNamespaceResponse {
   mut request_id : UInt64
   mut topics : Array[String]
   mut filtered : Bool?
   mut topics_hash : String?
   mut changed : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandGetTopicsOfNamespaceResponse with fn size_of(
@@ -13560,13 +13626,14 @@ pub extend CommandGetTopicsOfNamespaceResponse with ToJson::{to_json}
 pub extend CommandGetTopicsOfNamespaceResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchTopicList {
   mut request_id : UInt64
   mut watcher_id : UInt64
   mut namespace_ : String
   mut topics_pattern : String
   mut topics_hash : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandWatchTopicList with fn size_of(self) {
@@ -13766,12 +13833,13 @@ pub extend CommandWatchTopicList with ToJson::{to_json}
 pub extend CommandWatchTopicList with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchTopicListSuccess {
   mut request_id : UInt64
   mut watcher_id : UInt64
   mut topic : Array[String]
   mut topics_hash : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandWatchTopicListSuccess with fn size_of(self) {
@@ -13951,12 +14019,13 @@ pub extend CommandWatchTopicListSuccess with ToJson::{to_json}
 pub extend CommandWatchTopicListSuccess with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchTopicUpdate {
   mut watcher_id : UInt64
   mut new_topics : Array[String]
   mut deleted_topics : Array[String]
   mut topics_hash : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandWatchTopicUpdate with fn size_of(self) {
@@ -14148,10 +14217,11 @@ pub extend CommandWatchTopicUpdate with ToJson::{to_json}
 pub extend CommandWatchTopicUpdate with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchTopicListClose {
   mut request_id : UInt64
   mut watcher_id : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandWatchTopicListClose with fn size_of(self) {
@@ -14294,6 +14364,7 @@ pub extend CommandWatchTopicListClose with ToJson::{to_json}
 pub extend CommandWatchTopicListClose with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct SegmentInfoProto {
   mut segment_id : UInt64
   mut hash_start : UInt32
@@ -14307,7 +14378,7 @@ pub(all) struct SegmentInfoProto {
   mut sealed_at_ms : UInt64?
   mut legacy_topic_name : String?
   mut entry_bucket_splits : Array[UInt32]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for SegmentInfoProto with fn size_of(self) {
@@ -14673,11 +14744,12 @@ pub extend SegmentInfoProto with ToJson::{to_json}
 pub extend SegmentInfoProto with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct SegmentBrokerAddress {
   mut segment_id : UInt64
   mut broker_url : String
   mut broker_url_tls : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for SegmentBrokerAddress with fn size_of(self) {
@@ -14841,13 +14913,14 @@ pub extend SegmentBrokerAddress with ToJson::{to_json}
 pub extend SegmentBrokerAddress with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ScalableTopicDAG {
   mut epoch : UInt64
   mut segments : Array[SegmentInfoProto]
   mut segment_brokers : Array[SegmentBrokerAddress]
   mut controller_broker_url : String?
   mut controller_broker_url_tls : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for ScalableTopicDAG with fn size_of(self) {
@@ -15080,11 +15153,12 @@ pub extend ScalableTopicDAG with ToJson::{to_json}
 pub extend ScalableTopicDAG with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandScalableTopicLookup {
   mut session_id : UInt64
   mut topic : String
   mut create_if_missing : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandScalableTopicLookup with fn size_of(self) {
@@ -15248,13 +15322,14 @@ pub extend CommandScalableTopicLookup with ToJson::{to_json}
 pub extend CommandScalableTopicLookup with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandScalableTopicUpdate {
   mut session_id : UInt64
   mut dag : ScalableTopicDAG?
   mut error : ServerError?
   mut message : String?
   mut resolved_topic_name : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandScalableTopicUpdate with fn size_of(self) {
@@ -15481,9 +15556,10 @@ pub extend CommandScalableTopicUpdate with ToJson::{to_json}
 pub extend CommandScalableTopicUpdate with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandScalableTopicClose {
   mut session_id : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandScalableTopicClose with fn size_of(self) {
@@ -15611,13 +15687,14 @@ pub extend CommandScalableTopicClose with ToJson::{to_json}
 pub extend CommandScalableTopicClose with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ScalableAssignedSegment {
   mut segment_id : UInt64
   mut hash_start : UInt32
   mut hash_end : UInt32
   mut segment_topic : String
   mut bucket_ranges : Array[IntRange]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for ScalableAssignedSegment with fn size_of(self) {
@@ -15818,10 +15895,11 @@ pub extend ScalableAssignedSegment with ToJson::{to_json}
 pub extend ScalableAssignedSegment with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ScalableConsumerAssignment {
   mut layout_epoch : UInt64
   mut segments : Array[ScalableAssignedSegment]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for ScalableConsumerAssignment with fn size_of(self) {
@@ -15978,6 +16056,7 @@ pub extend ScalableConsumerAssignment with ToJson::{to_json}
 pub extend ScalableConsumerAssignment with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandScalableTopicSubscribe {
   mut request_id : UInt64
   mut topic : String
@@ -15985,7 +16064,7 @@ pub(all) struct CommandScalableTopicSubscribe {
   mut consumer_name : String
   mut consumer_id : UInt64
   mut consumer_type : ScalableConsumerType
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandScalableTopicSubscribe with fn size_of(self) {
@@ -16203,12 +16282,13 @@ pub extend CommandScalableTopicSubscribe with ToJson::{to_json}
 pub extend CommandScalableTopicSubscribe with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandScalableTopicSubscribeResponse {
   mut request_id : UInt64
   mut error : ServerError?
   mut message : String?
   mut assignment : ScalableConsumerAssignment?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandScalableTopicSubscribeResponse with fn size_of(
@@ -16423,10 +16503,11 @@ pub extend CommandScalableTopicSubscribeResponse with @json.FromJson::{
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandScalableTopicAssignmentUpdate {
   mut consumer_id : UInt64
   mut assignment : ScalableConsumerAssignment
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandScalableTopicAssignmentUpdate with fn size_of(
@@ -16580,10 +16661,11 @@ pub extend CommandScalableTopicAssignmentUpdate with ToJson::{to_json}
 pub extend CommandScalableTopicAssignmentUpdate with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandScalableTopicUnsubscribe {
   mut request_id : UInt64
   mut consumer_id : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandScalableTopicUnsubscribe with fn size_of(self) {
@@ -16730,12 +16812,13 @@ pub extend CommandScalableTopicUnsubscribe with ToJson::{to_json}
 pub extend CommandScalableTopicUnsubscribe with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchScalableTopics {
   mut watch_id : UInt64
   mut namespace_ : String
   mut property_filters : Array[KeyValue]
   mut current_hash : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandWatchScalableTopics with fn size_of(self) {
@@ -16928,9 +17011,10 @@ pub extend CommandWatchScalableTopics with ToJson::{to_json}
 pub extend CommandWatchScalableTopics with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ScalableTopicsSnapshot {
   mut topics : Array[String]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for ScalableTopicsSnapshot with fn size_of(self) {
@@ -17065,10 +17149,11 @@ pub extend ScalableTopicsSnapshot with ToJson::{to_json}
 pub extend ScalableTopicsSnapshot with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ScalableTopicsDiff {
   mut added : Array[String]
   mut removed : Array[String]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for ScalableTopicsDiff with fn size_of(self) {
@@ -17222,19 +17307,21 @@ pub extend ScalableTopicsDiff with ToJson::{to_json}
 pub extend ScalableTopicsDiff with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchScalableTopicsUpdate {
   mut watch_id : UInt64
   mut error : ServerError?
   mut message : String?
   mut event : CommandWatchScalableTopicsUpdate_Event
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum CommandWatchScalableTopicsUpdate_Event {
   Snapshot(ScalableTopicsSnapshot)
   Diff(ScalableTopicsDiff)
   NotSet
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl Default for CommandWatchScalableTopicsUpdate_Event with fn default() -> CommandWatchScalableTopicsUpdate_Event {
@@ -17525,9 +17612,10 @@ pub extend CommandWatchScalableTopicsUpdate with ToJson::{to_json}
 pub extend CommandWatchScalableTopicsUpdate with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchScalableTopicsClose {
   mut watch_id : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandWatchScalableTopicsClose with fn size_of(self) {
@@ -17658,9 +17746,10 @@ pub extend CommandWatchScalableTopicsClose with ToJson::{to_json}
 pub extend CommandWatchScalableTopicsClose with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchTcAssignments {
   mut watch_id : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandWatchTcAssignments with fn size_of(self) {
@@ -17788,11 +17877,12 @@ pub extend CommandWatchTcAssignments with ToJson::{to_json}
 pub extend CommandWatchTcAssignments with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct TcAssignment {
   mut tc_id : UInt64
   mut broker_service_url : String?
   mut broker_service_url_tls : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for TcAssignment with fn size_of(self) {
@@ -17965,10 +18055,11 @@ pub extend TcAssignment with ToJson::{to_json}
 pub extend TcAssignment with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct TcAssignmentsSnapshot {
   mut parallelism : UInt32
   mut assignments : Array[TcAssignment]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for TcAssignmentsSnapshot with fn size_of(self) {
@@ -18120,12 +18211,13 @@ pub extend TcAssignmentsSnapshot with ToJson::{to_json}
 pub extend TcAssignmentsSnapshot with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchTcAssignmentsUpdate {
   mut watch_id : UInt64
   mut snapshot : TcAssignmentsSnapshot?
   mut error : ServerError?
   mut message : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandWatchTcAssignmentsUpdate with fn size_of(self) {
@@ -18330,9 +18422,10 @@ pub extend CommandWatchTcAssignmentsUpdate with ToJson::{to_json}
 pub extend CommandWatchTcAssignmentsUpdate with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandWatchTcAssignmentsClose {
   mut watch_id : UInt64
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandWatchTcAssignmentsClose with fn size_of(self) {
@@ -18463,11 +18556,12 @@ pub extend CommandWatchTcAssignmentsClose with ToJson::{to_json}
 pub extend CommandWatchTcAssignmentsClose with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandGetSchema {
   mut request_id : UInt64
   mut topic : String
   mut schema_version : Bytes?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandGetSchema with fn size_of(self) {
@@ -18635,13 +18729,14 @@ pub extend CommandGetSchema with ToJson::{to_json}
 pub extend CommandGetSchema with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandGetSchemaResponse {
   mut request_id : UInt64
   mut error_code : ServerError?
   mut error_message : String?
   mut schema : Schema?
   mut schema_version : Bytes?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandGetSchemaResponse with fn size_of(self) {
@@ -18874,12 +18969,13 @@ pub extend CommandGetSchemaResponse with ToJson::{to_json}
 pub extend CommandGetSchemaResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandGetOrCreateSchema {
   mut request_id : UInt64
   mut topic : String
   mut schema : Schema
   mut producer_name : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandGetOrCreateSchema with fn size_of(self) {
@@ -19058,12 +19154,13 @@ pub extend CommandGetOrCreateSchema with ToJson::{to_json}
 pub extend CommandGetOrCreateSchema with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandGetOrCreateSchemaResponse {
   mut request_id : UInt64
   mut error_code : ServerError?
   mut error_message : String?
   mut schema_version : Bytes?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandGetOrCreateSchemaResponse with fn size_of(self) {
@@ -19276,11 +19373,12 @@ pub extend CommandGetOrCreateSchemaResponse with ToJson::{to_json}
 pub extend CommandGetOrCreateSchemaResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandTcClientConnectRequest {
   mut request_id : UInt64
   mut tc_id : UInt64
   mut scalable : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandTcClientConnectRequest with fn size_of(self) {
@@ -19444,11 +19542,12 @@ pub extend CommandTcClientConnectRequest with ToJson::{to_json}
 pub extend CommandTcClientConnectRequest with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandTcClientConnectResponse {
   mut request_id : UInt64
   mut error : ServerError?
   mut message : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandTcClientConnectResponse with fn size_of(self) {
@@ -19627,12 +19726,13 @@ pub extend CommandTcClientConnectResponse with ToJson::{to_json}
 pub extend CommandTcClientConnectResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandNewTxn {
   mut request_id : UInt64
   mut txn_ttl_millis : UInt64?
   mut tc_id : UInt64?
   mut scalable : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandNewTxn with fn size_of(self) {
@@ -19822,13 +19922,14 @@ pub extend CommandNewTxn with ToJson::{to_json}
 pub extend CommandNewTxn with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandNewTxnResponse {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut error : ServerError?
   mut message : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandNewTxnResponse with fn size_of(self) {
@@ -20053,13 +20154,14 @@ pub extend CommandNewTxnResponse with ToJson::{to_json}
 pub extend CommandNewTxnResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandAddPartitionToTxn {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut partitions : Array[String]
   mut scalable : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandAddPartitionToTxn with fn size_of(self) {
@@ -20279,13 +20381,14 @@ pub extend CommandAddPartitionToTxn with ToJson::{to_json}
 pub extend CommandAddPartitionToTxn with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandAddPartitionToTxnResponse {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut error : ServerError?
   mut message : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandAddPartitionToTxnResponse with fn size_of(self) {
@@ -20513,10 +20616,11 @@ pub extend CommandAddPartitionToTxnResponse with ToJson::{to_json}
 pub extend CommandAddPartitionToTxnResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct Subscription {
   mut topic : String
   mut subscription : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for Subscription with fn size_of(self) {
@@ -20658,13 +20762,14 @@ pub extend Subscription with ToJson::{to_json}
 pub extend Subscription with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandAddSubscriptionToTxn {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut subscription : Array[Subscription]
   mut scalable : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandAddSubscriptionToTxn with fn size_of(self) {
@@ -20888,13 +20993,14 @@ pub extend CommandAddSubscriptionToTxn with ToJson::{to_json}
 pub extend CommandAddSubscriptionToTxn with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandAddSubscriptionToTxnResponse {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut error : ServerError?
   mut message : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandAddSubscriptionToTxnResponse with fn size_of(
@@ -21124,13 +21230,14 @@ pub extend CommandAddSubscriptionToTxnResponse with ToJson::{to_json}
 pub extend CommandAddSubscriptionToTxnResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandEndTxn {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut txn_action : TxnAction?
   mut scalable : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandEndTxn with fn size_of(self) {
@@ -21357,13 +21464,14 @@ pub extend CommandEndTxn with ToJson::{to_json}
 pub extend CommandEndTxn with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandEndTxnResponse {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut error : ServerError?
   mut message : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandEndTxnResponse with fn size_of(self) {
@@ -21588,6 +21696,7 @@ pub extend CommandEndTxnResponse with ToJson::{to_json}
 pub extend CommandEndTxnResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandEndTxnOnPartition {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
@@ -21595,7 +21704,7 @@ pub(all) struct CommandEndTxnOnPartition {
   mut topic : String?
   mut txn_action : TxnAction?
   mut txnid_least_bits_of_low_watermark : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandEndTxnOnPartition with fn size_of(self) {
@@ -21853,13 +21962,14 @@ pub extend CommandEndTxnOnPartition with ToJson::{to_json}
 pub extend CommandEndTxnOnPartition with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandEndTxnOnPartitionResponse {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut error : ServerError?
   mut message : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandEndTxnOnPartitionResponse with fn size_of(self) {
@@ -22087,6 +22197,7 @@ pub extend CommandEndTxnOnPartitionResponse with ToJson::{to_json}
 pub extend CommandEndTxnOnPartitionResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandEndTxnOnSubscription {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
@@ -22094,7 +22205,7 @@ pub(all) struct CommandEndTxnOnSubscription {
   mut subscription : Subscription?
   mut txn_action : TxnAction?
   mut txnid_least_bits_of_low_watermark : UInt64?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandEndTxnOnSubscription with fn size_of(self) {
@@ -22357,13 +22468,14 @@ pub extend CommandEndTxnOnSubscription with ToJson::{to_json}
 pub extend CommandEndTxnOnSubscription with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct CommandEndTxnOnSubscriptionResponse {
   mut request_id : UInt64
   mut txnid_least_bits : UInt64?
   mut txnid_most_bits : UInt64?
   mut error : ServerError?
   mut message : String?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for CommandEndTxnOnSubscriptionResponse with fn size_of(
@@ -22593,6 +22705,7 @@ pub extend CommandEndTxnOnSubscriptionResponse with ToJson::{to_json}
 pub extend CommandEndTxnOnSubscriptionResponse with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum BaseCommand_Type {
   CONNECT
   CONNECTED
@@ -22665,7 +22778,7 @@ pub(all) enum BaseCommand_Type {
   WATCH_TC_ASSIGNMENTS_UPDATE
   WATCH_TC_ASSIGNMENTS_CLOSE
   SCALABLE_TOPIC_UNSUBSCRIBE
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn BaseCommand_Type::to_enum(self : BaseCommand_Type) -> @lib.Enum {
@@ -23128,6 +23241,7 @@ pub extend BaseCommand_Type with ToJson::{to_json}
 pub extend BaseCommand_Type with @json.FromJson::{from_json}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct BaseCommand {
   mut type_ : BaseCommand_Type
   mut connect : CommandConnect?
@@ -23201,7 +23315,7 @@ pub(all) struct BaseCommand {
   mut watch_tc_assignments_update : CommandWatchTcAssignmentsUpdate?
   mut watch_tc_assignments_close : CommandWatchTcAssignmentsClose?
   mut scalable_topic_unsubscribe : CommandScalableTopicUnsubscribe?
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl @lib.Sized for BaseCommand with fn size_of(self) {

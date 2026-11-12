@@ -8,7 +8,8 @@ import {
 // Values
 
 // Errors
-type FixtureError derive(@debug.Debug)
+#derive(@debug.Debug)
+type FixtureError
 
 // Types and methods
 type AttemptState
@@ -21,11 +22,13 @@ type FrameDecoder
 
 type Journal
 
-type RelayDecision derive(@debug.Debug)
+#derive(@debug.Debug)
+type RelayDecision
 
 type RelayGate
 
-type RelayTag derive(Eq, @debug.Debug)
+#derive(Eq, @debug.Debug)
+type RelayTag
 
 // Type aliases
 

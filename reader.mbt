@@ -172,7 +172,7 @@ async fn SingleReader::create_with_memory(
     raise ConnectionClosed
   }
   if include_start_message_id && start_message_id == Some(MessageId::latest()) {
-    errdefer (reader.close() catch { _ => () })
+    errdefer reader.cleanup_after_failure()
     let last = reader.last_message_id()
     if last.entry_id != 18446744073709551615 {
       reader.start_bound.val = Some(last)

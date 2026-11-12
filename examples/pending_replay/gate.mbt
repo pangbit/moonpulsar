@@ -1,4 +1,5 @@
 ///|
+#derive(Eq, Debug)
 enum RelayTag {
   Other
   Lookup
@@ -7,14 +8,15 @@ enum RelayTag {
   NewReceipt
   Late
   DuplicateReceipt
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Debug)
 enum RelayDecision {
   Forward(Bytes, RelayTag)
   Quarantine(Bytes, Int32)
   Drop(RelayTag)
-} derive(Debug)
+}
 
 ///|
 struct RelayGate {

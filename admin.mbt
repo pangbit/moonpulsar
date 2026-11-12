@@ -2,13 +2,14 @@
 
 ///|
 /// Components of a fully-qualified topic name.
+#derive(Eq, Debug)
 pub(all) struct TopicName {
   /// "persistent" or "non-persistent"
   domain : String
   tenant : String
   namespace_ : String
   topic : String
-} derive(Eq, Debug)
+}
 
 ///|
 fn safe_admin_segment(segment : StringView) -> Bool {

@@ -20,7 +20,15 @@ async fn produce(
     block_if_queue_full=true,
     send_timeout_ms=config.timeout_ms,
   )
-  defer producer.close()
+  let cleanup_failed = Ref(false)
+  defer @async.protect_from_cancel(() => {
+    @async.with_timeout(config.timeout_ms, () => producer.close()) catch {
+      error => if cleanup_failed.val { () } else { raise error }
+    }
+  })
+  errdefer {
+    cleanup_failed.val = true
+  }
   let payload = Bytes::makei(config.size, i => (i % 251).to_byte())
   let clock = @bench.monotonic_clock_start()
   let warmup_us = config.warmup_ms.to_double() * 1000.0
@@ -83,7 +91,15 @@ async fn consume(
     receiver_queue_size=config.queue_size,
     durable=false,
   )
-  defer consumer.close()
+  let cleanup_failed = Ref(false)
+  defer @async.protect_from_cancel(() => {
+    @async.with_timeout(config.timeout_ms, () => consumer.close()) catch {
+      error => if cleanup_failed.val { () } else { raise error }
+    }
+  })
+  errdefer {
+    cleanup_failed.val = true
+  }
   let clock = @bench.monotonic_clock_start()
   let warmup_us = config.warmup_ms.to_double() * 1000.0
   let stop_us = warmup_us + config.duration_ms.to_double() * 1000.0

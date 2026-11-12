@@ -2,13 +2,14 @@
 
 ///|
 /// Compression applied to message payloads.
+#derive(Eq, Debug)
 pub(all) enum CompressionCodec {
   None
   Lz4
   Zlib
   Zstd
   Snappy
-} derive(Eq, Debug)
+}
 
 ///|
 fn CompressionCodec::to_proto(

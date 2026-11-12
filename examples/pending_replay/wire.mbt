@@ -1,9 +1,10 @@
 // Test-only framing. Payload and receipt frames are never re-encoded.
 
 ///|
+#derive(Debug)
 suberror FixtureError {
   Rejected(String)
-} derive(Debug)
+}
 
 ///|
 const MAX_FRAME : Int32 = 65536

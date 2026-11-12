@@ -1,8 +1,9 @@
 ///|
+#derive(Eq, Debug)
 struct AvroTestRecord {
   id : Int32
   name : String
-} derive(Eq, Debug)
+}
 
 ///|
 pub extend AvroTestRecord with Eq::{not_equal, equal}

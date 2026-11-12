@@ -3,12 +3,13 @@
 
 ///|
 /// A topic schema as declared to the broker.
+#derive(Eq, Debug)
 pub(all) struct SchemaInfo {
   name : String
   type_ : @proto.Schema_Type
   schema_data : Bytes
   properties : Map[String, String]
-} derive(Eq, Debug)
+}
 
 ///|
 fn SchemaInfo::to_proto(self : SchemaInfo) -> @proto.Schema {
@@ -32,10 +33,11 @@ fn SchemaInfo::from_proto(schema : @proto.Schema) -> SchemaInfo {
 
 ///|
 /// A schema returned by the broker, with its registry version when present.
+#derive(Eq, Debug)
 pub(all) struct VersionedSchema {
   info : SchemaInfo
   version : Bytes?
-} derive(Eq, Debug)
+}
 
 ///|
 /// Built-in UTF-8 string schema.

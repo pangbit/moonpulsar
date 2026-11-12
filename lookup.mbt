@@ -7,11 +7,12 @@ const MAX_LOOKUP_REDIRECTS : Int32 = 20
 
 ///|
 /// Topic kinds included in namespace discovery.
+#derive(Eq, Debug)
 pub(all) enum NamespaceTopicMode {
   Persistent
   NonPersistent
   AllTopics
-} derive(Eq, Debug)
+}
 
 ///|
 fn NamespaceTopicMode::to_proto(

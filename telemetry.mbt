@@ -140,6 +140,7 @@ pub struct ClientMetrics {
 }
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ClientMetricsSnapshot {
   sends : Int64
   send_failures : Int64
@@ -152,7 +153,7 @@ pub(all) struct ClientMetricsSnapshot {
   producer_reconnects : Int64
   consumer_reconnects : Int64
   reconnect_failures : Int64
-} derive(Eq, Debug)
+}
 
 ///|
 pub fn ClientMetrics::new() -> ClientMetrics {

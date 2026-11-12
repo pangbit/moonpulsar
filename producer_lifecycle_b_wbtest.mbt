@@ -121,9 +121,10 @@ async test "send deadline ends a call blocked on the connection write lock" {
 }
 
 ///|
+#derive(Debug)
 suberror LifecycleTransportError {
   ClosedTransport
-} derive(Debug)
+}
 
 ///|
 pub extend LifecycleTransportError with @debug.Debug::{to_repr}
