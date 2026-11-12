@@ -409,6 +409,12 @@ fn SingleReader::on_frame(self : SingleReader, frame : IncomingFrame) -> Unit {
 
 ///|
 fn SingleReader::fail_delivery(self : SingleReader, error : Error) -> Unit {
+  if self.closed.val {
+    return
+  }
+  self.closed.val = true
+  self.close_error.val = Some(error)
+  self.detach_connection()
   self.chunks.clear()
   self.clear_buffered_events()
   self.events.close(error~, clear=true)
