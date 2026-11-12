@@ -14,7 +14,7 @@ async fn main {
         tls_identity?=identity, tls_min_version=TLS12, connection_timeout_ms=5000))) catch { e => Err(e) }
     if @env.get_env_var("EXPECT_TLS_FAILURE") is Some("true") {
       guard result is Err(error) else { fail("TLS unexpectedly accepted invalid credentials") }
-      println("Observed TLS rejection: \{error.to_json().stringify()}")
+      println("Observed TLS rejection: \{error}")
       println("PASS TLS certificate rejection")
     } else {
       let client = result.unwrap()
