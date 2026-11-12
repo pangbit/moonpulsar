@@ -6,9 +6,11 @@
 
 [源码仓库](https://github.com/pangbit/moonpulsar) | [文档索引](docs/README.zh-CN.md)
 
-## 0.1.3 范围
+## 0.1.4 范围
 
-当前开发代码适配指定的十一月 MoonBit SDK，保留 Protobuf 0.2.0 运行库，重新生成相同的 Pulsar 线协议，迁移派生声明，并为构建失败或取消后的资源清理设置独立期限。现有客户端和协议声明均保留；直接使用上游 Protobuf 的应用可能需要迁移，详见[工具链兼容性](#工具链兼容性)及[更新日志](CHANGELOG.md)。
+0.1.4 适配指定的十一月 MoonBit SDK，保留 Protobuf 0.2.0 运行库，重新生成相同的 Pulsar 线协议，迁移派生声明，并为构建失败或取消后的资源清理设置独立期限。Reader 投递失败后只关闭一次并保留原始错误，覆盖 TableView 构造失败路径。现有客户端和协议声明均保留；直接使用上游 Protobuf 的应用可能需要迁移，详见[工具链兼容性](#工具链兼容性)及[更新日志](CHANGELOG.md)。
+
+`6f7a475` 的[源码 CI](https://github.com/pangbit/moonpulsar/actions/runs/43152599768) 五项任务全部通过，包含各 404/404 的 native debug 与 release 测试、两个 Broker 版本及外部归档消费者。最终候选元数据、注册表发布和精确版本消费者检查是分别核验的发布门槛。
 
 已发布的 0.1.2 维护版本修复传输资源清理、有界恢复，以及重连回放期间接纳新发送的问题；该发布版的公开 API 和固定依赖保持不变。[维护变更与验证记录](docs/verification-0.1.2.md#maintenance-changes) 列出了实现提交及各自的验证范围。
 
@@ -24,7 +26,7 @@
 
 ### 工具链兼容性
 
-当前开发代码适配以下组合；此前发布的归档不包含本次十一月适配。安装前请确认源码修订。
+0.1.4 适配以下组合；截至 0.1.3 的归档不包含本次十一月适配。安装前请确认注册表版本。
 
 | 组件 | 版本 |
 | --- | --- |
@@ -67,13 +69,13 @@ OpenSSL **3.6.3** 上验证。OpenSSL **3.0.13** 未通过独立的错误标记�
 
 ## 安装
 
-以下说明面向 `0.1.3`。添加依赖前，先确认注册表中该版本可用：
+以下说明面向 `0.1.4`。添加依赖前，先确认注册表中该版本可用：
 
 ```sh
 moon view pangbit/moonpulsar --versions --json
 ```
 
-如果 `0.1.3` 尚不可用，或需要运行仓库中的示例与测试，请使用源码工作区：
+如果 `0.1.4` 尚不可用，或需要运行仓库中的示例与测试，请使用源码工作区：
 
 ```sh
 git clone https://github.com/pangbit/moonpulsar.git
@@ -103,7 +105,7 @@ moon run examples/roundtrip --target native
 
 成功时检查十条消息内容，输出十行 `verified:`，随后输出 `roundtrip OK` 并关闭客户端。使用完毕后执行 `docker stop moonpulsar-demo` 停止该一次性容器。这个最小示例演示普通收发；上文独立的 Writer 结果使用了受控测试夹具。开发检查见[测试说明](docs/testing.zh-CN.md)。
 
-确认注册表版本可用后，独立的可执行项目可在 `moon.mod` 中声明 `"pangbit/moonpulsar@0.1.3"` 和 `"moonbitlang/async@0.22.1"`，设置 `preferred_target = "native"`，并使用如下 `moon.pkg`：
+确认注册表版本可用后，独立的可执行项目可在 `moon.mod` 中声明 `"pangbit/moonpulsar@0.1.4"` 和 `"moonbitlang/async@0.22.1"`，设置 `preferred_target = "native"`，并使用如下 `moon.pkg`：
 
 ```text
 import {

@@ -1,10 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.1.4 — 2026-11-12
 
 - Select Moon/moonrun 0.1.20261104 (`940aa18`) and moonc 0.10.20+65efd5b93 without upgrading dependencies.
 - Migrate `#derive` declarations and regenerate interfaces; reproduce protocol bindings with the existing 0.3.0 generator and selected formatter.
 - Remove cancelled memory waiters synchronously. Bound failed-construction cleanup independently for each owned partition, preserve original errors, and test cancellation and stalled CLOSE responses.
+- Make Reader delivery failure terminal before cleanup. Preserve the original decryption error, detach connection registrations and avoid closing the event queue twice during failed TableView construction.
+- Update the standalone TLS rejection probe to use the selected SDK's Error formatting.
+- Align the manifest, CONNECT/AUTH_RESPONSE identity, examples and archive consumers with 0.1.4; update the security policy's supported source versions.
+
+The [source CI at `6f7a475`](https://github.com/pangbit/moonpulsar/actions/runs/43152599768) passed all five jobs: native debug/release each passed 404/404, both Pulsar 3.3.9/4.2.4 Broker regressions passed, and dependency isolation, ABI and external archive consumers passed. This release keeps dependency versions and the wire schema unchanged. Public client/protocol declarations are retained; other SDK combinations remain unverified.
+
+Confirm publication with `moon view pangbit/moonpulsar@0.1.4`; version notes alone are not a registry receipt. Existing Windows, original-send-Future/Broker-restart and OpenSSL error-mark verification boundaries remain in force; see [verification records](docs/verification-0.1.2.md). No end-to-end exactly-once guarantee is implied.
 
 ## 0.1.3 — 2026-10-31
 

@@ -6,9 +6,11 @@ Apache Pulsar binary protocol client for [MoonBit](https://www.moonbitlang.com),
 
 [Source repository](https://github.com/pangbit/moonpulsar) | [Documentation](docs/README.md)
 
-## 0.1.3 scope
+## 0.1.4 scope
 
-This checkout adapts the library to the selected November MoonBit SDK while retaining the Protobuf 0.2.0 runtime. It regenerates the same Pulsar wire schema, migrates derived declarations and bounds failed-construction cleanup under cancellation. Existing client and protocol declarations are retained. Direct upstream Protobuf users may need migration; see [toolchain compatibility](#toolchain-compatibility) and the [changelog](CHANGELOG.md).
+Version 0.1.4 adapts the library to the selected November MoonBit SDK while retaining the Protobuf 0.2.0 runtime. It regenerates the same Pulsar wire schema, migrates derived declarations and bounds failed-construction cleanup under cancellation. Reader delivery failure now closes the reader once while preserving its original error, including failed TableView construction. Existing client and protocol declarations are retained. Direct upstream Protobuf users may need migration; see [toolchain compatibility](#toolchain-compatibility) and the [changelog](CHANGELOG.md).
+
+The [source CI at `6f7a475`](https://github.com/pangbit/moonpulsar/actions/runs/43152599768) passed all five jobs, including 404/404 native debug and release tests, both Broker versions and external archive consumers. Final candidate metadata, registry publication and exact-version consumer checks remain separate release gates.
 
 The published 0.1.2 maintenance release fixes transport cleanup, bounded recovery and producer replay when another send arrives during reconnection. That release kept the public API and pinned dependencies unchanged. The [maintenance changes and verification record](docs/verification-0.1.2.md#maintenance-changes) identifies the implementation commits and their test scope.
 
@@ -24,7 +26,7 @@ On the recorded source snapshot, Pulsar 4.2.4 completed ten sends, ten matching 
 
 ### Toolchain compatibility
 
-This development checkout targets the following combination. Previously published archives do not contain this November adaptation; confirm the source revision before installation.
+Version 0.1.4 targets the following combination. Archives through 0.1.3 do not contain this November adaptation; confirm the registered version before installation.
 
 | Component | Version |
 | --- | --- |
@@ -69,13 +71,13 @@ limitation. See [verification scope](docs/verification-0.1.2.md).
 
 ## Installation
 
-These instructions target `0.1.3`. Check registry availability before adding the dependency:
+These instructions target `0.1.4`. Check registry availability before adding the dependency:
 
 ```sh
 moon view pangbit/moonpulsar --versions --json
 ```
 
-If `0.1.3` is unavailable, or to run repository examples and tests, use the source workspace:
+If `0.1.4` is unavailable, or to run repository examples and tests, use the source workspace:
 
 ```sh
 git clone https://github.com/pangbit/moonpulsar.git
@@ -105,7 +107,7 @@ moon run examples/roundtrip --target native
 
 A successful run checks ten payloads, prints ten `verified:` lines followed by `roundtrip OK`, and closes the client. Stop the disposable container after use with `docker stop moonpulsar-demo`. This minimal example demonstrates ordinary send/receive; the separate Writer result above used a controlled test fixture. For development checks, see [testing](docs/testing.md).
 
-Once registry availability is confirmed, a separate executable can declare `"pangbit/moonpulsar@0.1.3"` and `"moonbitlang/async@0.22.1"` in `moon.mod`, set `preferred_target = "native"`, and use this `moon.pkg`:
+Once registry availability is confirmed, a separate executable can declare `"pangbit/moonpulsar@0.1.4"` and `"moonbitlang/async@0.22.1"` in `moon.mod`, set `preferred_target = "native"`, and use this `moon.pkg`:
 
 ```text
 import {
